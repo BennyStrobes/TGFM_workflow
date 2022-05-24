@@ -19,7 +19,6 @@ for chrom_num in $(seq 1 22); do
 done
 fi
 
-
 if false; then
 source ~/.bash_profile
 python3 merge_susie_input_gene_file_across_chromosomes.py $gtex_preprocessed_for_susie_dir

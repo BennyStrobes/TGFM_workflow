@@ -33,6 +33,6 @@ for chrom_num in $(seq 1 22); do
 done
 fi
 
-
-
+if false; then
 python3 merge_susie_input_window_file_across_chromosomes.py $ukbb_preprocessed_for_genome_wide_susie_dir
+fi

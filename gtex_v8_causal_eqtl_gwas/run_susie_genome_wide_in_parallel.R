@@ -9,9 +9,11 @@ options(warn=1)
 
 
 susie_run_across_traits_shell <- function(gene_name, variant_ids, trait_names, beta_mat, std_err_mat, LD, sample_sizes, output_dir) {
+	print(variant_ids)
 	for (trait_num in 1:length(trait_names)) {
 		trait_name <- trait_names[trait_num]
-		res = susie_suff_stat(bhat=as.numeric(beta_mat[trait_num,]), shat=as.numeric(std_err_mat[trait_num,]),R=LD, n=sample_sizes[trait_num])
+		#res = susie_suff_stat(bhat=as.numeric(beta_mat[trait_num,]), shat=as.numeric(std_err_mat[trait_num,]),R=LD, n=sample_sizes[trait_num])
+		res <- susie_rss(bhat=as.numeric(beta_mat[trait_num,]), shat=as.numeric(std_err_mat[trait_num,]), R=LD, n=sample_sizes[trait_num])
 		res[["variant_ids"]] = variant_ids
 		output_file <- paste0(output_dir, gene_name, "_", trait_name, "_susie_res.RDS")
 		saveRDS(res, file=output_file)
@@ -42,7 +44,6 @@ window_df <- read.table(window_file, header=TRUE, sep="\t")
 window_df$window_id = paste0(window_df$chrom_num,":", window_df$start_pos_inclusive, ":", window_df$end_position_exclusive)
 # Get total number of genes
 num_windows <- dim(window_df)[1]
-
 
 # For parallelization purposes, determine which genes to test in this thread
 tasks_per_job = floor(num_windows/total_jobs) + 1

@@ -7,15 +7,17 @@
 
 
 tissue_name="$1"
-xt_pc_gene_list_file="$2"
-gtex_expression_dir="$3"
-gtex_covariate_dir="$4"
-gtex_genotype_dir="$5"
-gtex_fusion_weights_data_dir="$6"
-gtex_fusion_weights_dir="$7"
-ukbb_sumstats_hg38_dir="$8"
+pseudotissue_name="$2"
+xt_pc_gene_list_file="$3"
+gtex_expression_dir="$4"
+gtex_covariate_dir="$5"
+gtex_genotype_dir="$6"
+gtex_fusion_weights_data_dir="$7"
+gtex_susie_pmces_fusion_weights_dir="$8"
+gtex_preprocessed_for_susie_dir="$9"
+gtex_susie_results_dir="${10}"
 
-echo $tissue_name
+echo $tissue_name"_"$pseudotissue_name
 
 # Using Tiffany's paths because I didn't feel like downloading myself
 gcta_path="/n/groups/price/tiffany/subpheno/fusion_twas-master/gcta_nr_robust"
@@ -23,37 +25,30 @@ gemma_path="/n/groups/price/tiffany/subpheno/gemma-0.98.1-linux-static"
 
 
 tissue_gtex_fusion_weights_data_dir=$gtex_fusion_weights_data_dir$tissue_name"/"
-mkdir $tissue_gtex_fusion_weights_data_dir
 
-source ~/.bash_profile
-python3 preprocess_gtex_data_for_fusion_weights_analysis.py $tissue_name $xt_pc_gene_list_file $gtex_expression_dir $gtex_covariate_dir $tissue_gtex_fusion_weights_data_dir
 gene_summary_file=$tissue_gtex_fusion_weights_data_dir$tissue_name"_gene_summary.txt"
 
 
-for chrom_num in $(seq 1 22); do 
-	sh filter_gtex_genotype_data_to_variants_in_ukbb.sh $chrom_num $tissue_name $gtex_genotype_dir $ukbb_sumstats_hg38_dir $tissue_gtex_fusion_weights_data_dir
-done
-tissue_gtex_fusion_weights_dir=$gtex_fusion_weights_dir$tissue_name"/"
+tissue_gtex_fusion_weights_dir=$gtex_susie_pmces_fusion_weights_dir$tissue_name"/"
 mkdir $tissue_gtex_fusion_weights_dir
 
-module load R/3.5.1
 
 
-
+module load R/4.0.1
 
 cis_window_size="500000"
+
+
+
 # Loop through lines (genes) of gene summary file while skipping header
 sed 1d $gene_summary_file | while read gene_id chrom_num tss gene_pheno_file covariate_file; do
-	echo $gene_id
 	# Get stand and end position of the cis window for this gene
 	p0="$(($tss - $cis_window_size))"
 	p1="$(($tss + $cis_window_size))"
 
-	# Rcently added (but not run like this yet.)
 	if (( $p0 < 0 )); then
 		p0="0"
 	fi
-
 
 	# Set OUT directory for this gene
 	OUT=$tissue_gtex_fusion_weights_dir$tissue_name"_"$gene_id"_1KG_only_fusion_input"
@@ -63,13 +58,7 @@ sed 1d $gene_summary_file | while read gene_id chrom_num tss gene_pheno_file cov
 	
 	# Set FINAL_OUT directory for this gene
 	FINAL_OUT=$tissue_gtex_fusion_weights_dir$tissue_name"_"$gene_id"_1KG_only_fusion_output"
-	Rscript FUSION.compute_weights.R --bfile $OUT --tmp $OUT.tmp --out $FINAL_OUT --covar $covariate_file --PATH_gcta $gcta_path --PATH_gemma $gemma_path --verbose 0 --save_hsq --models top1,blup,lasso
+	Rscript FUSION.compute_weights_from_susie_pmces.R --bfile $OUT --tmp $OUT.tmp --out $FINAL_OUT --covar $covariate_file --PATH_gcta $gcta_path --PATH_gemma $gemma_path --crossval 0 --susievarnames ${gtex_preprocessed_for_susie_dir}${gene_id}"_variant_ids.txt" --susieres ${gtex_susie_results_dir}${gene_id}"_"${pseudotissue_name}"_susie_res.RDS" --hsq_p 1.0 --verbose 0 --save_hsq 
 
 	rm $OUT*
 done
-
-
-source ~/.bash_profile
-python3 generate_fusion_pos_file_for_single_tissue.py $gene_summary_file $tissue_gtex_fusion_weights_dir $tissue_name
-
-

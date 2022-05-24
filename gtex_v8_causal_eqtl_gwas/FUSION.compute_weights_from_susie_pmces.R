@@ -3,6 +3,8 @@
 
 suppressMessages(library("optparse"))
 suppressMessages(library('plink2R'))
+suppressMessages(library('susieR'))
+
 #suppressMessages(library('glmnet'))
 suppressMessages(library('methods'))
 
@@ -23,6 +25,10 @@ option_list = list(
               help="Path to plink executable [%default]"),
   make_option("--covar", action="store", default=NA, type='character',
               help="Path to quantitative covariates (PLINK format) [optional]"),
+  make_option("--susieres", action="store", default=NA, type='character',
+              help="Path to suie results [required]"),
+  make_option("--susievarnames", action="store", default=NA, type='character',
+              help="Path to suie variant names [required]"),
   make_option("--resid", action="store_true", default=FALSE,
               help="Also regress the covariates out of the genotypes [default: %default]"),              
   make_option("--hsq_p", action="store", default=0.01, type='double',
@@ -51,13 +57,27 @@ option_list = list(
 )
 
 opt = parse_args(OptionParser(option_list=option_list))
-models = unique( c(unlist(strsplit(opt$models,',')),"top1") )
-M = length(models)
 
-if ( ! all(models %in% c('blup', 'lasso', 'top1', 'enet', 'bslmm')) ) {
-	cat( "ERROR: --models flag included invalid models\n" , sep='' , file=stderr() )
+
+if ( !file.exists(opt$susieres)) {
+	cat( "ERROR: missing susie res file\n" , sep='' , file=stderr() )
 	q()
 }
+if ( !file.exists(opt$susievarnames)) {
+	cat( "ERROR: missing susie var names file. should not happen\n" , sep='' , file=stderr() )
+	q()
+}
+
+
+#models = unique( c(unlist(strsplit(opt$models,',')),"top1") )
+#M = length(models)
+
+#if ( ! all(models %in% c('blup', 'lasso', 'top1', 'enet', 'bslmm')) ) {
+#	cat( "ERROR: --models flag included invalid models\n" , sep='' , file=stderr() )
+#	q()
+#}
+models=c("susie_pmces")
+M = length(models)
 
 if ( opt$verbose == 2 ) {
   SYS_PRINT = F
@@ -125,6 +145,46 @@ weights.enet = function( genos , pheno , alpha=0.5 ) {
 	eff.wgt[ keep ] = coef( enet , s = "lambda.min")[2:(sum(keep)+1)]
 	return( eff.wgt )
 }
+
+weights.susie_pmces_from_file <- function( genos , geno_bim, susie_res_file, susie_var_names_file ) {
+
+	susie_var_names <- as.character(read.table(susie_var_names_file, header=FALSE)$V1)
+	susie_var_names <- paste(susie_var_names, "_b38", sep="")
+
+	susie_obj <- readRDS(susie_res_file)
+
+	susie_pmces = colSums(susie_obj$mu*susie_obj$alpha)
+	if (length(susie_pmces) != length(susie_var_names)) {
+		print("SUSIE LENGTH ASSUMPTION EROROR")
+	}
+
+	geno_var_names <- colnames(genos)
+
+	new_order <- match(geno_var_names, susie_var_names)
+	if (sum(is.na(new_order)) != 0) {
+		print("MISSING GENOTYPE ASSUMPTION EROROR")
+	}
+
+	# SuSiE PMCES have correct order according to geno and geno bim
+	susie_pmces <- as.vector(susie_pmces)
+	susie_pmces <- susie_pmces[new_order]
+
+	ret_obj <- list()
+	ret_obj[[1]] = susie_pmces
+	ret_obj[[2]] = susie_obj$mu[,new_order]
+	ret_obj[[3]] = susie_obj$mu2[,new_order]
+	ret_obj[[4]] = susie_obj$alpha[,new_order]
+	ret_obj[[5]] = susie_obj$V
+	ret_obj[[6]] = susie_obj$converged
+
+	return(ret_obj)
+}
+weights.susie_individual <- function(genotype, expr) {
+	res <- susie(genotype,expr,L=10)
+	return(colSums(res$mu*res$alpha))
+}
+
+
 
 # --- CLEANUP
 cleanup = function() {
@@ -247,10 +307,12 @@ if ( opt$verbose >= 1 ) cat("Heritability (se):",hsq,"LRT P-value:",hsq.pv,'\n')
 if ( opt$save_hsq ) cat( opt$out , hsq , hsq.pv , '\n' , file=paste(opt$out,".hsq",sep='') )
 
 # 4. stop if insufficient
+if (opt$hsq_p < 1.0) {
 if ( hsq[1] < 0 || hsq.pv > opt$hsq_p ) {
 	cat(opt$tmp," : heritability ",hsq[1],"; LRT P-value ",hsq.pv," : skipping gene\n",sep='',file=stderr())
 	cleanup()
 	q()
+}
 }
 
 } else {
@@ -261,6 +323,9 @@ hsq.pv = NA
 
 # read in genotypes
 genos = read_plink(geno.file,impute="avg")
+#saveRDS(genos,"genos_bed_unfixed.rds")
+
+
 mafs = apply(genos$bed,2,mean)/2
 sds = apply(genos$bed,2,sd)
 # important : genotypes are standardized and scaled here:
@@ -321,6 +386,7 @@ for ( i in 1:opt$crossval ) {
 	system(arg , ignore.stdout=SYS_PRINT,ignore.stderr=SYS_PRINT)
 
 	for ( mod in 1:M ) {
+		print(models[mod])
 		if ( models[mod] == "blup" ) {
 			pred.wgt = weights.bslmm( cv.file , bv_type=2 , snp=genos$bim[,2] )
 		}
@@ -336,6 +402,8 @@ for ( i in 1:opt$crossval ) {
 		else if ( models[mod] == "top1" ) {
 			pred.wgt = weights.marginal( genos$bed[ cv.sample[ -indx ],] , as.matrix(cv.train[,3,drop=F]) , beta=T )
 			pred.wgt[ - which.max( pred.wgt^2 ) ] = 0
+		} else if ( models[mod] == "susie_pmces") {
+			#pred.wgt_alt = weights.lasso( cv.file , hsq[1] , snp=genos$bim[,2] )
 		}
 
 		# predict from weights into sample
@@ -381,11 +449,21 @@ for ( mod in 1:M ) {
 	else if ( models[mod] == "top1" ) {
 		wgt.matrix[,mod] = weights.marginal( genos$bed , as.matrix(pheno[,3]) , beta=F )
 	}
+	else if ( models[mod] == "susie_pmces") {
+		temp_list = weights.susie_pmces_from_file( genos$bed, genos$bim, opt$susieres , opt$susievarnames)
+		wgt.matrix[,mod] = temp_list[[1]]
+		susie_mu = temp_list[[2]]
+		susie_mu2 = temp_list[[3]]
+		susie_alpha = temp_list[[4]]
+		susie_V = temp_list[[5]]
+		susie_converged = temp_list[[6]]
+		#susie_individual_weights <- weights.susie_individual(genos$bed, as.matrix(pheno[,3]))
+	}
 }
 
 # save weights, rsq, p-value for each model, and hsq to output
 snps = genos$bim
-save( wgt.matrix , snps , cv.performance , hsq, hsq.pv, N.tot , file = paste( opt$out , ".wgt.RDat" , sep='' ) )
+save( wgt.matrix , snps , cv.performance , hsq, hsq.pv, N.tot, susie_mu, susie_mu2, susie_alpha, susie_V, susie_converged, file = paste( opt$out , ".wgt.RDat" , sep='' ) )
 # --- CLEAN-UP
 if ( opt$verbose >= 1 ) cat("Cleaning up\n")
 cleanup()

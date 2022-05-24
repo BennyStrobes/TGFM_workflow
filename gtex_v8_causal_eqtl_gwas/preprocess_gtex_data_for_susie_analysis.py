@@ -70,6 +70,18 @@ def fill_in_gene_dicti_from_single_tissue_summary_stats(sum_stats_file, gene_dic
 		if gene_id not in gene_dicti:
 			continue
 		variant_id = data[0]
+		variant_info = variant_id.split('_')
+		a1 = variant_info[2]
+		a2 = variant_info[3]
+		# Ignore strand ambiguous variants from analysis
+		if a1 == 'A' and a2 == 'T':
+			continue
+		if a1 == 'T' and a2 == 'A':
+			continue
+		if a1 == 'C' and a2 == 'G':
+			continue
+		if a1 == 'G' and a2 == 'C':
+			continue
 		beta = float(data[2])
 		t_stat = float(data[3])
 		beta_std_err = beta/t_stat
@@ -283,7 +295,8 @@ for gene_index, test_gene in enumerate(ordered_genes):
 	gene_beta_mat, gene_std_err_mat, gene_variant_arr, gene_tissue_arr = organize_gene_test_arr(gene_test_arr)
 
 	# Currently gene_variant_arr is of format chrom_pos_ref_eff, whereas we will be using nomenclature of: chrom_pos_eff_ref
-	gene_variant_arr = flip_effect_and_reference_allele_in_snp_arr(gene_variant_arr)
+	#gene_variant_arr = flip_effect_and_reference_allele_in_snp_arr(gene_variant_arr)
+	gene_variant_arr = np.asarray(gene_variant_arr)
 
 	# Filter to variants in UKBB
 	variants_in_ukbb_indices = get_indices_of_variants_in_ukbb(gene_variant_arr, ukbb_variants)
@@ -307,14 +320,10 @@ for gene_index, test_gene in enumerate(ordered_genes):
 	# Get reference genotype for this gene
 	gene_reference_genotype = G[:, reference_indices]
 
-	# Correct for flips in GTEx data (assuming 1KG is reference)
+	# Correct for flips in GTEx data (assuming GTEx is reference)
 	for snp_index, flip_value in enumerate(flip_values):
 		if flip_value == -1.0:
-			gene_beta_mat[:, snp_index] = gene_beta_mat[:, snp_index]*-1.0
-			old_snp = gene_variant_arr[snp_index]
-			snp_info = old_snp.split('_')
-			new_snp = snp_info[0] + '_' + snp_info[1] + '_' + snp_info[3] + '_' + snp_info[2]
-			gene_variant_arr[snp_index] = new_snp
+			gene_reference_genotype[:,snp_index] = 2.0 - gene_reference_genotype[:,snp_index]
 	
 	# Quick error check
 	if len(gene_variant_arr) != len(np.unique(gene_variant_arr)):

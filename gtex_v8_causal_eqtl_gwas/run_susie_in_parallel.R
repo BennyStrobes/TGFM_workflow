@@ -11,9 +11,20 @@ options(warn=1)
 susie_run_across_traits_shell <- function(gene_name, variant_ids, trait_names, beta_mat, std_err_mat, LD, sample_sizes, output_dir) {
 	for (trait_num in 1:length(trait_names)) {
 		trait_name <- trait_names[trait_num]
-		res = susie_suff_stat(bhat=as.numeric(beta_mat[trait_num,]), shat=as.numeric(std_err_mat[trait_num,]),R=LD, n=sample_sizes[trait_num])
-		output_file <- paste0(output_dir, gene_name, "_", trait_name, "_susie_res.RDS")
-		saveRDS(res, file=output_file)
+		
+		#res = susie_suff_stat(bhat=as.numeric(beta_mat[trait_num,]), shat=as.numeric(std_err_mat[trait_num,]),R=LD, n=sample_sizes[trait_num])
+		#res = susie_rss(bhat=as.numeric(beta_mat[trait_num,]), shat=as.numeric(std_err_mat[trait_num,]),R=LD, n=sample_sizes[trait_num])
+		tryCatch(
+		{
+			#res = susie_suff_stat(bhat=as.numeric(beta_mat[trait_num,]), shat=as.numeric(std_err_mat[trait_num,]),R=LD, n=sample_sizes[trait_num])
+			res = susie_rss(bhat=as.numeric(beta_mat[trait_num,]), shat=as.numeric(std_err_mat[trait_num,]),R=LD, n=sample_sizes[trait_num])
+			output_file <- paste0(output_dir, gene_name, "_", trait_name, "_no_ambiguous_variants_susie_res.RDS")
+			saveRDS(res, file=output_file)
+		 },
+    		error = function(e) {
+	    	print(paste0(gene_name, " ", trait_name, " errror"))
+   		}
+    	)
 	}
 }
 
@@ -49,13 +60,11 @@ end_task = floor((job_number + 1)*tasks_per_job)
 if (end_task > num_genes) {
 	end_task = num_genes
 }
+print(start_task)
+print(end_task)
 
 for (gene_num in start_task:end_task) {
-	print(gene_num)
-
-	tryCatch(
-	{
-
+		print(gene_num)
 		gene_name <- gene_df$gene_id[gene_num]
 		genotype_file <- gene_df$ref_genotype_file[gene_num]
 		beta_file <- gene_df$beta_file[gene_num]
@@ -75,10 +84,5 @@ for (gene_num in start_task:end_task) {
 		LD <- cor(geno_df)
 
 		susie_run_across_traits_shell(gene_name, variant_ids, tissues, beta_mat, std_err_mat, LD, sample_sizes, output_dir)
-    },
-    error = function(e) {
-    	print("ERORORO")
-       	print(gene_num)
-    }
-    )
+
 }

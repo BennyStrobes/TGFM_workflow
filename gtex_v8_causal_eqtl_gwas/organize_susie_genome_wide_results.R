@@ -79,7 +79,15 @@ for (trait_num in 1:length(traits)) {
 
 				pis = susie_res[['alpha']][cs_num, susie_res$sets$cs[[cs_iter]]]
 
-				posterior_causal_effect_sizes = susie_res[['mu']][cs_num,]
+				posterior_causal_effect_sizes = susie_res[['mu']][cs_num,]*susie_res[['alpha']][cs_num,]
+
+				susie_mu = susie_res[['mu']][cs_num,]
+
+				susie_alpha = susie_res[['alpha']][cs_num,]
+
+				susie_sdev = sqrt(susie_res[['mu2']][cs_num,] - (susie_mu^2))
+
+
 
 				lead_variant_index = which(pis==max(pis))[1]
 				lead_variant = cs_variant_ids[lead_variant_index]
@@ -92,15 +100,12 @@ for (trait_num in 1:length(traits)) {
 					cat(new_line)
 
 					# Save posterior mean causal effect sizes for this component
-					pmcef_df <- data.frame(variant_id=susie_res$variant_ids, component_posterior_mean_causal_effect_sizes=posterior_causal_effect_sizes)
+					pmcef_df <- data.frame(variant_id=susie_res$variant_ids, component_posterior_mean_causal_effect_sizes=posterior_causal_effect_sizes, mu=susie_mu, alpha=susie_alpha, mu_sd=susie_sdev)
 					pmcef_output_file <- paste0(output_dir, trait_name, "_", lead_variant, "_", window_id, "_component_posterior_mean_causal_effect_sizes.txt")
 					write.table(pmcef_df, file=pmcef_output_file, quote=FALSE, sep='\t', row.names = FALSE)
 				}
-
-
 			}
 		}
-
 	}
 	sink()
 }

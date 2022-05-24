@@ -100,6 +100,17 @@ def fill_in_window_dictionary_for_single_trait(trait_name, trait_file, chrom_num
 		line_variant_id = 'chr' + data[1] + '_' + data[2] + '_' + data[4] + '_' + data[5] + '_b38'
 		line_variant_id_alt = 'chr' + data[1] + '_' + data[2] + '_' + data[5] + '_' + data[4] + '_b38'
 		variant_pos = int(data[2])
+
+		# Ignore strand ambiguous variants from analysis
+		if data[4] == 'A' and data[5] == 'T':
+			continue
+		if data[4] == 'T' and data[5] == 'A':
+			continue
+		if data[4] == 'C' and data[5] == 'G':
+			continue
+		if data[4] == 'G' and data[5] == 'C':
+			continue
+
 		# Some repeats in this file..
 		if line_variant_id in used_variants or line_variant_id_alt in used_variants:
 			continue
@@ -235,7 +246,7 @@ for trait_index, trait_name in enumerate(trait_names):
 
 
 # First extract list of gtex variants in UKBB [we will be using gtex variant orientation]
-# Also note that these gtex variants are als found in UKBB
+# Also note that these gtex variants are also found in UKBB
 gtex_variants = get_gtex_variants_on_this_chromosome(gtex_genotype_dir + 'Whole_Blood_GTEx_v8_genotype_EUR_' + chrom_num + '.bim')  #note: whole blood is randomly choosen but really doesn't matter b/c all tissues have the same variants
 
 
@@ -246,7 +257,6 @@ window_names_chromosome, window_dictionary = get_window_names_on_this_chromosome
 
 # Fill in the dictionary with each elent in list is a string corresponding to info on a cis snp
 window_dictionary = fill_in_window_dictionary(trait_names, trait_files, chrom_num, window_names_chromosome, gtex_variants, window_dictionary)
-
 
 
 
@@ -305,6 +315,7 @@ for line in f:
 		continue
 	# Info about this window
 	window_name = data[0] + ':' + data[1] + ':' + data[2]
+
 	# Extract SNPs and gwas effects in this window
 	window_test_arr = window_dictionary[window_name]
 

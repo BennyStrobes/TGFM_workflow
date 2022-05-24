@@ -60,7 +60,7 @@ def get_component_genotype(window_variant_ids, window_genotype, component_varian
 
 	return window_genotype[:, indices]
 
-def get_max_corr_between_two_genotype_matrices(geno1, geno2):
+def get_mean_abs_corr_between_two_genotype_matrices(geno1, geno2):
 	col1 = geno1.shape[1]
 	col2 = geno2.shape[1]
 
@@ -72,9 +72,9 @@ def get_max_corr_between_two_genotype_matrices(geno1, geno2):
 	return np.mean(np.abs(corry))
 
 
-def extract_study_component_max_correlation_among_ci(study_name, study_component_file, window_to_genotype_file, study_component_max_correlation_file):
+def filter_component_file(study_name, study_component_file, window_to_genotype_file, study_filtered_component_file):
 	f = open(study_component_file)
-	print(study_component_file)
+	t = open(study_filtered_component_file,'w')
 
 	prior_windows = {}
 	head_count= 0
@@ -84,9 +84,9 @@ def extract_study_component_max_correlation_among_ci(study_name, study_component
 		data = line.split('\t')
 		if head_count == 0:
 			head_count = head_count + 1
+			t.write(line + '\n')
 			continue
 		counter = counter + 1
-		print(counter)
 		# Extract relevent fields
 		lead_variant = data[2]
 		window_id = data[4]
@@ -106,26 +106,33 @@ def extract_study_component_max_correlation_among_ci(study_name, study_component
 
 		# Loop through old components
 		prev_window_ids = [*prior_windows]
+
+		pass_filter = True
+
 		for prev_window_id in prev_window_ids:
 			# Check if current window id overlaps prev window id
 			if windows_overlap(window_id, prev_window_id) == 'overlap':
 				#print('windows overlap')
 				prev_window_component_arr = prior_windows[prev_window_id]  # This is a vector of length number of components in the window. each element is a genotype matrix corresponding to that componetn
 				for prev_window_component_genotype in prev_window_component_arr:
-					max_corry = get_max_corr_between_two_genotype_matrices(prev_window_component_genotype, component_genotype)
-					print(max_corry)
+					mean_abs_corr = get_mean_abs_corr_between_two_genotype_matrices(prev_window_component_genotype, component_genotype)
+					if mean_abs_corr > .5:
+						pass_filter = False
 			elif windows_overlap(window_id, prev_window_id) == 'no_overlap':
 				#print('windows dont overlap')
 				prior_windows.pop(prev_window_id, None)
-			#elif windows_overlap(window_id, prev_window_id) == 'identical':
-				#print('identical windows')
-
 
 		if window_id not in prior_windows:
 			prior_windows[window_id] = []
 		prior_windows[window_id].append(component_genotype)
 
-	f.close()	
+		if pass_filter == True:
+			t.write(line + '\n')
+		else:
+			print('throwing out ' + component_id)
+
+	f.close()
+	t.close()
 
 
 def extract_study_component_correlations(study_name, study_component_file, study_component_correlation_file, ukbb_genome_wide_susie_organized_results_dir):
@@ -227,15 +234,11 @@ global_output_file = ukbb_genome_wide_susie_organized_results_dir + 'organized_s
 # Perform analysis for each study seperately
 for study_name in study_names:
 	# File containing all components for this study
-	study_component_file = ukbb_genome_wide_susie_organized_results_dir + study_name + '_organized_susie_components.txt'
-	# Output file containing correlations between components
-	#study_component_correlation_file = ukbb_genome_wide_susie_organized_results_dir + study_name + '_component_correlations.txt'
-
-	#extract_study_component_correlations(study_name, study_component_file, study_component_correlation_file, ukbb_genome_wide_susie_organized_results_dir)
-
-	study_component_max_correlation_file = ukbb_genome_wide_susie_organized_results_dir + study_name + '_component_max_correlations_among_ci.txt'
-	extract_study_component_max_correlation_among_ci(study_name, study_component_file, window_to_genotype_file, study_component_max_correlation_file)
+	study_component_file = ukbb_genome_wide_susie_organized_results_dir + study_name + '_organized_susie_components.txt'  # Input file
+	study_filtered_component_file = ukbb_genome_wide_susie_organized_results_dir + study_name + '_organized_susie_filtered_components.txt'  # Output file
+	filter_component_file(study_name, study_component_file, window_to_genotype_file, study_filtered_component_file)
 	#t.write(study_name + '\t' + study_component_file + '\n')
+	#extract_study_component_max_correlation_among_ci
 
 #t.close()
 

@@ -1,0 +1,174 @@
+import sys
+sys.path.remove('/n/app/python/3.7.4-ext/lib/python3.7/site-packages')
+import pandas as pd
+import numpy as np 
+import os 
+import pdb
+import scipy.special
+import pickle
+
+
+def get_tissue_names_from_gene_tissue_string_array(genes):
+	tissues = []
+	for gene in genes:
+		info = gene.split('_')
+		tissue = '_'.join(info[1:])
+		tissues.append(tissue)
+	return np.asarray(tissues)
+
+def extract_tissue_names(gtex_pseudotissue_file):
+	f = open(gtex_pseudotissue_file)
+	arr = []
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		arr.append(data[0])
+	f.close()
+	return np.asarray(arr)
+
+def extract_twas_pickle_file_names(trait_name, pseudotissue_gtex_rss_multivariate_twas_dir):
+	file_names = []
+	for chrom_num in range(1,23):
+		#if chrom_num != 13 and chrom_num != 21 and chrom_num != 5 and chrom_num != 18:
+		#	continue
+		#print(chrom_num)
+		file_name = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + str(chrom_num) + '_summary_tgfm_results_const_1e-5_prior.txt'
+		f = open(file_name)
+		head_count = 0
+		for line in f:
+			line = line.rstrip()
+			data = line.split('\t')
+			if head_count == 0:
+				head_count = head_count + 1
+				continue
+			file_name = data[2]
+			if file_name == 'NA':
+				continue
+			file_names.append(file_name)
+		f.close()
+	return np.asarray(file_names)
+
+def create_alpha_mu_and_alpha_var_objects(twas_pickle_file_names, tissue_to_position_mapping):
+	twas_obj_file_names = []
+	alpha_mu_object = []
+	alpha_var_object = []
+	tissue_object = []
+	temp_arr = []
+	for itera, twas_pickle_file_name in enumerate(twas_pickle_file_names):
+		f = open(twas_pickle_file_name, "rb")
+		twas_obj = pickle.load(f)
+		f.close()
+		twas_obj_file_names.append(twas_pickle_file_name)
+		alpha_mu_object.append(0.0*np.copy(twas_obj.alpha_mu))
+		alpha_var_object.append(1.0 + (0.0*np.copy(twas_obj.alpha_var)))
+		temp_arr.append(np.max(np.square(twas_obj.alpha_mu) + twas_obj.alpha_var))
+		# get tissue names
+		tissue_names = get_tissue_names_from_gene_tissue_string_array(twas_obj.genes)
+		tissue_positions = []
+		for tissue_name in tissue_names:
+			tissue_positions.append(tissue_to_position_mapping[tissue_name])
+		tissue_object.append(np.asarray(tissue_positions))
+	pdb.set_trace()
+	return alpha_mu_object, alpha_var_object, tissue_object, np.asarray(twas_obj_file_names)
+
+def create_tissue_to_position_mapping(ordered_tissue_names):
+	mapping = {}
+	for i, tissue in enumerate(ordered_tissue_names):
+		mapping[tissue] = i
+	return mapping
+
+def update_gamma_alpha(alpha_mu_object, alpha_var_object, tissue_object, num_tiss, ard_a_prior, ard_b_prior):
+	#alpha_squared_expected_val = np.square(self.alpha_mu) + self.alpha_var
+	# VI updates
+	#self.gamma_alpha_a = self.ard_a_prior + (self.G/2.0)
+	#self.gamma_alpha_b = self.ard_b_prior + (np.sum(alpha_squared_expected_val)/2.0)
+	
+	# Number of components to loop over
+	num_components = len(alpha_mu_object)
+	# Initialize vector to keep track of number of tissue specific genes
+	num_genes_vec = np.zeros(num_tiss)
+	# Initialize vector to keep track of sum of alpha-squared expected val
+	alpha_squared_vec = np.zeros(num_tiss)
+	for nn in range(num_components):
+		num_genes = len(tissue_object[nn])
+		for kk in range(num_genes):
+			tissue_index = tissue_object[nn][kk]
+			num_genes_vec[tissue_index] = num_genes_vec[tissue_index] + 1
+			alpha_squared_vec[tissue_index] = alpha_squared_vec[tissue_index] + np.square(alpha_mu_object[nn][kk]) + alpha_var_object[nn][kk]
+	gamma_alpha_a = ard_a_prior + (num_genes_vec/2.0)
+	gamma_alpha_b = ard_b_prior + (alpha_squared_vec/2.0)
+	return gamma_alpha_a, gamma_alpha_b
+
+def update_alphas(alpha_mu_object, alpha_var_object, tissue_object, twas_obj_file_names, expected_gamma_alpha):
+	# Number of components to loop over
+	num_components = len(alpha_mu_object)
+
+	for nn in range(num_components):
+		# First create vector of length number of genes where element is tissue-specific prior precision corresponding to that gene
+		component_gamma_alpha = np.zeros(len(tissue_object[nn]))
+		for pos in range(len(tissue_object[nn])):
+			component_gamma_alpha[pos] = expected_gamma_alpha[tissue_object[nn][pos]]
+		# Load in twas obj
+		f = open(twas_obj_file_names[nn], "rb")
+		twas_obj = pickle.load(f)
+		f.close()
+		# Set twas_obj alpha_mu and alpha_var to current estimates of alpha_mu and alpha_var
+		twas_obj.alpha_mu = np.copy(alpha_mu_object[nn])
+		twas_obj.alpha_var = np.copy(alpha_var_object[nn])
+		# Perform VI UPDATES on alpha_mu and alpha_var
+		twas_obj.update_alpha(component_gamma_alpha)
+		# Now set alpha_mu_object and alpha_var_object to current estimates of alpha_mu and alpha_var
+		alpha_mu_object[nn] = np.copy(twas_obj.alpha_mu)
+		alpha_var_object[nn] = np.copy(twas_obj.alpha_var)
+	return alpha_mu_object, alpha_var_object
+
+def infer_rss_twas_tissue_specific_priors(ordered_tissue_names, twas_pickle_file_names, temp_output_file, max_iter=200):
+	# Number of tissues
+	num_tiss = len(ordered_tissue_names)
+	# Create mapping from tissue name to position
+	tissue_to_position_mapping = create_tissue_to_position_mapping(ordered_tissue_names)
+	# First create initial alpha mu object
+	alpha_mu_object, alpha_var_object, tissue_object, twas_obj_file_names = create_alpha_mu_and_alpha_var_objects(twas_pickle_file_names, tissue_to_position_mapping)
+
+	# Initialize gamma_alpha_a and gamma_alpha_b to have expected variance 1/10000 in all tissues
+	gamma_alpha_b = 1.0*np.ones(len(ordered_tissue_names))
+	gamma_alpha_a = 1000000.0*np.ones(len(ordered_tissue_names))
+
+	for itera in range(max_iter):
+		print('Variational iteration ' + str(itera))
+		# Update alpha
+		expected_gamma_alpha = gamma_alpha_a/gamma_alpha_b
+		alpha_mu_object, alpha_var_object = update_alphas(alpha_mu_object, alpha_var_object, tissue_object, twas_obj_file_names, expected_gamma_alpha)
+		# Update gamma
+		gamma_alpha_a, gamma_alpha_b = update_gamma_alpha(alpha_mu_object, alpha_var_object, tissue_object, num_tiss, 1e-16, 1e-16)
+		
+
+		if np.mod(itera, 5) == 0:
+			df = pd.DataFrame(data={'tissue': ordered_tissue_names, 'expected_precision': (gamma_alpha_a/gamma_alpha_b), 'gamma_alpha_a': gamma_alpha_a, 'gamma_alpha_b': gamma_alpha_b})
+			df.to_csv(temp_output_file, sep='\t', index=False)
+
+	return gamma_alpha_a/gamma_alpha_b, gamma_alpha_a, gamma_alpha_b
+
+
+trait_name = sys.argv[1]
+gtex_pseudotissue_file = sys.argv[2]
+pseudotissue_gtex_rss_multivariate_twas_dir = sys.argv[3]
+
+ordered_tissue_names = extract_tissue_names(gtex_pseudotissue_file)
+
+twas_pickle_file_names = extract_twas_pickle_file_names(trait_name, pseudotissue_gtex_rss_multivariate_twas_dir)
+
+
+temp_output_file = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_tissue_specific_prior_precision_alt_init_temp.txt'
+expected_gamma_alpha, gamma_alpha_a, gamma_alpha_b = infer_rss_twas_tissue_specific_priors(ordered_tissue_names, twas_pickle_file_names, temp_output_file)
+
+
+
+output_file = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_tissue_specific_prior_precision_alt_init.txt'
+df = pd.DataFrame(data={'tissue': ordered_tissue_names, 'expected_precision': expected_gamma_alpha, 'gamma_alpha_a': gamma_alpha_a, 'gamma_alpha_b': gamma_alpha_b})
+df.to_csv(output_file, sep='\t', index=False)
+
