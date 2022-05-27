@@ -28,11 +28,11 @@ allele.qc = function(a1,a2,ref1,ref2) {
 	flip2 = flip;
 
 	snp = list()
-	snp[["keep"]] = !((a1=="ZZZZZZZ")) # MY Hack to ensure no snps are thrown out b/c of commented out strand ambiguity below b/c not proficient in R
-	#snp[["keep"]] = !((a1=="A" & a2=="T") | (a1=="T" & a2=="A") | (a1=="C" & a2=="G") | (a1=="G" & a2=="C"))
+	#snp[["keep"]] = !((a1=="ZZZZZZZ")) # MY Hack to ensure no snps are thrown out b/c of commented out strand ambiguity below b/c not proficient in R
+	snp[["keep"]] = !((a1=="A" & a2=="T") | (a1=="T" & a2=="A") | (a1=="C" & a2=="G") | (a1=="G" & a2=="C"))
 	snp[["keep"]][ a1 != "A" & a1 != "T" & a1 != "G" & a1 != "C" ] = F
 	snp[["keep"]][ a2 != "A" & a2 != "T" & a2 != "G" & a2 != "C" ] = F
-	#snp[["flip"]] = (a1 == ref2 & a2 == ref1) | (a1 == flip2 & a2 == flip1)
+	snp[["flip"]] = (a1 == ref2 & a2 == ref1) | (a1 == flip2 & a2 == flip1)
 	snp[["flip"]] = (a1 == ref2 & a2 == ref1)
 	return(snp)
 }
@@ -155,6 +155,7 @@ if ( sum(!qc$keep) > 0 ) {
 	sumstat = sumstat[qc$keep,]
 }
 
+
 component_names <- c()
 num_genes <- c()
 trait_component_genes_table_names <- c()
@@ -217,6 +218,7 @@ for (trait_component_iter in 1:num_susie_trait_components) {
 		m.keep = !is.na(m)
 		snps = snps[m.keep,]
 		wgt.matrix = wgt.matrix[m.keep,,drop=F]
+
 		susie_mu = susie_mu[,m.keep]
 		susie_alpha = susie_alpha[,m.keep]
 		susie_sdev = susie_sdev[,m.keep]

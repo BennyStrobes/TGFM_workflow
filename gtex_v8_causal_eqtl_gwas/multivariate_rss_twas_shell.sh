@@ -14,6 +14,7 @@ pseudotissue_gtex_rss_multivariate_twas_data_dir="$7"
 pseudotissue_gtex_rss_multivariate_twas_dir="$8"
 gene_version="$9"
 
+
 if false; then
 for chrom_num in {1..22}; do 
 	sbatch organize_rss_twas_data_on_single_chromosome.sh $chrom_num $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $gene_version
@@ -27,12 +28,26 @@ for chrom_num in {1..22}; do
 done
 fi
 
+
+
 if false; then
 gene_count_method="count_genes_once"
-sbatch run_rss_twas_tissue_specific_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method
+init_version="trained_init"
+sbatch run_rss_twas_tissue_specific_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version
 gene_count_method="count_all_genes"
-sbatch run_rss_twas_tissue_specific_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method
+init_version="trained_init"
+sbatch run_rss_twas_tissue_specific_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version
 fi
+
+if false; then
+gene_count_method="count_genes_once"
+init_version="null_init"
+sbatch run_rss_twas_tissue_specific_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version
+gene_count_method="count_all_genes"
+init_version="null_init"
+sbatch run_rss_twas_tissue_specific_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version
+fi
+
 
 
 if false; then

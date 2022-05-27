@@ -14,6 +14,9 @@ gtex_susie_results_dir="$2"
 # Number of parallel jobs
 total_jobs="100"
 
+
+
+#########NOTE: OUTPUT FILE CURRENTLY SAYS NO_AMBIGUOUS_VARIANTS. SHOUULD BE FIXED
 if false; then
 for job_number in $(seq 0 $(($total_jobs-1))); do 
 	echo $job_number

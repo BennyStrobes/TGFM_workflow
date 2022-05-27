@@ -52,14 +52,16 @@ def extract_twas_pickle_file_names(trait_name, pseudotissue_gtex_rss_multivariat
 		f.close()
 	return np.asarray(file_names)
 
-def create_alpha_mu_and_alpha_var_objects(twas_pickle_file_names, tissue_to_position_mapping, gene_count_method):
+def create_alpha_mu_and_alpha_var_objects(twas_pickle_file_names, tissue_to_position_mapping, gene_count_method, init_version):
 	twas_obj_file_names = []
 	alpha_mu_object = []
 	alpha_var_object = []
 	tissue_object = []
 	valid_gene_object = []
 	used_genes = {}
+	print(len(twas_pickle_file_names))
 	for itera, twas_pickle_file_name in enumerate(twas_pickle_file_names):
+		print(itera)
 		f = open(twas_pickle_file_name, "rb")
 		twas_obj = pickle.load(f)
 		f.close()
@@ -71,8 +73,12 @@ def create_alpha_mu_and_alpha_var_objects(twas_pickle_file_names, tissue_to_posi
 			#continue
 
 		twas_obj_file_names.append(twas_pickle_file_name)
-		alpha_mu_object.append(np.copy(twas_obj.alpha_mu))
-		alpha_var_object.append(np.copy(twas_obj.alpha_var))
+		if init_version == 'trained_init':
+			alpha_mu_object.append(np.copy(twas_obj.alpha_mu))
+			alpha_var_object.append(np.copy(twas_obj.alpha_var))
+		elif init_version == 'null_init':
+			alpha_mu_object.append(np.zeros(len(twas_obj.alpha_mu)))
+			alpha_var_object.append(np.ones(len(twas_obj.alpha_var)))
 		# get tissue names
 		tissue_names = get_tissue_names_from_gene_tissue_string_array(twas_obj.genes)
 		tissue_positions = []
@@ -159,18 +165,24 @@ def update_alphas(alpha_mu_object, alpha_var_object, tissue_object, twas_obj_fil
 		alpha_var_object[nn] = np.copy(twas_obj.alpha_var)
 	return alpha_mu_object, alpha_var_object
 
-def infer_rss_twas_tissue_specific_priors(ordered_tissue_names, twas_pickle_file_names, temp_output_file, gene_count_method, max_iter=200):
+def infer_rss_twas_tissue_specific_priors(ordered_tissue_names, twas_pickle_file_names, temp_output_file, gene_count_method, init_version, max_iter=200):
 	# Number of tissues
 	num_tiss = len(ordered_tissue_names)
 	# Create mapping from tissue name to position
 	tissue_to_position_mapping = create_tissue_to_position_mapping(ordered_tissue_names)
 	# First create initial alpha mu object
-	alpha_mu_object, alpha_var_object, tissue_object, valid_gene_object, twas_obj_file_names = create_alpha_mu_and_alpha_var_objects(twas_pickle_file_names, tissue_to_position_mapping, gene_count_method)
+	alpha_mu_object, alpha_var_object, tissue_object, valid_gene_object, twas_obj_file_names = create_alpha_mu_and_alpha_var_objects(twas_pickle_file_names, tissue_to_position_mapping, gene_count_method, init_version)
+	
+	# INITIALIZE GAMMA
+	if init_version == 'trained_init':
+		# Update gamma
+		gamma_alpha_a, gamma_alpha_b = update_gamma_alpha(alpha_mu_object, alpha_var_object, tissue_object, valid_gene_object, num_tiss, 1e-16, 1e-16)
+		print(gamma_alpha_a/gamma_alpha_b)
+	elif init_version == 'null_init':
+		gamma_alpha_a = np.ones(num_tiss)
+		gamma_alpha_b = np.ones(num_tiss)
 
-	# Update gamma
-	gamma_alpha_a, gamma_alpha_b = update_gamma_alpha(alpha_mu_object, alpha_var_object, tissue_object, valid_gene_object, num_tiss, 1e-16, 1e-16)
-	print(gamma_alpha_a/gamma_alpha_b)
-
+	# Start variational updates
 	for itera in range(max_iter):
 		print('Variational iteration ' + str(itera))
 		# Update alpha
@@ -193,16 +205,17 @@ gtex_pseudotissue_file = sys.argv[2]
 pseudotissue_gtex_rss_multivariate_twas_dir = sys.argv[3]
 gene_version = sys.argv[4]
 gene_count_method = sys.argv[5]
+init_version = sys.argv[6]
 
 ordered_tissue_names = extract_tissue_names(gtex_pseudotissue_file)
 
 twas_pickle_file_names = extract_twas_pickle_file_names(trait_name, pseudotissue_gtex_rss_multivariate_twas_dir, gene_version)
 
-temp_output_file = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + gene_version + '_' + gene_count_method + '_tissue_specific_prior_precision_temp.txt'
-expected_gamma_alpha, gamma_alpha_a, gamma_alpha_b = infer_rss_twas_tissue_specific_priors(ordered_tissue_names, twas_pickle_file_names, temp_output_file, gene_count_method)
+temp_output_file = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + gene_version + '_' + gene_count_method + '_' + init_version + '_tissue_specific_prior_precision_temp.txt'
+expected_gamma_alpha, gamma_alpha_a, gamma_alpha_b = infer_rss_twas_tissue_specific_priors(ordered_tissue_names, twas_pickle_file_names, temp_output_file, gene_count_method, init_version)
 
 
-output_file = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + gene_version + '_' + gene_count_method + '_tissue_specific_prior_precision.txt'
+output_file = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + gene_version + '_' + gene_count_method + '_' + init_version + '_tissue_specific_prior_precision.txt'
 df = pd.DataFrame(data={'tissue': ordered_tissue_names, 'expected_precision': expected_gamma_alpha, 'gamma_alpha_a': gamma_alpha_a, 'gamma_alpha_b': gamma_alpha_b})
 df.to_csv(output_file, sep='\t', index=False)
 

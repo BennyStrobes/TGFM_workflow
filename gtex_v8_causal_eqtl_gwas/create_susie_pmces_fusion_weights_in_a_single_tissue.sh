@@ -58,7 +58,7 @@ sed 1d $gene_summary_file | while read gene_id chrom_num tss gene_pheno_file cov
 	
 	# Set FINAL_OUT directory for this gene
 	FINAL_OUT=$tissue_gtex_fusion_weights_dir$tissue_name"_"$gene_id"_1KG_only_fusion_output"
-	Rscript FUSION.compute_weights_from_susie_pmces.R --bfile $OUT --tmp $OUT.tmp --out $FINAL_OUT --covar $covariate_file --PATH_gcta $gcta_path --PATH_gemma $gemma_path --crossval 0 --susievarnames ${gtex_preprocessed_for_susie_dir}${gene_id}"_variant_ids.txt" --susieres ${gtex_susie_results_dir}${gene_id}"_"${pseudotissue_name}"_susie_res.RDS" --hsq_p 1.0 --verbose 0 --save_hsq 
+	Rscript FUSION.compute_weights_from_susie_pmces.R --bfile $OUT --tmp $OUT.tmp --out $FINAL_OUT --covar $covariate_file --PATH_gcta $gcta_path --PATH_gemma $gemma_path --crossval 0 --susievarnames ${gtex_preprocessed_for_susie_dir}${gene_id}"_variant_ids.txt" --susieres ${gtex_susie_results_dir}${gene_id}"_"${pseudotissue_name}"_no_ambiguous_variants_susie_res.RDS" --hsq_p 1.0 --verbose 0 --save_hsq 
 
 	rm $OUT*
 done

@@ -132,6 +132,12 @@ visualize_stochastic_twas_results_dir=$output_root"visualize_stochastic_twas_res
 # Directory containing visualizations of stochastic twas results
 visualize_rss_twas_results_dir=$output_root"visualize_rss_twas_results/"
 
+# Directory containing processed coloc data
+coloc_data_dir=$output_root"coloc_data/"
+
+# Directory containing coloc results
+coloc_results_dir=$output_root"coloc_results/"
+
 
 # Directory containing hg38 GTEx preprocessed for Susie
 gtex_preprocessed_for_susie_dir=$output_root"gtex_preprocessed_for_susie/"
@@ -338,7 +344,6 @@ sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_
 fi
 
 
-
 # Multivariate susie expression TWAS using SuSiE
 trait_name="blood_WHITE_COUNT"
 samp_size="326723"
@@ -382,29 +387,33 @@ fi
 
 
 
+########################################
+# Overlap SuSiE components with eQTLs using COLOC
+########################################
+gtex_susie_input_data_file=$gtex_preprocessed_for_susie_dir"susie_input_gene_organization_file.txt"
+if false; then
+sh preprocess_coloc_data.sh $gtex_susie_input_data_file $gtex_fusion_processed_intermediate_data $coloc_data_dir
+fi
 
-
-
-
-
-
-
-
-# Multivariate susie expression TWAS using SuSiE
 trait_name="blood_WHITE_COUNT"
-samp_size="326723"
 if false; then
-sh multivariate_stochastic_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_stochastic_multivariate_twas_dir
+sh run_adaptive_prior_coloc_for_single_trait_shell.sh $trait_name $gtex_pseudotissue_file $coloc_data_dir $coloc_results_dir
 fi
 
+trait_name="lung_FEV1FVCzSMOKE"
 if false; then
-module load R/3.5.1
-fi
-if false; then
-Rscript visualize_stochastic_twas_results.R $gtex_pseudotissue_file $pseudotissue_gtex_stochastic_multivariate_twas_dir $gtex_fusion_multivariate_associations_dir $visualize_stochastic_twas_results_dir
+sh run_adaptive_prior_coloc_for_single_trait_shell.sh $trait_name $gtex_pseudotissue_file $coloc_data_dir $coloc_results_dir
 fi
 
+trait_name="body_WHRadjBMIz"
+if false; then
+sh run_adaptive_prior_coloc_for_single_trait_shell.sh $trait_name $gtex_pseudotissue_file $coloc_data_dir $coloc_results_dir
+fi
 
+trait_name="bp_DIASTOLICadjMEDz"
+if false; then
+sh run_adaptive_prior_coloc_for_single_trait_shell.sh $trait_name $gtex_pseudotissue_file $coloc_data_dir $coloc_results_dir
+fi
 
 ########################################
 # Overlap SuSiE components with ENHANCERs/Promotors

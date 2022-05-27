@@ -325,6 +325,14 @@ hsq.pv = NA
 genos = read_plink(geno.file,impute="avg")
 #saveRDS(genos,"genos_bed_unfixed.rds")
 
+# THROW OUT ANY AMBIGOUS SNPS
+a1 = genos$bim$V5
+a2 = genos$bim$V6
+non_ambiguous_snps = !((a1=="A" & a2=="T") | (a1=="T" & a2=="A") | (a1=="C" & a2=="G") | (a1=="G" & a2=="C"))
+genos$bed = genos$bed[, non_ambiguous_snps]
+genos$bim = genos$bim[non_ambiguous_snps,]
+
+
 
 mafs = apply(genos$bed,2,mean)/2
 sds = apply(genos$bed,2,sd)

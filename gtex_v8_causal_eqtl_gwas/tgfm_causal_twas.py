@@ -30,7 +30,7 @@ def convert_to_standardized_summary_statistics(gwas_beta_raw, gwas_beta_se_raw, 
 	beta_scaled = (1/dXtX2)*Xty
 	beta_se_scaled = np.sqrt(sigma2/dXtX2)
 
-	return beta_scaled, beta_se_scaled
+	return beta_scaled, beta_se_scaled, XtX
 
 
 def calculate_distance_between_two_vectors(vec1, vec2):
