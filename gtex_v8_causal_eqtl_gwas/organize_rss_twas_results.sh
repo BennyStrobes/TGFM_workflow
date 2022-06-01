@@ -12,7 +12,8 @@ trait_name="$1"
 gtex_pseudotissue_file="$2"
 pseudotissue_gtex_rss_multivariate_twas_dir="$3"
 gene_version="$4"
+coloc_results_dir="$5"
 
 source ~/.bash_profile
 
-python3 organize_rss_twas_results.py $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version
+python3 organize_rss_twas_results.py $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $coloc_results_dir

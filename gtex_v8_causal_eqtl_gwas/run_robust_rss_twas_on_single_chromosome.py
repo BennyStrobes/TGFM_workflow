@@ -7,6 +7,7 @@ import pdb
 import scipy.special
 import pickle
 import tgfm_causal_twas
+import tgfm_robust_causal_twas
 import tgfm_fine_mapping
 import tgfm_rss_fine_mapping
 import rpy2
@@ -226,12 +227,12 @@ gene_version = sys.argv[7]
 ordered_tissue_names = extract_tissue_names(gtex_pseudotissue_file)
 
 # open output file
-output_file = output_dir + trait_name + '_' + chrom_num + '_summary_tgfm_results_' + gene_version + '_const_1e-5_prior.txt'
+output_file = output_dir + trait_name + '_' + chrom_num + '_summary_tgfm_robust_results_' + gene_version + '_const_1e-5_prior.txt'
 
 print(output_file)
 t = open(output_file,'w')
 # write header
-t.write('component_name\tnum_genes\ttgfm_twas_pickle\ttgfm_fine_mapping_table_file\ttgfm_tissue_fine_mapping_table_file\ttgfm_rss_regression_fine_mapping_table_file\ttgfm_rss_regression_tissue_fine_mapping_table_file\ttgfm_rss_prediction_fine_mapping_table_file\ttgfm_rss_prediction_tissue_fine_mapping_table_file\ttgfm_rss_regression_nom_fine_mapping_table_file\ttgfm_rss_regression_nom_tissue_fine_mapping_table_file\tpickled_data_file\n')
+t.write('component_name\tnum_genes\ttgfm_twas_pickle\ttgfm_rss_regression_fine_mapping_table_file\ttgfm_rss_regression_tissue_fine_mapping_table_file\tpickled_data_file\n')
 
 # Loop through trait components
 f = open(component_data_file)
@@ -248,10 +249,11 @@ for line in f:
 	num_genes = int(data[2])
 	pickled_data_file = data[3]
 
+
 	print(component_name + '\t' + str(num_genes))
 
 	if pickled_data_file == 'NA':
-		t.write(component_name + '\t' + str(num_genes) + '\t' 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\n')
+		t.write(component_name + '\t' + str(num_genes) + '\t' 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\n')
 	else:
 		# Load in pickled data for this component
 		f = open(pickled_data_file, "rb")
@@ -266,7 +268,7 @@ for line in f:
 		gwas_new_susie_alpha, gwas_new_susie_mu, gwas_new_susie_mu_sd, gwas_new_susie_component_num, gwas_new_susie_discover_component_bool, pass_bool = run_variant_level_susie_on_this_region(twas_data['gwas_beta'], twas_data['gwas_beta_se'], twas_data['gwas_sample_size'], twas_data['reference_ld'], gwas_susie_alpha)
 
 		if pass_bool == False:
-			t.write(component_name + '\t' + str(num_genes) + '\t' 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\n')
+			t.write(component_name + '\t' + str(num_genes) + '\t' 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\t' + 'NA' + '\n')
 			continue
 
 		# Convert gwas summary statistics to *STANDARDIZED* effect sizes
@@ -280,17 +282,20 @@ for line in f:
 		pred = np.sum(gwas_new_susie_alpha*gwas_new_susie_mu,axis=0)
 		resid =twas_data['gwas_beta']- np.dot(XtX, pred)*(1.0/np.diag(XtX))
 
-		# RUN TGFM CAUSAL TWAS
-		#twas_obj = tgfm_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=False, prior_variance=1e-5, convergence_thresh=1e-6)
-		twas_obj = tgfm_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=False, prior_variance=1000000, convergence_thresh=1e-6)
+		# RUN robust TGFM CAUSAL TWAS
+		twas_obj = tgfm_robust_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True, prior_variance=1.0, pleiotropic_prior_variance=1.0, convergence_thresh=1e-6)
 		twas_obj.fit(twas_data_obj=twas_data)
+		# np.corrcoef(np.dot(XtX, robust_twas_obj.beta_mu)*(1.0/np.diag(XtX)), np.dot(XtX, pred)*(1.0/np.diag(XtX)))
+		
+
+
 
 		# Prepare data for TGFM fine mapping
-		tgfm_fine_mapping_data = {'gwas_component_pmces': gwas_component_susie_pmces, 'gwas_susie_mu': gwas_susie_mu, 'gwas_susie_mu_sd': gwas_susie_mu_sd, 'gwas_susie_alpha': gwas_susie_alpha, 'eqtl_pmces': get_eqtl_component_level_pmces(twas_data['susie_mu'], twas_data['susie_alpha']), 'eqtl_mu':twas_data['susie_mu'], 'eqtl_mu_sd': twas_data['susie_mu_sd'], 'eqtl_alpha':twas_data['susie_alpha'], 'twas_alpha': twas_obj.alpha_mu, 'twas_alpha_sd': np.sqrt(twas_obj.alpha_var), 'genes': twas_data['genes'], 'variants': twas_data['variants'], 'ordered_tissue_names': ordered_tissue_names}
+		#tgfm_fine_mapping_data = {'gwas_component_pmces': gwas_component_susie_pmces, 'gwas_susie_mu': gwas_susie_mu, 'gwas_susie_mu_sd': gwas_susie_mu_sd, 'gwas_susie_alpha': gwas_susie_alpha, 'eqtl_pmces': get_eqtl_component_level_pmces(twas_data['susie_mu'], twas_data['susie_alpha']), 'eqtl_mu':twas_data['susie_mu'], 'eqtl_mu_sd': twas_data['susie_mu_sd'], 'eqtl_alpha':twas_data['susie_alpha'], 'twas_alpha': twas_obj.alpha_mu, 'twas_alpha_sd': np.sqrt(twas_obj.alpha_var), 'genes': twas_data['genes'], 'variants': twas_data['variants'], 'ordered_tissue_names': ordered_tissue_names}
 
 		# Run TGFM fine mapping
-		tgfm_fm_obj = tgfm_fine_mapping.TGFM_FM(likelihood_version='probabilistic_full', mean_component_boolean=False)
-		tgfm_fm_obj.fit(fm_data_obj=tgfm_fine_mapping_data)
+		#tgfm_fm_obj = tgfm_fine_mapping.TGFM_FM(likelihood_version='probabilistic_full', mean_component_boolean=False)
+		#tgfm_fm_obj.fit(fm_data_obj=tgfm_fine_mapping_data)
 
 		# Run RSS TGFM fine mapping
 		tgfm_rss_fm_data = {'gwas_susie_mu': gwas_new_susie_alpha, 'gwas_susie_alpha': gwas_new_susie_alpha, 'gwas_susie_mu_sd':gwas_new_susie_mu_sd, 'gwas_susie_component': gwas_new_susie_component_num, 'twas_alpha': twas_obj.alpha_mu, 'twas_alpha_sd': np.sqrt(twas_obj.alpha_var), 'ordered_tissue_names': ordered_tissue_names}
@@ -298,53 +303,47 @@ for line in f:
 		tgfm_rss_fm_obj_regr = tgfm_rss_fine_mapping.TGFM_RSS_FM(residual_version='regress')
 		tgfm_rss_fm_obj_regr.fit(twas_data_obj=twas_data, tgfm_data_obj=tgfm_rss_fm_data)
 
-		tgfm_rss_fm_obj_pred = tgfm_rss_fine_mapping.TGFM_RSS_FM(residual_version='predict')
-		tgfm_rss_fm_obj_pred.fit(twas_data_obj=twas_data, tgfm_data_obj=tgfm_rss_fm_data)
+		#tgfm_rss_fm_obj_pred = tgfm_rss_fine_mapping.TGFM_RSS_FM(residual_version='predict')
+		#tgfm_rss_fm_obj_pred.fit(twas_data_obj=twas_data, tgfm_data_obj=tgfm_rss_fm_data)
 
 
-		tgfm_rss_fm_data = {'gwas_susie_mu': gwas_new_susie_mu, 'gwas_susie_alpha': gwas_new_susie_alpha, 'gwas_susie_mu_sd':gwas_new_susie_mu_sd, 'gwas_susie_component': gwas_new_susie_component_num, 'gwas_susie_XtX': XtX, 'twas_alpha': twas_obj.nominal_twas_rss_alpha_mu, 'twas_alpha_sd': np.sqrt(twas_obj.nominal_twas_rss_alpha_var), 'ordered_tissue_names': ordered_tissue_names}
-		tgfm_rss_fm_obj_nom_regr = tgfm_rss_fine_mapping.TGFM_RSS_FM(residual_version='regress')
-		tgfm_rss_fm_obj_nom_regr.fit(twas_data_obj=twas_data, tgfm_data_obj=tgfm_rss_fm_data)
+		#tgfm_rss_fm_data = {'gwas_susie_mu': gwas_new_susie_mu, 'gwas_susie_alpha': gwas_new_susie_alpha, 'gwas_susie_mu_sd':gwas_new_susie_mu_sd, 'gwas_susie_component': gwas_new_susie_component_num, 'gwas_susie_XtX': XtX, 'twas_alpha': twas_obj.nominal_twas_rss_alpha_mu, 'twas_alpha_sd': np.sqrt(twas_obj.nominal_twas_rss_alpha_var), 'ordered_tissue_names': ordered_tissue_names}
+		#tgfm_rss_fm_obj_nom_regr = tgfm_rss_fine_mapping.TGFM_RSS_FM(residual_version='regress')
+		#tgfm_rss_fm_obj_nom_regr.fit(twas_data_obj=twas_data, tgfm_data_obj=tgfm_rss_fm_data)
 
 
-		'''
-		tissues = get_tissues(twas_data['genes'])
-		twas_z = twas_obj.alpha_mu/np.sqrt(twas_obj.alpha_var)
-		blood_z = twas_z[tissues == 'Whole_Blood']
-		if len(blood_z) > 0 and np.max(np.abs(blood_z)) > 3.0:
-			correlate_predicted_trait_effect_sizes_with_predictec_trait_eqtl_effect_sizes(gwas_new_susie_mu, gwas_new_susie_alpha, twas_data['susie_mu'], twas_data['susie_alpha'], twas_obj.alpha_mu, np.sqrt(twas_obj.alpha_var))
-		'''
+
 
 		# Save TWAS results to output file
-		tgfm_twas_pkl_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_twas_results.pkl'
+		tgfm_twas_pkl_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_twas_results.pkl'
 		g = open(tgfm_twas_pkl_file, "wb")
 		pickle.dump(twas_obj, g)
 		g.close()	
 
 
 		# Save Fine-mapping results to output files
-		tgfm_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_fine_mapping_table.txt'
-		tgfm_fm_obj.posterior_prob_df.to_csv(tgfm_fm_results_table_file, sep='\t', index=False)
-		tgfm_tissue_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_tissue_fine_mapping_table.txt'
-		tgfm_fm_obj.tissue_posterior_prob_df.to_csv(tgfm_tissue_fm_results_table_file, sep='\t', index=False)
+		#tgfm_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_fine_mapping_table.txt'
+		#tgfm_fm_obj.posterior_prob_df.to_csv(tgfm_fm_results_table_file, sep='\t', index=False)
+		#tgfm_tissue_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_tissue_fine_mapping_table.txt'
+		#tgfm_fm_obj.tissue_posterior_prob_df.to_csv(tgfm_tissue_fm_results_table_file, sep='\t', index=False)
 		# TGFM RSS Regression
-		tgfm_rss_regression_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_rss_regression_fine_mapping_table.txt'
+		tgfm_rss_regression_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_rss_regression_fine_mapping_table.txt'
 		tgfm_rss_fm_obj_regr.posterior_prob_df.to_csv(tgfm_rss_regression_fm_results_table_file, sep='\t', index=False)
-		tgfm_rss_regression_tissue_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_rss_regression_tissue_fine_mapping_table.txt'
+		tgfm_rss_regression_tissue_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_rss_regression_tissue_fine_mapping_table.txt'
 		tgfm_rss_fm_obj_regr.tissue_posterior_prob_df.to_csv(tgfm_rss_regression_tissue_fm_results_table_file, sep='\t', index=False)
 		# TGFM RSS prediction
-		tgfm_rss_prediction_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_rss_prediction_fine_mapping_table.txt'
-		tgfm_rss_fm_obj_pred.posterior_prob_df.to_csv(tgfm_rss_prediction_fm_results_table_file, sep='\t', index=False)
-		tgfm_rss_prediction_tissue_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_rss_prediction_tissue_fine_mapping_table.txt'
-		tgfm_rss_fm_obj_pred.tissue_posterior_prob_df.to_csv(tgfm_rss_prediction_tissue_fm_results_table_file, sep='\t', index=False)
+		#tgfm_rss_prediction_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_rss_prediction_fine_mapping_table.txt'
+		#tgfm_rss_fm_obj_pred.posterior_prob_df.to_csv(tgfm_rss_prediction_fm_results_table_file, sep='\t', index=False)
+		#tgfm_rss_prediction_tissue_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_rss_prediction_tissue_fine_mapping_table.txt'
+		#tgfm_rss_fm_obj_pred.tissue_posterior_prob_df.to_csv(tgfm_rss_prediction_tissue_fm_results_table_file, sep='\t', index=False)
 		# TGFM RSS NOMINAL Regression
-		tgfm_rss_regression_nom_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_rss_regression_nom_fine_mapping_table.txt'
-		tgfm_rss_fm_obj_nom_regr.posterior_prob_df.to_csv(tgfm_rss_regression_nom_fm_results_table_file, sep='\t', index=False)
-		tgfm_rss_regression_nom_tissue_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_rss_regression_nom_tissue_fine_mapping_table.txt'
-		tgfm_rss_fm_obj_nom_regr.tissue_posterior_prob_df.to_csv(tgfm_rss_regression_nom_tissue_fm_results_table_file, sep='\t', index=False)
+		#tgfm_rss_regression_nom_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_rss_regression_nom_fine_mapping_table.txt'
+		#tgfm_rss_fm_obj_nom_regr.posterior_prob_df.to_csv(tgfm_rss_regression_nom_fm_results_table_file, sep='\t', index=False)
+		#tgfm_rss_regression_nom_tissue_fm_results_table_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_rss_regression_nom_tissue_fine_mapping_table.txt'
+		#tgfm_rss_fm_obj_nom_regr.tissue_posterior_prob_df.to_csv(tgfm_rss_regression_nom_tissue_fm_results_table_file, sep='\t', index=False)
 
 
 		# Write output files to component level output
-		t.write(component_name + '\t' + str(num_genes) + '\t' + tgfm_twas_pkl_file + '\t' + tgfm_fm_results_table_file + '\t' + tgfm_tissue_fm_results_table_file + '\t' + tgfm_rss_regression_fm_results_table_file + '\t' + tgfm_rss_regression_tissue_fm_results_table_file + '\t' + tgfm_rss_prediction_fm_results_table_file + '\t' + tgfm_rss_prediction_tissue_fm_results_table_file + '\t' + tgfm_rss_regression_nom_fm_results_table_file + '\t' + tgfm_rss_regression_nom_tissue_fm_results_table_file + '\t' + pickled_data_file + '\n')
+		t.write(component_name + '\t' + str(num_genes) + '\t' + tgfm_twas_pkl_file + '\t' + tgfm_rss_regression_fm_results_table_file + '\t' + tgfm_rss_regression_tissue_fm_results_table_file + '\t' + pickled_data_file + '\n')
 f.close()
 t.close()
