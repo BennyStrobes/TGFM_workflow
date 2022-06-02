@@ -25,3 +25,5 @@ echo $trait_name
 echo $gene_version
 
 python3 run_robust_rss_twas_on_single_chromosome.py $chrom_num $trait_name $gtex_pseudotissue_file $component_data_file $ukbb_genome_wide_susie_organized_results_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version
+
+

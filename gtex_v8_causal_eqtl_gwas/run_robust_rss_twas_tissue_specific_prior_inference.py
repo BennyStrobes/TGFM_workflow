@@ -62,7 +62,7 @@ def create_alpha_mu_and_alpha_var_objects(twas_pickle_file_names, tissue_to_posi
 	used_genes = {}
 	print(len(twas_pickle_file_names))
 	for itera, twas_pickle_file_name in enumerate(twas_pickle_file_names):
-		print(itera)
+		#print(itera)
 		f = open(twas_pickle_file_name, "rb")
 		twas_obj = pickle.load(f)
 		f.close()
@@ -157,7 +157,9 @@ def update_alphas_and_betas(alpha_mu_object, alpha_var_object, beta_mu_object, b
 	# Number of components to loop over
 	num_components = len(alpha_mu_object)
 
+
 	for nn in range(num_components):
+
 		# First create vector of length number of genes where element is tissue-specific prior precision corresponding to that gene
 		component_gamma_alpha = np.zeros(len(tissue_object[nn]))
 		for pos in range(len(tissue_object[nn])):
@@ -166,6 +168,7 @@ def update_alphas_and_betas(alpha_mu_object, alpha_var_object, beta_mu_object, b
 		f = open(twas_obj_file_names[nn], "rb")
 		twas_obj = pickle.load(f)
 		f.close()
+
 
 		# Set twas_obj.residual to new values per new values of alpha_mu
 		temp_gene_pred = np.zeros(len(twas_obj.residual))
@@ -187,16 +190,18 @@ def update_alphas_and_betas(alpha_mu_object, alpha_var_object, beta_mu_object, b
 
 		# Set twas_obj beta_mu and beta_var to current estimates of alpha_mu and alpha_var
 		twas_obj.beta_mu = np.copy(beta_mu_object[nn])
-		twas_obj.alpha_var = np.copy(beta_var_object[nn])
+		twas_obj.beta_var = np.copy(beta_var_object[nn])
 
 		# Perform VI UPDATES on alpha_mu and alpha_var
 		twas_obj.update_alpha(component_gamma_alpha)
+
 		# Now set alpha_mu_object and alpha_var_object to current estimates of alpha_mu and alpha_var
 		alpha_mu_object[nn] = np.copy(twas_obj.alpha_mu)
 		alpha_var_object[nn] = np.copy(twas_obj.alpha_var)
 
 		# Perform VI UPDATES on beta_mu and beta_var
 		twas_obj.update_beta(expected_gamma_beta)
+
 		# Now set beta_mu_object and beta_var_object to current estimates of beta_mu and beta_var
 		beta_mu_object[nn] = np.copy(twas_obj.beta_mu)
 		beta_var_object[nn] = np.copy(twas_obj.beta_var)
@@ -215,8 +220,7 @@ def infer_rss_twas_tissue_specific_priors(ordered_tissue_names, twas_pickle_file
 	if init_version == 'trained_init':
 		# Update gamma
 		gamma_alpha_a, gamma_alpha_b = update_gamma_alpha(alpha_mu_object, alpha_var_object, tissue_object, valid_gene_object, num_tiss, 1e-16, 1e-16)
-		print('need to update for robust version')
-		pdb.set_trace()
+		gamma_beta_a, gamma_beta_b = update_gamma_beta(beta_mu_object, beta_var_object, 1e-16, 1e-16)
 	elif init_version == 'null_init':
 		gamma_alpha_a = np.ones(num_tiss)
 		gamma_alpha_b = np.ones(num_tiss)

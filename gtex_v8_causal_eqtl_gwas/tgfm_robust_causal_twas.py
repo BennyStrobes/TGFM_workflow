@@ -95,7 +95,7 @@ class TGFM_CAUSAL_TWAS(object):
 		if self.converged == False:
 			print('Did not converge after ' + str(self.max_iter) + ' iterations')
 
-	def update_alpha(self, expected_gamma_alpha):
+	def update_alpha_old(self, expected_gamma_alpha):
 		#expected_gamma_alpha = self.gamma_alpha_a/self.gamma_alpha_b
 		for g_index in range(self.G):
 			# Remove effect of the gene corresponding to g_index from the residaul
@@ -113,7 +113,60 @@ class TGFM_CAUSAL_TWAS(object):
 			# Update resid for next round (after this resid includes effects of all genes)
 			gene_trait_pred = self.gene_eqtl_pmces[g_index]*self.alpha_mu[g_index]
 			self.residual = self.residual - np.dot(self.srs_inv, gene_trait_pred)
+
+	def update_alpha(self, expected_gamma_alpha):
+		# Include effect of the gene corresponding to 0 from the residaul
+		gene_trait_pred = self.gene_eqtl_pmces[0]*self.alpha_mu[0]
+		self.residual = self.residual + np.dot(self.srs_inv, gene_trait_pred)
+
+		for g_index in range(self.G):
+			# Include effect of the gene corresponding to g_index from the residaul
+			#gene_trait_pred = self.gene_eqtl_pmces[g_index]*self.alpha_mu[g_index]
+			#self.residual = self.residual + np.dot(self.srs_inv, gene_trait_pred)
+			
+			# Calculate terms involved in update	
+			b_term = np.dot(np.multiply(self.residual, self.s_inv_2_diag), self.gene_eqtl_pmces[g_index])
+			a_term = self.precomputed_a_terms[g_index] - .5*expected_gamma_alpha[g_index]
+
+			# VI Updates
+			self.alpha_var[g_index] = -1.0/(2.0*a_term)
+			self.alpha_mu[g_index] = b_term*self.alpha_var[g_index]
+
+			# Update resid for next round (after this resid includes effects of all genes)
+			if g_index == (self.G - 1):
+				gene_trait_pred = -self.gene_eqtl_pmces[g_index]*self.alpha_mu[g_index]
+			else:
+				gene_trait_pred = self.gene_eqtl_pmces[(g_index+1)]*self.alpha_mu[(g_index+1)] - self.gene_eqtl_pmces[g_index]*self.alpha_mu[g_index]
+			self.residual = self.residual + np.dot(self.srs_inv, gene_trait_pred)
+
+
 	def update_beta(self, expected_gamma_beta):
+		precomputed_a_terms = (-.5*self.D_diag) - (.5*expected_gamma_beta)
+
+		# Remove the pleiotropic effect of the variant corresponding to 0 from the residaul
+		self.residual = self.residual + self.srs_inv[:,0]*self.beta_mu[0]
+
+		# Update each snp in parallel
+		for k_index in range(self.K):
+
+			# Remove the pleiotropic effect of the variant corresponding to k_index from the residaul
+			#self.residual = self.residual + self.srs_inv[:,k_index]*self.beta_mu[k_index]
+
+			# Calculate terms involved in update
+			b_term = self.residual[k_index]*self.s_inv_2_diag[k_index]
+			#a_term = (-.5*self.D_diag[k_index]) - (.5*expected_gamma_beta)
+
+			# VI Updates
+			self.beta_var[k_index] = -1.0/(2.0*precomputed_a_terms[k_index])
+			self.beta_mu[k_index] = b_term*self.beta_var[k_index]
+
+			# Update resid for next round (after this resid includes effects of all genes)
+			if k_index == (self.K - 1):
+				self.residual = self.residual - self.srs_inv[:,k_index]*self.beta_mu[k_index]
+			else:
+				self.residual = self.residual + self.srs_inv[:,(k_index+1)]*self.beta_mu[(k_index+1)]- self.srs_inv[:,k_index]*self.beta_mu[k_index]
+
+	def update_beta_old(self, expected_gamma_beta):
 		# Update each snp in parallel
 		for k_index in range(self.K):
 

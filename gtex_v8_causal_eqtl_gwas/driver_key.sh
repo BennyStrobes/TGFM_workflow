@@ -318,9 +318,8 @@ fi
 trait_name="blood_WHITE_COUNT"
 samp_size="326723"
 gene_version="cis_heritable_genes"
-if false; then
 sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $coloc_results_dir
-fi
+
 
 trait_name="lung_FEV1FVCzSMOKE"
 samp_size="274172"
