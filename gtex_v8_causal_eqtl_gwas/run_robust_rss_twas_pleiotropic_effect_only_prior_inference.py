@@ -161,9 +161,7 @@ def update_alphas_and_betas(alpha_mu_object, alpha_var_object, beta_mu_object, b
 	for nn in range(num_components):
 
 		# First create vector of length number of genes where element is tissue-specific prior precision corresponding to that gene
-		component_gamma_alpha = np.zeros(len(tissue_object[nn]))
-		for pos in range(len(tissue_object[nn])):
-			component_gamma_alpha[pos] = expected_gamma_alpha[tissue_object[nn][pos]]
+		component_gamma_alpha = np.ones(len(tissue_object[nn]))*expected_gamma_alpha
 		# Load in twas obj
 		f = open(twas_obj_file_names[nn], "rb")
 		twas_obj = pickle.load(f)
@@ -209,7 +207,7 @@ def update_alphas_and_betas(alpha_mu_object, alpha_var_object, beta_mu_object, b
 
 	return alpha_mu_object, alpha_var_object, beta_mu_object, beta_var_object
 
-def infer_rss_twas_tissue_specific_priors(ordered_tissue_names, twas_pickle_file_names, temp_output_file, temp_output_file2, gene_count_method, init_version, max_iter=600):
+def infer_rss_twas_pleiotropic_priors(ordered_tissue_names, twas_pickle_file_names, temp_output_file, gene_count_method, init_version, twas_prior_variance, max_iter=600):
 	# Number of tissues
 	num_tiss = len(ordered_tissue_names)
 	# Create mapping from tissue name to position
@@ -217,15 +215,17 @@ def infer_rss_twas_tissue_specific_priors(ordered_tissue_names, twas_pickle_file
 	# First create initial alpha mu object
 	alpha_mu_object, alpha_var_object, beta_mu_object, beta_var_object, tissue_object, valid_gene_object, twas_obj_file_names = create_alpha_mu_and_alpha_var_objects(twas_pickle_file_names, tissue_to_position_mapping, gene_count_method, init_version)
 	
+
+	expected_gamma_alpha = 1.0/twas_prior_variance
 	# INITIALIZE GAMMA
 	if init_version == 'trained_init':
 		# Update gamma
-		gamma_alpha_a, gamma_alpha_b = update_gamma_alpha(alpha_mu_object, alpha_var_object, tissue_object, valid_gene_object, num_tiss, 1e-16, 1e-16)
+		#gamma_alpha_a, gamma_alpha_b = update_gamma_alpha(alpha_mu_object, alpha_var_object, tissue_object, valid_gene_object, num_tiss, 1e-16, 1e-16)
 		gamma_beta_a, gamma_beta_b = update_gamma_beta(beta_mu_object, beta_var_object, 1e-16, 1e-16)
 
 	elif init_version == 'null_init':
-		gamma_alpha_a = np.ones(num_tiss)
-		gamma_alpha_b = np.ones(num_tiss)
+		#gamma_alpha_a = np.ones(num_tiss)
+		#gamma_alpha_b = np.ones(num_tiss)
 		gamma_beta_a = 1.0
 		gamma_beta_b = 1.0
 	# Start variational updates
@@ -233,29 +233,23 @@ def infer_rss_twas_tissue_specific_priors(ordered_tissue_names, twas_pickle_file
 		print('Variational iteration ' + str(itera))
 
 		# Update alpha and beta
-		expected_gamma_alpha = gamma_alpha_a/gamma_alpha_b
+		#expected_gamma_alpha = gamma_alpha_a/gamma_alpha_b
 		expected_gamma_beta = gamma_beta_a/gamma_beta_b
 		alpha_mu_object, alpha_var_object, beta_mu_object, beta_var_object = update_alphas_and_betas(alpha_mu_object, alpha_var_object, beta_mu_object, beta_var_object, tissue_object, twas_obj_file_names, expected_gamma_alpha, expected_gamma_beta)
 		
 
-		# Update gamma_alpha
-		gamma_alpha_a, gamma_alpha_b = update_gamma_alpha(alpha_mu_object, alpha_var_object, tissue_object, valid_gene_object, num_tiss, 1e-16, 1e-16)
-
 		# Update gamma_beta
 		gamma_beta_a, gamma_beta_b = update_gamma_beta(beta_mu_object, beta_var_object, 1e-16, 1e-16)
 
-		print(gamma_alpha_a/gamma_alpha_b)	
+		#print(gamma_alpha_a/gamma_alpha_b)	
 		print(gamma_beta_a/gamma_beta_b)	
 
 		if np.mod(itera, 5) == 0:
-			df = pd.DataFrame(data={'tissue': ordered_tissue_names, 'expected_precision': (gamma_alpha_a/gamma_alpha_b), 'gamma_alpha_a': gamma_alpha_a, 'gamma_alpha_b': gamma_alpha_b, 'iteration': np.ones(len(gamma_alpha_b))*itera})
-			df.to_csv(temp_output_file, sep='\t', index=False)
-
-			gamma_beta_output_mat = np.vstack((np.asarray(['expected_precision', 'gamma_beta_a', 'gamma_beta_b']), np.asarray([gamma_beta_a/gamma_beta_b, gamma_beta_a, gamma_beta_b]).astype(str)))
-			np.savetxt(temp_output_file2, gamma_beta_output_mat, fmt="%s", delimiter='\t')
+			gamma_beta_output_mat = np.vstack((np.asarray(['expected_precision', 'gamma_beta_a', 'gamma_beta_b', 'iter']), np.asarray([gamma_beta_a/gamma_beta_b, gamma_beta_a, gamma_beta_b, itera]).astype(str)))
+			np.savetxt(temp_output_file, gamma_beta_output_mat, fmt="%s", delimiter='\t')
 
 
-	return gamma_alpha_a/gamma_alpha_b, gamma_alpha_a, gamma_alpha_b, gamma_beta_a, gamma_beta_b
+	return gamma_beta_a, gamma_beta_b
 
 
 trait_name = sys.argv[1]
@@ -265,21 +259,19 @@ gene_version = sys.argv[4]
 gene_count_method = sys.argv[5]
 init_version = sys.argv[6]
 
+twas_prior_variance = 1000000
+
 ordered_tissue_names = extract_tissue_names(gtex_pseudotissue_file)
 
 twas_pickle_file_names = extract_twas_pickle_file_names(trait_name, pseudotissue_gtex_rss_multivariate_twas_dir, gene_version)
 
-temp_output_file = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + gene_version + '_' + gene_count_method + '_' + init_version + '_robust_tissue_specific_prior_precision_temp.txt'
-temp_output_file2 = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + gene_version + '_' + gene_count_method + '_' + init_version + '_robust_pleiotropic_prior_precision_temp.txt'
+temp_output_file = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + gene_version + '_' + gene_count_method + '_' + init_version + '_only_robust_pleiotropic_prior_precision_temp.txt'
 
-expected_gamma_alpha, gamma_alpha_a, gamma_alpha_b, gamma_beta_a, gamma_beta_b = infer_rss_twas_tissue_specific_priors(ordered_tissue_names, twas_pickle_file_names, temp_output_file, temp_output_file2, gene_count_method, init_version)
+gamma_beta_a, gamma_beta_b = infer_rss_twas_pleiotropic_priors(ordered_tissue_names, twas_pickle_file_names, temp_output_file, gene_count_method, init_version, twas_prior_variance)
 
 
-output_file = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + gene_version + '_' + gene_count_method + '_' + init_version + '_robust_tissue_specific_prior_precision.txt'
-df = pd.DataFrame(data={'tissue': ordered_tissue_names, 'expected_precision': expected_gamma_alpha, 'gamma_alpha_a': gamma_alpha_a, 'gamma_alpha_b': gamma_alpha_b})
-df.to_csv(output_file, sep='\t', index=False)
 
-output_file2 = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + gene_version + '_' + gene_count_method + '_' + init_version + '_robust_pleiotropic_prior_precision.txt'
+output_file = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + gene_version + '_' + gene_count_method + '_' + init_version + '_only_robust_pleiotropic_prior_precision.txt'
 gamma_beta_output_mat = np.vstack((np.asarray(['expected_precision', 'gamma_beta_a', 'gamma_beta_b']), np.asarray([gamma_beta_a/gamma_beta_b, gamma_beta_a, gamma_beta_b]).astype(str)))
 np.savetxt(output_file2, gamma_beta_output_mat, fmt="%s", delimiter='\t')
 

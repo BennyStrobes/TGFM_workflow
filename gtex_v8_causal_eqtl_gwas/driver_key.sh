@@ -302,6 +302,15 @@ sed 1d $gtex_tissue_file | while read tissue_name sample_size pseudotissue_name;
 done
 fi
 
+
+# Create fusion weights in GTEx
+if false; then
+sed 1d $gtex_tissue_file | while read tissue_name sample_size pseudotissue_name; do
+	echo $tissue_name
+	sbatch create_fusion_weights_in_a_single_tissue.sh $tissue_name $xt_pc_gene_list_file $gtex_expression_dir $gtex_covariate_dir $gtex_genotype_dir $gtex_fusion_weights_data_dir $gtex_fusion_weights_dir $ukbb_sumstats_hg38_dir
+done
+fi
+
 # Create Susie Posterior mean causal effect sizes (PMCES) position file in each PSEUDOTISSUE (NOTE: PREVIOUS STEP WAS DONE USING TISSUES)
 if false; then
 sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample_repeat_boolean composit_tissue_string; do
@@ -318,15 +327,16 @@ fi
 trait_name="blood_WHITE_COUNT"
 samp_size="326723"
 gene_version="cis_heritable_genes"
+if false; then
 sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $coloc_results_dir
-
+fi
 
 trait_name="lung_FEV1FVCzSMOKE"
 samp_size="274172"
 gene_version="cis_heritable_genes"
 if false; then
 sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $coloc_results_dir
-fi
+
 
 trait_name="body_WHRadjBMIz"
 samp_size="336847"

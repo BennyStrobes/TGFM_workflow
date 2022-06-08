@@ -67,6 +67,7 @@ class TGFM_CAUSAL_TWAS(object):
 		# Initialize variables
 		self.initialize_variables(twas_data_obj)
 		self.nominal_twas_rss_updates(twas_data_obj)
+
 		print('Initialization complete')
 		self.iter = 0
 		# Compute residual

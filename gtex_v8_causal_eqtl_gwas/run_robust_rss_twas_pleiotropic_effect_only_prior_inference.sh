@@ -15,5 +15,5 @@ init_version="$6"
 
 source ~/.bash_profile
 
-python3 run_robust_rss_twas_tissue_specific_prior_inference.py $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version
+python3 run_robust_rss_twas_pleiotropic_effect_only_prior_inference.py $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version
 
