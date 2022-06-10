@@ -121,7 +121,7 @@ coloc_results_dir = sys.argv[5]
 # Version with tissue specific prior (NEED TO FIX ISSUE STILLLLLLL)
 output_file = pseudotissue_gtex_rss_multivariate_twas_dir + trait_name + '_' + gene_version + '_component_organized_tgfm_results.txt'
 t = open(output_file,'w')
-t.write('trait_component\ttissue\tgene\tnominal_fusion_twas_z_score\tnominal_tgfm_const_prior_posterior_prob\ttgfm_const_prior_twas_alpha\ttgfm_tissue_prior_twas_alpha\ttgfm_const_prior_twas_alpha_var\ttgfm_tissue_prior_twas_alpha_var\ttgfm_const_prior_twas_z_score\ttgfm_tissue_prior_twas_z_score\ttgfm_const_prior_posterior_prob\ttgfm_tissue_prior_posterior_prob\ttgfm_rss_regression_const_prior_posterior_prob\ttgfm_rss_regression_tissue_prior_posterior_prob\ttgfm_rss_prediction_const_prior_posterior_prob\ttgfm_rss_prediction_tissue_prior_posterior_prob\tcoloc_posterior_prob\tadaptive_prior_coloc_posterior_prob\n')
+t.write('trait_component\ttissue\tgene\tnominal_fusion_twas_z_score\ttgfm_const_prior_twas_alpha\ttgfm_tissue_prior_twas_alpha\trobust_tgfm_const_prior_twas_alpha\trobust_tgfm_tissue_prior_twas_alpha\ttgfm_const_prior_twas_alpha_var\ttgfm_tissue_prior_twas_alpha_var\trobust_tgfm_const_prior_twas_alpha_var\trobust_tgfm_tissue_prior_twas_alpha_var\ttgfm_const_prior_twas_z_score\ttgfm_tissue_prior_twas_z_score\trobust_tgfm_const_prior_twas_z_score\trobust_tgfm_tissue_prior_twas_z_score\ttgfm_rss_regression_const_prior_posterior_prob\ttgfm_rss_regression_tissue_prior_posterior_prob\trobust_tgfm_rss_regression_const_prior_posterior_prob\trobust_tgfm_rss_regression_tissue_prior_posterior_prob\tcoloc_posterior_prob\tadaptive_prior_coloc_posterior_prob\n')
 
 # Loop through chromosomes
 for chrom_num in range(1,23):
@@ -141,27 +141,39 @@ for chrom_num in range(1,23):
 		component_name = data[0]
 		num_genes = data[1]
 
-		# Two different versions of analysis
-		# Version 1: TGFM with tissue specific prior
+		# Several different versions of analysis
+		# Version 1: TGFM with constant prior
 		tgfm_const_prior_twas_pickle_file = data[2]
-		tgfm_const_prior_fine_mapping_file = data[3]
+		#tgfm_const_prior_fine_mapping_file = data[3]
 		tgfm_const_prior_rss_regression_fine_mapping_file = data[5]
-		tgfm_const_prior_rss_prediction_fine_mapping_file = data[7]
-		tgfm_const_prior_rss_regression_nominal_fine_mapping_file = data[9]
+		#tgfm_const_prior_rss_prediction_fine_mapping_file = data[7]
+		#tgfm_const_prior_rss_regression_nominal_fine_mapping_file = data[9]
 		if tgfm_const_prior_twas_pickle_file == 'NA':
 			continue
 
 
 		# Version 2: TGFM with tissue prior
 		tgfm_tiss_prior_twas_pickle_file = tgfm_const_prior_twas_pickle_file.split('tgfm_twas_results.pkl')[0] + 'tgfm_twas_tissue_specific_prior_results.pkl'
-		tgfm_tiss_prior_fine_mapping_file = tgfm_const_prior_fine_mapping_file.split('table.txt')[0] + 'tissue_specific_prior_table.txt'
+		#tgfm_tiss_prior_fine_mapping_file = tgfm_const_prior_fine_mapping_file.split('table.txt')[0] + 'tissue_specific_prior_table.txt'
 		tgfm_tiss_prior_rss_regression_fine_mapping_file = tgfm_const_prior_rss_regression_fine_mapping_file.split('table.txt')[0] + 'tissue_specific_prior_table.txt'
-		tgfm_tiss_prior_rss_prediction_fine_mapping_file = tgfm_const_prior_rss_prediction_fine_mapping_file.split('table.txt')[0] + 'tissue_specific_prior_table.txt'
+		#tgfm_tiss_prior_rss_prediction_fine_mapping_file = tgfm_const_prior_rss_prediction_fine_mapping_file.split('table.txt')[0] + 'tissue_specific_prior_table.txt'
+
+		# Version 3: Robust TGFM with constant prior
+		robust_tgfm_const_prior_twas_pickle_file = tgfm_const_prior_twas_pickle_file.split('tgfm_twas_results.pkl')[0] + 'tgfm_robust_twas_pleiotropic_only_prior_results.pkl'
+		robust_tgfm_const_prior_rss_regression_fine_mapping_file = tgfm_const_prior_rss_regression_fine_mapping_file.split('tgfm_rss_regression_fine_mapping_table.txt')[0] + 'tgfm_robust_rss_regression_fine_mapping_pleiotropic_only_prior_table.txt'
+
+		# Version 4: Robust TGFM with tissue prior
+		robust_tgfm_tissue_prior_twas_pickle_file = tgfm_const_prior_twas_pickle_file.split('tgfm_twas_results.pkl')[0] + 'tgfm_robust_twas_tissue_specific_prior_results.pkl'
+		robust_tgfm_tissue_prior_rss_regression_fine_mapping_file = tgfm_const_prior_rss_regression_fine_mapping_file.split('tgfm_rss_regression_fine_mapping_table.txt')[0] + 'tgfm_robust_rss_regression_fine_mapping_tissue_specific_prior_table.txt'
 
 
 		# Extract TGFM TWAS data for this disease component
 		tp_gene_names, tp_tissue_names, tp_twas_fusion_nominal_z_scores, tp_twas_tgfm_multivariate_z_scores, tp_twas_tgfm_multivariate_alpha_mu, tp_twas_tgfm_multivariate_alpha_var  = extract_data_from_tgfm_twas_pickle_file(tgfm_tiss_prior_twas_pickle_file)
 		cp_gene_names, cp_tissue_names, cp_twas_fusion_nominal_z_scores, cp_twas_tgfm_multivariate_z_scores, cp_twas_tgfm_multivariate_alpha_mu, cp_twas_tgfm_multivariate_alpha_var = extract_data_from_tgfm_twas_pickle_file(tgfm_const_prior_twas_pickle_file)
+		r_cp_gene_names, r_cp_tissue_names, r_cp_twas_fusion_nominal_z_scores, r_cp_twas_tgfm_multivariate_z_scores, r_cp_twas_tgfm_multivariate_alpha_mu, r_cp_twas_tgfm_multivariate_alpha_var  = extract_data_from_tgfm_twas_pickle_file(robust_tgfm_const_prior_twas_pickle_file)
+		r_tp_gene_names, r_tp_tissue_names, r_tp_twas_fusion_nominal_z_scores, r_tp_twas_tgfm_multivariate_z_scores, r_tp_twas_tgfm_multivariate_alpha_mu, r_tp_twas_tgfm_multivariate_alpha_var  = extract_data_from_tgfm_twas_pickle_file(robust_tgfm_tissue_prior_twas_pickle_file)
+
+
 
 		# Quick error checking
 		if np.array_equal(tp_gene_names, cp_gene_names) == False or np.array_equal(tp_tissue_names, cp_tissue_names) == False:
@@ -169,15 +181,19 @@ for chrom_num in range(1,23):
 			pdb.set_trace()
 
 		# Extract TGFM fine mapping data for this disease component
-		tp_sum_post_prob_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_tiss_prior_fine_mapping_file)
+		#tp_sum_post_prob_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_tiss_prior_fine_mapping_file)
 		tp_sum_post_prob_rss_regression_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_tiss_prior_rss_regression_fine_mapping_file)
-		tp_sum_post_prob_rss_prediction_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_tiss_prior_rss_prediction_fine_mapping_file)
+		#tp_sum_post_prob_rss_prediction_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_tiss_prior_rss_prediction_fine_mapping_file)
 
 
-		cp_sum_post_prob_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_const_prior_fine_mapping_file)
+		#cp_sum_post_prob_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_const_prior_fine_mapping_file)
 		cp_sum_post_prob_rss_regression_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_const_prior_rss_regression_fine_mapping_file)
-		cp_sum_post_prob_rss_prediction_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_const_prior_rss_prediction_fine_mapping_file)
-		cp_sum_post_prob_rss_regression_nom_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_const_prior_rss_regression_nominal_fine_mapping_file)
+		#cp_sum_post_prob_rss_prediction_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_const_prior_rss_prediction_fine_mapping_file)
+		#cp_sum_post_prob_rss_regression_nom_dicti = extract_data_from_tgfm_fine_mapping_table(tgfm_const_prior_rss_regression_nominal_fine_mapping_file)
+
+		r_tp_sum_post_prob_rss_regression_dicti = extract_data_from_tgfm_fine_mapping_table(robust_tgfm_tissue_prior_rss_regression_fine_mapping_file)
+
+		r_cp_sum_post_prob_rss_regression_dicti = extract_data_from_tgfm_fine_mapping_table(robust_tgfm_const_prior_rss_regression_fine_mapping_file)
 
 
 		# Extract Unique genes
@@ -190,22 +206,28 @@ for chrom_num in range(1,23):
 			tissue_gene_name = cp_tissue_names[g_index] + '_' + cp_gene_names[g_index]
 			t.write(component_name + '\t' + cp_tissue_names[g_index] + '\t' + cp_gene_names[g_index] + '\t')
 			t.write(str(cp_twas_fusion_nominal_z_scores[g_index]) + '\t')
-			t.write(str(cp_sum_post_prob_rss_regression_nom_dicti[tissue_gene_name]) + '\t')
 
 			t.write(str(cp_twas_tgfm_multivariate_alpha_mu[g_index]) + '\t')
 			t.write(str(tp_twas_tgfm_multivariate_alpha_mu[g_index]) + '\t')
+			t.write(str(r_cp_twas_tgfm_multivariate_alpha_mu[g_index]) + '\t')
+			t.write(str(r_tp_twas_tgfm_multivariate_alpha_mu[g_index]) + '\t')
+
 			t.write(str(cp_twas_tgfm_multivariate_alpha_var[g_index]) + '\t')
 			t.write(str(tp_twas_tgfm_multivariate_alpha_var[g_index]) + '\t')
-
+			t.write(str(r_cp_twas_tgfm_multivariate_alpha_var[g_index]) + '\t')
+			t.write(str(r_tp_twas_tgfm_multivariate_alpha_var[g_index]) + '\t')
 
 			t.write(str(cp_twas_tgfm_multivariate_z_scores[g_index]) + '\t')
 			t.write(str(tp_twas_tgfm_multivariate_z_scores[g_index]) + '\t')
-			t.write(str(cp_sum_post_prob_dicti[tissue_gene_name]) + '\t')
-			t.write(str(tp_sum_post_prob_dicti[tissue_gene_name]) + '\t')
+			t.write(str(r_cp_twas_tgfm_multivariate_z_scores[g_index]) + '\t')
+			t.write(str(r_tp_twas_tgfm_multivariate_z_scores[g_index]) + '\t')
+
+
 			t.write(str(cp_sum_post_prob_rss_regression_dicti[tissue_gene_name]) + '\t')
 			t.write(str(tp_sum_post_prob_rss_regression_dicti[tissue_gene_name]) + '\t')
-			t.write(str(cp_sum_post_prob_rss_prediction_dicti[tissue_gene_name]) + '\t')
-			t.write(str(tp_sum_post_prob_rss_prediction_dicti[tissue_gene_name]) + '\t')
+			t.write(str(r_cp_sum_post_prob_rss_regression_dicti[tissue_gene_name]) + '\t')
+			t.write(str(r_tp_sum_post_prob_rss_regression_dicti[tissue_gene_name]) + '\t')
+
 			t.write(coloc_prob_dicti[tissue_gene_name] + '\t')
 			t.write(adapive_coloc_prob_dicti[tissue_gene_name] + '\n')
 
