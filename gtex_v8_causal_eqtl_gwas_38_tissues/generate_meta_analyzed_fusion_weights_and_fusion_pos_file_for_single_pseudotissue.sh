@@ -15,6 +15,7 @@ if false; then
 	source ~/.bash_profile
 fi
 
+echo $pseudotissue_name
 
 
 

@@ -148,6 +148,9 @@ for gene_name in gene_names:
 
 		weight_arr.append(best_weight_vector)
 	meta_analyzed_weights, meta_analyzed_samp_size_arr = meta_analyze_weights(weight_arr, samp_size_arr, snp_arr)
+	if np.sum(np.isnan(meta_analyzed_weights)) > 0:
+		print('NAN VALUE PRESENT')
+		continue
 
 	new_weight_matrix = pd.DataFrame(data=meta_analyzed_weights, columns=['meta_weights'], index=snp_arr[0])
 	new_hsq_mat = pd.DataFrame(data=hsq_arr, columns=['hsq'])

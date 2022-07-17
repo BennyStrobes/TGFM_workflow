@@ -105,6 +105,20 @@ def create_global_gwas_data(gene_local_to_global_mapping, gwas_beta_file_names, 
 
 	return global_gwas_data
 
+def create_global_fusion_weights_data(gene_local_to_global_mapping, gwas_beta_file_names, num_global_variants):
+	# Initialize global data
+	global_weight_data = []
+
+	for gwas_counter, gwas_file_name in enumerate(gwas_beta_file_names):
+		local_gwas_data = np.loadtxt(gwas_file_name)
+
+		global_weight_arr = np.zeros(num_global_variants)
+		global_weight_arr[gene_local_to_global_mapping[gwas_counter]] = local_gwas_data
+
+		global_weight_data.append(global_weight_arr)
+
+	return global_weight_data
+
 
 def organize_single_components_data(component_name, trait_name, component_gene_file, gwas_sample_size):
 	# load in data
@@ -113,16 +127,16 @@ def organize_single_components_data(component_name, trait_name, component_gene_f
 	gene_data = raw_data[1:, :]
 
 	# Extract relevent fields from data
-	pdb.set_trace()
 	gene_names = gene_data[:,0]
 	tissue_names = gene_data[:,1]
-	geno_file_names = gene_data[:,6]
-	bim_file_names = gene_data[:, 7]
-	eqtl_susie_mu_file_names = gene_data[:,8]
-	eqtl_susie_alpha_file_names = gene_data[:, 9]
-	eqtl_susie_mu_sd_file_names = gene_data[:, 10]
-	gwas_beta_file_names = gene_data[:, 11]
-	gwas_beta_se_file_names = gene_data[:, 12]
+	geno_file_names = gene_data[:,8]
+	bim_file_names = gene_data[:, 9]
+	eqtl_susie_mu_file_names = gene_data[:,10]
+	eqtl_susie_alpha_file_names = gene_data[:, 11]
+	eqtl_susie_mu_sd_file_names = gene_data[:, 12]
+	gwas_beta_file_names = gene_data[:, 13]
+	gwas_beta_se_file_names = gene_data[:, 14]
+	fusion_weight_file_names = gene_data[:,15]
 
 	# create full gene names
 	full_gene_names = []
@@ -151,6 +165,7 @@ def organize_single_components_data(component_name, trait_name, component_gene_f
 	global_geno_data = create_global_geno_data(gene_local_to_global_mapping, geno_file_names, num_global_variants)
 	# create global LD
 	global_ld = np.corrcoef(np.transpose(global_geno_data))
+	#global_ld = np.transpose(global_geno_data)
 
 	# Create global susie mu data
 	global_susie_mu_data = create_global_susie_data(gene_local_to_global_mapping, eqtl_susie_mu_file_names, num_global_variants)
@@ -167,8 +182,23 @@ def organize_single_components_data(component_name, trait_name, component_gene_f
 	# Create global gwas beta sd data
 	global_gwas_beta_se_data = create_global_gwas_data(gene_local_to_global_mapping, gwas_beta_se_file_names, num_global_variants)	
 
+	# Create global fusion_weights
+	global_fusion_weights_data = create_global_fusion_weights_data(gene_local_to_global_mapping, fusion_weight_file_names, num_global_variants)	
+
 	# Place all global data into dictionary
-	global_dictionary = {'genes': full_gene_names, 'variants': global_variant_arr, 'bim': global_bim_data, 'reference_ld':global_ld, 'susie_mu':global_susie_mu_data, 'susie_alpha': global_susie_alpha_data, 'susie_mu_sd': global_susie_mu_sd_data, 'gwas_beta': global_gwas_beta_data, 'gwas_beta_se': global_gwas_beta_se_data, 'gwas_sample_size': gwas_sample_size}
+	global_dictionary = {'genes': full_gene_names, 'variants': global_variant_arr, 'bim': global_bim_data, 'reference_ld':global_ld, 'susie_mu':global_susie_mu_data, 'susie_alpha': global_susie_alpha_data, 'susie_mu_sd': global_susie_mu_sd_data, 'fusion_weights': global_fusion_weights_data, 'gwas_beta': global_gwas_beta_data, 'gwas_beta_se': global_gwas_beta_se_data, 'gwas_sample_size': gwas_sample_size}
+
+
+	# REMOVE data
+	for itera in range(len(geno_file_names)):
+		os.system('rm ' + geno_file_names[itera])
+		os.system('rm ' + bim_file_names[itera])
+		os.system('rm ' + eqtl_susie_mu_file_names[itera])
+		os.system('rm ' + eqtl_susie_alpha_file_names[itera])
+		os.system('rm ' + eqtl_susie_mu_sd_file_names[itera])
+		os.system('rm ' + gwas_beta_file_names[itera])
+		os.system('rm ' + gwas_beta_se_file_names[itera])
+		os.system('rm ' + fusion_weight_file_names[itera])
 
 	return global_dictionary
 
@@ -190,6 +220,8 @@ t = open(output_file,'w')
 # Header to output file
 t.write('chrom_num\tcomponent_name\tnumber_of_cis_genes\tcomponent_twas_data\n')
 
+# Weird (rare bug) where susie identifies 2 components with same lead snp (SHOULD REALLY BE FIXED EARLIER ON)
+used_components = {}
 
 f = open(input_file)
 head_count = 0
@@ -203,8 +235,12 @@ for line in f:
 	component_gene_file = data[7]
 	num_genes = int(data[8])
 
+	if component_name in used_components:
+		print('SKIPPING COMPONENT BECAUSE ALREADY SEEN')
+		continue
+	used_components[component_name] = 1
+
 	if num_genes > 0:
-		print('start')
 		component_data = organize_single_components_data(component_name, trait_name, component_gene_file, gwas_sample_size)
 		pkl_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_multivariate_twas_data.pkl'
 		g = open(pkl_file, "wb")
