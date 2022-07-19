@@ -89,9 +89,9 @@ def create_alpha_mu_and_alpha_var_objects(twas_pickle_file_names, tissue_to_posi
 			if gene_count_method == 'count_genes_once':
 				if gene_name in used_genes:
 					#valid_genes.append(False)
-					valid_genes.append(True)
-				else:
 					valid_genes.append(False)
+				else:
+					valid_genes.append(True)
 					used_genes[gene_name] = 1
 			elif gene_count_method == 'count_all_genes':
 				valid_genes.append(True)
