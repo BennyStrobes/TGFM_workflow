@@ -76,6 +76,8 @@ def update_beta_and_Z(Y, X, beta_mu, beta_var, Z, variance_grid, expected_ln_pi)
 
 	return beta_mu, beta_var, Z
 
+
+
 def inference(Y, X, variance_grid, max_iters=200):
 	# Initialize data
 	N = X.shape[0]
@@ -94,6 +96,20 @@ def inference(Y, X, variance_grid, max_iters=200):
 		print(delta_alpha/np.sum(delta_alpha))
 	return Z, delta_alpha, beta_mu, beta_var
 
+def multivariate_inference(Y, X, variance_grid, max_iters=200):
+	# Initialize data
+	N = X.shape[0]
+	P = X.shape[1]
+	M = len(variance_grid)
+	beta_mu = np.zeros(P)
+	beta_var = np.ones(P)
+	Z = np.ones((P, M))/M
+	delta_alpha = np.ones(M)
+
+	for itera in range(max_iters):
+		expected_ln_pi = scipy.special.psi(delta_alpha) - scipy.special.psi(np.sum(delta_alpha))
+		beta_mu, beta_var, Z = multivariate_update_beta_and_Z(Y, X, beta_mu, beta_var, Z, variance_grid, expected_ln_pi)
+	pdb.set_trace()
 
 # Create variance grid
 grid_start=1e-3
@@ -110,6 +126,8 @@ Y, X, betas_sim, z_sim, delta_sim = simulate_data(num_samples, num_features, var
 
 
 print(delta_sim)
+
+#Z, delta_alpha, beta_mu, beta_var = multivariate_inference(Y, X, variance_grid)
 Z, delta_alpha, beta_mu, beta_var = inference(Y, X, variance_grid)
 
 

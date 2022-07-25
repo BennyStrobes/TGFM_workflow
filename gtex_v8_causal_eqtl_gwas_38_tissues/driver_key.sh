@@ -117,7 +117,8 @@ pseudotissue_gtex_rss_multivariate_twas_data_dir=$output_root"pseudotissue_gtex_
 # Directory containing rss multivariate twas results
 pseudotissue_gtex_rss_multivariate_twas_dir=$output_root"pseudotissue_gtex_rss_multivariate_twas/"
 
-
+# Directory containing visualizations of multivariate twas
+rss_multivariate_twas_visualization_dir=$output_root"visualize_rss_multivariate_twas/"
 
 
 ##################
@@ -257,12 +258,10 @@ fi
 
 trait_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_independent.txt"
 trait_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_independent_minus_wbc.txt"
-if false; then
 sed 1d $trait_file | while read trait_name study_file samp_size bolt_lmm_h2; do
 	echo $trait_name"_"$samp_size
 	sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_fusion_weights_dir $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $coloc_results_dir
 done
-fi
 
 
 
@@ -270,14 +269,12 @@ fi
 
 
 
-
-
-
+trait_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_independent.txt"
 if false; then
-sh polygenic_simulation.sh
+source ~/.bash_profile
+module load R/3.5.1
+
+Rscript visualize_rss_twas.R $trait_file $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $rss_multivariate_twas_visualization_dir
 fi
-
-
-
 
 
