@@ -331,6 +331,11 @@ for line in f:
 		tgfm_rss_fm_obj_regr = tgfm_rss_fine_mapping.TGFM_RSS_FM(residual_version='regress')
 		tgfm_rss_fm_obj_regr.fit(twas_data_obj=twas_data, tgfm_data_obj=tgfm_rss_fm_data)
 
+
+		#pdb.set_trace()
+		prob = np.asarray(tgfm_rss_fm_obj_regr.tissue_posterior_prob_df[tgfm_rss_fm_obj_regr.tissue_posterior_prob_df['tissue'] == 'Whole_Blood']['posterior_probability'])[0]
+		#print(probz)
+
 		#tgfm_rss_fm_obj_pred = tgfm_rss_fine_mapping.TGFM_RSS_FM(residual_version='predict')
 		#tgfm_rss_fm_obj_pred.fit(twas_data_obj=twas_data, tgfm_data_obj=tgfm_rss_fm_data)
 

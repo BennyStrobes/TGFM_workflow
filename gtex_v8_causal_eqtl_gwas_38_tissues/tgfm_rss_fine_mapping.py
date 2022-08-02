@@ -30,7 +30,7 @@ class TGFM_RSS_FM(object):
 		print('###############################')
 		self.initialize_variables(twas_data_obj, tgfm_data_obj)
 		self.update_posterior_probs()
-		self.posterior_prob_df = pd.DataFrame(data={'tissue': self.tissue_names, 'gene': self.gene_names, 'eqtl_component_number': self.eqtl_component_numbers, 'posterior_probability':self.posterior_probs})
+		self.posterior_prob_df = pd.DataFrame(data={'tissue': self.tissue_names, 'gene': self.gene_names, 'eqtl_component_number': self.eqtl_component_numbers, 'posterior_probability':self.posterior_probs, 'log_likelihood':self.log_likelihoods})
 		self.generate_tissue_level_posterior_probs(tgfm_data_obj['ordered_tissue_names'])
 
 	def generate_tissue_level_posterior_probs(self, ordered_tissue_names):
@@ -52,6 +52,7 @@ class TGFM_RSS_FM(object):
 			log_likelihood = ll_a_term + ll_b_term
 			log_likelihoods.append(log_likelihood)
 		self.posterior_probs = np.exp(log_likelihoods - scipy.special.logsumexp(log_likelihoods))
+		self.log_likelihoods = np.asarray(log_likelihoods)
 
 	def initialize_variables(self, twas_data_obj, tgfm_data_obj):
 		# Generate S matrix

@@ -1362,7 +1362,6 @@ for (trait_iter in 1:length(trait_names)) {
 	p_coloc <- make_distribution_of_posterior_probs_in_each_tissue(proportion_trait_components_mediated_coloc_probs_hash, trait_name, tissue_names, "coloc", causal_tissue)
 	output_file <- paste0(visualize_twas_results_dir, trait_name,"_causal_coloc_posterior_prob_distribution_per_tissue_boxplot.pdf")
 	ggsave(p_coloc, file=output_file, width=7.2, height=10.5, units="in")
-
 }
 
 print("DONE")

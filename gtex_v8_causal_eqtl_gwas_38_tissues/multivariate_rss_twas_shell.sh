@@ -95,14 +95,18 @@ fusion_weights="True"
 sbatch run_robust_rss_twas_tissue_specific_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version $fusion_weights
 fi
 
-if false; then
+
+
+
+
 fusion_weights="False"
+if false; then
 for chrom_num in {1..22}; do 
 	component_data_file=${pseudotissue_gtex_rss_multivariate_twas_data_dir}${trait_name}"_"${gene_version}"_"${chrom_num}"_component_rss_multivariate_twas_data_organized.txt"
 	sbatch run_robust_rss_twas_on_single_chromosome_with_tissue_specific_prior.sh $chrom_num $trait_name $gtex_pseudotissue_file $component_data_file $ukbb_genome_wide_susie_organized_results_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $fusion_weights
 done
-
-
+fi
+if false; then
 fusion_weights="True"
 for chrom_num in {1..22}; do 
 	component_data_file=${pseudotissue_gtex_rss_multivariate_twas_data_dir}${trait_name}"_"${gene_version}"_"${chrom_num}"_component_rss_multivariate_twas_data_organized.txt"
@@ -113,6 +117,82 @@ fi
 
 
 
+
+
+
+fusion_weights="False"
+sbatch organize_rss_twas_results.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $fusion_weights
+
+if false; then
+fusion_weights="True"
+sbatch organize_rss_twas_results.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $fusion_weights
+fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####################
+# old
+####################
 #####################
 # ROBUST TWAS mog (no prior)
 #####################
@@ -131,12 +211,3 @@ sbatch run_robust_mog_rss_twas_tissue_specific_prior_inference.sh $trait_name $g
 fi
 
 
-
-
-
-
-
-
-if false; then
-sbatch organize_rss_twas_results.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $coloc_results_dir
-fi
