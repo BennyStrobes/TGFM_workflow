@@ -249,9 +249,8 @@ fi
 gene_version="cis_heritable_genes"
 trait_name="blood_WHITE_COUNT"
 samp_size="326723"
-if false; then
 sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_fusion_weights_dir $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $coloc_results_dir
-fi
+
 
 
 trait_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_independent.txt"
