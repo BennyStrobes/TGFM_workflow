@@ -295,9 +295,9 @@ system(arg , ignore.stdout=SYS_PRINT,ignore.stderr=SYS_PRINT)
 # 3. evaluate LRT and V(G)/Vp
 if ( !file.exists( paste(opt$tmp,".hsq",sep='') ) ) {
 	cat(opt$tmp,"does not exist, likely GCTA could not converge, skipping gene\n",file=stderr())
-	cleanup()
-	q()
-}
+	hsq = NA
+	hsq.pv = NA
+} else {
 
 hsq.file = read.table(file=paste(opt$tmp,".hsq",sep=''),as.is=T,fill=T)
 hsq = as.numeric(unlist(hsq.file[hsq.file[,1] == "V(G)/Vp",2:3]))
@@ -312,6 +312,7 @@ if ( hsq[1] < 0 || hsq.pv > opt$hsq_p ) {
 	cat(opt$tmp," : heritability ",hsq[1],"; LRT P-value ",hsq.pv," : skipping gene\n",sep='',file=stderr())
 	cleanup()
 	q()
+}
 }
 }
 
@@ -465,7 +466,12 @@ for ( mod in 1:M ) {
 		susie_alpha = temp_list[[4]]
 		susie_V = temp_list[[5]]
 		susie_converged = temp_list[[6]]
+		#print("A")
 		#susie_individual_weights <- weights.susie_individual(genos$bed, as.matrix(pheno[,3]))
+		#print("B")
+		#print(susie_individual_weights)
+		#print(colSums(susie_mu*susie_alpha))
+		#print(cor(susie_individual_weights, colSums(susie_mu*susie_alpha)))
 	}
 }
 

@@ -62,6 +62,8 @@ abc_input_dir="/n/groups/price/ben/causal_eqtl_gwas/gtex_v8_causal_eqtl_gwas_38_
 # wget https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-021-03446-x/MediaObjects/41586_2021_3446_MOESM8_ESM.txt
 abc_enhancer_gwas_variant_enrichment_file="/n/groups/price/ben/causal_eqtl_gwas/gtex_v8_causal_eqtl_gwas_38_tissues/input_data/abc/gwas_variant_abc_enhancer_enrichments_across_biosamples_supp_table_6.txt"
 
+# Gene set annotation file
+gene_set_annotation_file="/n/groups/price/martin/data_GDREG/sam_gene_annotation/geneset_list_curated.csv"
 
 ##################
 # Output data
@@ -249,8 +251,9 @@ fi
 gene_version="cis_heritable_genes"
 trait_name="blood_WHITE_COUNT"
 samp_size="326723"
-sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_fusion_weights_dir $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $coloc_results_dir
-
+if false; then
+sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_fusion_weights_dir $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_set_annotation_file
+fi
 
 
 trait_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_independent.txt"
@@ -258,7 +261,7 @@ trait_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2
 if false; then
 sed 1d $trait_file | while read trait_name study_file samp_size bolt_lmm_h2; do
 	echo $trait_namultivariate_rss_twas_shellme"_"$samp_size
-	sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_fusion_weights_dir $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $coloc_results_dir
+	sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_fusion_weights_dir $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_set_annotation_file
 done
 fi
 

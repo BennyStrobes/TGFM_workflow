@@ -14,7 +14,7 @@ samp_size="$7"
 pseudotissue_gtex_rss_multivariate_twas_data_dir="$8"
 pseudotissue_gtex_rss_multivariate_twas_dir="$9"
 gene_version="${10}"
-coloc_results_dir="${11}"
+gene_set_annotation_file="${11}"
 
 
 
@@ -98,7 +98,6 @@ fi
 
 
 
-
 fusion_weights="False"
 if false; then
 for chrom_num in {1..22}; do 
@@ -115,7 +114,15 @@ done
 fi
 
 
-
+#####################
+# ROBUST TWAS with gene sets (no prior)
+#####################
+gene_count_method="count_genes_once"
+init_version="null_init"
+fusion_weights="False"
+if false; then
+sbatch run_robust_rss_twas_tissue_and_gene_set_specific_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version $fusion_weights $gene_set_annotation_file
+fi
 
 
 #####################
