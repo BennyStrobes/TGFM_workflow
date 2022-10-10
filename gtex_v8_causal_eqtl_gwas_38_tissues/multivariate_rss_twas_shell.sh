@@ -15,6 +15,7 @@ pseudotissue_gtex_rss_multivariate_twas_data_dir="$8"
 pseudotissue_gtex_rss_multivariate_twas_dir="$9"
 gene_version="${10}"
 gene_set_annotation_file="${11}"
+coloc_results_dir="${12}"
 
 
 
@@ -55,6 +56,14 @@ fusion_weights="True"
 sbatch run_rss_twas_tissue_specific_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version $fusion_weights
 fi
 
+gene_count_method="count_genes_once"
+init_version="null_init"
+fusion_weights="False"
+if false; then
+sbatch run_rss_twas_tissue_shared_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version $fusion_weights
+fi
+
+
 
 # Gonna move forward with following versions (gene_count_method="count_genes_once" and init_version="null_init")
 fusion_weights="True"
@@ -71,6 +80,20 @@ for chrom_num in {1..22}; do
 	sbatch run_rss_twas_on_single_chromosome_with_tissue_specific_prior.sh $chrom_num $trait_name $gtex_pseudotissue_file $component_data_file $ukbb_genome_wide_susie_organized_results_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $fusion_weights
 done
 fi
+
+
+
+
+#####################
+# ROBUST TWAS (LDSC version)
+#####################
+if false; then
+for chrom_num in {1..22}; do 
+	sbatch run_ldsc_robust_rss_twas.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_data_dir $ukbb_genome_wide_susie_organized_results_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $chrom_num
+done
+fi
+
+sh run_ldsc_robust_rss_twas_regression.sh $trait_name $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $samp_size
 
 
 #####################
@@ -94,6 +117,12 @@ init_version="null_init"
 fusion_weights="True"
 sbatch run_robust_rss_twas_tissue_specific_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version $fusion_weights
 fi
+
+if false; then
+fusion_weights="False"
+sbatch run_robust_rss_twas_tissue_shared_prior_inference.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_count_method $init_version $fusion_weights
+fi
+
 
 
 
@@ -135,7 +164,6 @@ for chrom_num in {1..22}; do
 done
 fi
 
-
 gene_count_method="count_genes_once"
 init_version="null_init"
 fusion_weights="True"
@@ -152,6 +180,21 @@ fi
 
 
 
+if false; then
+for chrom_num in {1..22}; do 
+	component_data_file=${pseudotissue_gtex_rss_multivariate_twas_data_dir}${trait_name}"_"${gene_version}"_"${chrom_num}"_component_rss_multivariate_twas_data_organized.txt"
+	sbatch run_robust_susie_rss_twas_on_single_chromosome_w_learned_prior.sh $chrom_num $trait_name $gtex_pseudotissue_file $component_data_file $ukbb_genome_wide_susie_organized_results_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $fusion_weights
+done
+fi
+
+
+if false; then
+for chrom_num in {1..22}; do 
+	component_data_file=${pseudotissue_gtex_rss_multivariate_twas_data_dir}${trait_name}"_"${gene_version}"_"${chrom_num}"_component_rss_multivariate_twas_data_organized.txt"
+	sbatch run_robust_joint_susie_rss_twas_on_single_chromosome_w_learned_prior.sh $chrom_num $trait_name $gtex_pseudotissue_file $component_data_file $ukbb_genome_wide_susie_organized_results_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $fusion_weights
+done
+fi
+
 
 
 
@@ -165,8 +208,15 @@ fusion_weights="True"
 sbatch organize_rss_twas_results.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $fusion_weights
 fi
 
+if false; then
+fusion_weights="False"
+sbatch organize_rss_twas_results_with_and_without_genome_prior.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $fusion_weights $ukbb_genome_wide_susie_organized_results_dir $coloc_results_dir
+fi
 
-
+if false; then 
+fusion_weights="False"
+sbatch organize_joint_rss_twas_results.sh $trait_name $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $fusion_weights $ukbb_genome_wide_susie_organized_results_dir $coloc_results_dir
+fi
 
 
 

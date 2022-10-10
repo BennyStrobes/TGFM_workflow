@@ -5,6 +5,7 @@ library(hash)
 library(dplyr)
 library(reshape)
 library(stringr)
+options(warn=1)
 
 figure_theme <- function() {
 	return(theme(plot.title = element_text(face="plain",size=11), text = element_text(size=11),axis.text=element_text(size=11), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"), legend.text = element_text(size=11), legend.title = element_text(size=11)))
@@ -90,11 +91,14 @@ make_variance_proportion_heatmap <- function(pseudotissue_gtex_rss_multivariate_
 
 	df$tissue = str_replace_all(as.character(df$tissue), "-", "_")
 	df$tissue <- recode(df$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+	df$trait <- recode(df$trait, biochemistry_Cholesterol="Cholesterol", blood_EOSINOPHIL_COUNT="Blood eosinophil count", blood_RBC_DISTRIB_WIDTH="Blood RBC width", blood_RED_COUNT="Blood red count", blood_WHITE_COUNT="Blood white count", body_WHRadjBMIz="WHR-adj BMI", bp_DIASTOLICadjMEDz="Diastolic BP", cov_EDU_COLLEGE="College Education", disease_ALLERGY_ECZEMA_DIAGNOSED="Eczema")
+	df$trait <- factor(df$trait, levels=c("Eczema", "College Education", "Diastolic BP", "WHR-adj BMI", "Blood white count", "Blood red count", "Blood RBC width", "Blood eosinophil count", "Cholesterol"))
 	p <- ggplot(df, aes(x = tissue, y = trait, fill = variance_proportion)) +
   		geom_tile() +
-  		theme(text = element_text(size=10), panel.background = element_blank(), axis.text.x = element_text(angle = 90, vjust=.5)) + 
+  		theme(text = element_text(size=14), panel.background = element_blank(), axis.text.x = element_text(angle = 90, vjust=.5)) + 
   		theme(legend.position="bottom") +
-  		labs(fill="Proportion of expression-mediated\ntrait heritability",title=paste0("FUSION=", fusion_weights, " / ", robust))
+  		scale_fill_gradient(low="grey",high="blue") +
+  		labs(fill="Proportion of expression-mediated\ntrait heritability",x="Tissue", y="GWAS trait",title="")
   	return(p)
 }
 
@@ -118,12 +122,111 @@ make_comp_nominal_pvalue_thresh_fraction_bar_plot <- function(df, title_string, 
   			geom_bar(stat="identity", color="black", position=position_dodge(), width=.75) +
   			figure_theme() + 
   			theme(legend.position="none") +
-  			labs(y="Fraction of mediated trait components", x="",title=title_string) +
-  			theme(axis.text.x = element_text(angle = 90,hjust=1, vjust=.5, size=10))
+  			labs(y="Fraction of\n trait components", x="",title=title_string) +
+  			theme(axis.text.x = element_text(angle = 90,hjust=1, vjust=.5, size=10)) + theme(plot.title = element_text(hjust = 0.5))
 
   	return(p)
 
 }
+
+extract_proportion_of_trait_components_mediated_in_each_tissue_coloc <- function(trait_data_list, trait_names, tissue_names) {
+	trait_arr <- c()
+	tissue_arr <- c()
+	count_arr <- c()
+	comp_arr <- c()
+
+
+	num_tiss <- length(tissue_names)
+
+	pseudocount = .005
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- as.character(trait_names[trait_iter])
+
+		df <- trait_data_list[[trait_iter]]
+
+		tissue_counts <- rep(0, num_tiss)
+		for (tissue_iter in 1:num_tiss) {
+			tissue_name <- tissue_names[tissue_iter]
+			num_genes <- sum(df$tissue==tissue_name)
+			tissue_counts[tissue_iter] = num_genes
+		}
+		
+		trait_components = as.character(unique(df$trait_component))
+		for (trait_component_iter in 1:length(trait_components)) {
+			trait_component <- trait_components[trait_component_iter]
+			component_df <- df[df$trait_component==trait_component,]
+			# initialize
+			tissues_un_normalized <- rep(0.0, num_tiss)
+			for (tissue_iter in 1:num_tiss) {
+				tissue_name <- tissue_names[tissue_iter]
+
+				indices <- component_df$tissue==tissue_name
+				if (sum(indices) > 0) {
+					tissues_un_normalized[tissue_iter] = tissues_un_normalized[tissue_iter] + (max(abs(component_df$coloc_pph4[indices])))
+
+				}
+			
+			}
+
+			tissues_un_normalized = tissues_un_normalized + pseudocount
+			tissues_normalized =tissues_un_normalized/sum(tissues_un_normalized)
+
+
+			for (tissue_iter in 1:num_tiss) {
+				tissue_name <- tissue_names[tissue_iter]
+				trait_arr <- c(trait_arr, trait_name)
+				tissue_arr <- c(tissue_arr, tissue_name)
+				count_arr <- c(count_arr, tissues_normalized[tissue_iter])
+				comp_arr <- c(comp_arr, trait_component)
+			}
+
+		}
+	}
+
+	df <- data.frame(trait=trait_arr, tissue=(tissue_arr), trait_component=comp_arr, number_nominal_twas_associations=count_arr)
+
+	probs_hash <- hash()
+	trait_arr <- c()
+	tissue_arr <- c()
+	fraction_arr <- c()
+	fraction_std_err_arr <- c()
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- as.character(trait_names[trait_iter])
+
+		df_trait <- df[df$trait==trait_name,]
+		for (tissue_iter in 1:num_tiss) {
+			tissue_name <- as.character(tissue_names[tissue_iter])
+			probs <- df_trait$number_nominal_twas_associations[df_trait$tissue==tissue_name]
+
+			frac = sum(probs)/length(probs)
+			frac_se = std_mean(probs)
+
+			trait_arr <- c(trait_arr, trait_name)
+			tissue_arr <- c(tissue_arr, tissue_name)
+			fraction_arr <- c(fraction_arr, frac)
+			fraction_std_err_arr <- c(fraction_std_err_arr, frac_se)
+
+			trait_tissue_name <- paste0(trait_name, "_", tissue_name)
+			probs_hash[trait_tissue_name] = probs
+		}
+	}	
+
+	df <- data.frame(trait=trait_arr, tissue=factor(tissue_arr), fraction_nominal_twas_associations=fraction_arr, fraction_std_err=fraction_std_err_arr)
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- as.character(trait_names[trait_iter])
+	}
+
+	listy <- list()
+	listy[[1]] = df
+	listy[[2]] = probs_hash
+
+	return(listy)
+}
+
+
 extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_univariate_alpha_z <- function(trait_data_list, trait_names, tissue_names) {
 	trait_arr <- c()
 	tissue_arr <- c()
@@ -221,6 +324,201 @@ extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_univariate_a
 	return(listy)
 }
 
+extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_multivariate_susie_alpha_z <- function(trait_data_list, trait_names, tissue_names, column_name) {
+	trait_arr <- c()
+	tissue_arr <- c()
+	count_arr <- c()
+	comp_arr <- c()
+
+
+	num_tiss <- length(tissue_names)
+
+	pseudocount = .005
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- as.character(trait_names[trait_iter])
+
+		df <- trait_data_list[[trait_iter]]
+
+		tissue_counts <- rep(0, num_tiss)
+		for (tissue_iter in 1:num_tiss) {
+			tissue_name <- tissue_names[tissue_iter]
+			num_genes <- sum(df$tissue==tissue_name)
+			tissue_counts[tissue_iter] = num_genes
+		}
+		
+		trait_components = as.character(unique(df$trait_component))
+		for (trait_component_iter in 1:length(trait_components)) {
+			trait_component <- trait_components[trait_component_iter]
+			component_df <- df[df$trait_component==trait_component,]
+			# initialize
+			tissues_un_normalized <- rep(0.0, num_tiss)
+			tissue_raw <- rep(0.0, num_tiss)
+			for (tissue_iter in 1:num_tiss) {
+				tissue_name <- tissue_names[tissue_iter]
+
+				indices <- component_df$tissue==tissue_name
+				if (sum(indices) > 0) {
+					#tissues_un_normalized[tissue_iter] = tissues_un_normalized[tissue_iter] + 1.0*(max(abs(component_df$tgfm_susie_pip[indices])) > .5)
+					tissues_un_normalized[tissue_iter] = tissues_un_normalized[tissue_iter] + max((component_df[column_name][,1])[indices])
+					#tissues_un_normalized[tissue_iter] = tissues_un_normalized[tissue_iter] + 1.0*(max(abs((component_df[column_name][,1])[indices])) > .5)
+				}
+			}
+
+			tissues_un_normalized = tissues_un_normalized + pseudocount
+			tissues_normalized =tissues_un_normalized/sum(tissues_un_normalized)
+
+
+			for (tissue_iter in 1:num_tiss) {
+				tissue_name <- tissue_names[tissue_iter]
+				trait_arr <- c(trait_arr, trait_name)
+				tissue_arr <- c(tissue_arr, tissue_name)
+				count_arr <- c(count_arr, tissues_normalized[tissue_iter])
+				comp_arr <- c(comp_arr, trait_component)
+			}
+
+		}
+	}
+
+	df <- data.frame(trait=trait_arr, tissue=(tissue_arr), trait_component=comp_arr, number_nominal_twas_associations=count_arr)
+
+	probs_hash <- hash()
+	trait_arr <- c()
+	tissue_arr <- c()
+	fraction_arr <- c()
+	fraction_std_err_arr <- c()
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- as.character(trait_names[trait_iter])
+
+		df_trait <- df[df$trait==trait_name,]
+		for (tissue_iter in 1:num_tiss) {
+			tissue_name <- as.character(tissue_names[tissue_iter])
+			probs <- df_trait$number_nominal_twas_associations[df_trait$tissue==tissue_name]
+
+			frac = sum(probs)/length(probs)
+			frac_se = std_mean(probs)
+
+			trait_arr <- c(trait_arr, trait_name)
+			tissue_arr <- c(tissue_arr, tissue_name)
+			fraction_arr <- c(fraction_arr, frac)
+			fraction_std_err_arr <- c(fraction_std_err_arr, frac_se)
+
+			trait_tissue_name <- paste0(trait_name, "_", tissue_name)
+			probs_hash[trait_tissue_name] = probs
+		}
+	}	
+
+	df <- data.frame(trait=trait_arr, tissue=factor(tissue_arr), fraction_nominal_twas_associations=fraction_arr, fraction_std_err=fraction_std_err_arr)
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- as.character(trait_names[trait_iter])
+	}
+
+	listy <- list()
+	listy[[1]] = df
+	listy[[2]] = probs_hash
+
+	return(listy)
+}
+
+
+extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_multivariate_alpha_z <- function(trait_data_list, trait_names, tissue_names) {
+	trait_arr <- c()
+	tissue_arr <- c()
+	count_arr <- c()
+	comp_arr <- c()
+
+
+	num_tiss <- length(tissue_names)
+
+	pseudocount = .005
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- as.character(trait_names[trait_iter])
+
+		df <- trait_data_list[[trait_iter]]
+
+		tissue_counts <- rep(0, num_tiss)
+		for (tissue_iter in 1:num_tiss) {
+			tissue_name <- tissue_names[tissue_iter]
+			num_genes <- sum(df$tissue==tissue_name)
+			tissue_counts[tissue_iter] = num_genes
+		}
+		
+		trait_components = as.character(unique(df$trait_component))
+		for (trait_component_iter in 1:length(trait_components)) {
+			trait_component <- trait_components[trait_component_iter]
+			component_df <- df[df$trait_component==trait_component,]
+			# initialize
+			tissues_un_normalized <- rep(0.0, num_tiss)
+			for (tissue_iter in 1:num_tiss) {
+				tissue_name <- tissue_names[tissue_iter]
+
+				indices <- component_df$tissue==tissue_name
+				if (sum(indices) > 0) {
+					tissues_un_normalized[tissue_iter] = tissues_un_normalized[tissue_iter] + 1.0*(max(abs(component_df$tgfm_const_prior_twas_z_score[indices])) > 3.0)
+				}
+			}
+
+			tissues_un_normalized = tissues_un_normalized + pseudocount
+			tissues_normalized =tissues_un_normalized/sum(tissues_un_normalized)
+
+
+			for (tissue_iter in 1:num_tiss) {
+				tissue_name <- tissue_names[tissue_iter]
+				trait_arr <- c(trait_arr, trait_name)
+				tissue_arr <- c(tissue_arr, tissue_name)
+				count_arr <- c(count_arr, tissues_normalized[tissue_iter])
+				comp_arr <- c(comp_arr, trait_component)
+			}
+
+		}
+	}
+
+	df <- data.frame(trait=trait_arr, tissue=(tissue_arr), trait_component=comp_arr, number_nominal_twas_associations=count_arr)
+
+	probs_hash <- hash()
+	trait_arr <- c()
+	tissue_arr <- c()
+	fraction_arr <- c()
+	fraction_std_err_arr <- c()
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- as.character(trait_names[trait_iter])
+
+		df_trait <- df[df$trait==trait_name,]
+		for (tissue_iter in 1:num_tiss) {
+			tissue_name <- as.character(tissue_names[tissue_iter])
+			probs <- df_trait$number_nominal_twas_associations[df_trait$tissue==tissue_name]
+
+			frac = sum(probs)/length(probs)
+			frac_se = std_mean(probs)
+
+			trait_arr <- c(trait_arr, trait_name)
+			tissue_arr <- c(tissue_arr, tissue_name)
+			fraction_arr <- c(fraction_arr, frac)
+			fraction_std_err_arr <- c(fraction_std_err_arr, frac_se)
+
+			trait_tissue_name <- paste0(trait_name, "_", tissue_name)
+			probs_hash[trait_tissue_name] = probs
+		}
+	}	
+
+	df <- data.frame(trait=trait_arr, tissue=factor(tissue_arr), fraction_nominal_twas_associations=fraction_arr, fraction_std_err=fraction_std_err_arr)
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- as.character(trait_names[trait_iter])
+	}
+
+	listy <- list()
+	listy[[1]] = df
+	listy[[2]] = probs_hash
+
+	return(listy)
+}
+
+
 extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_tissue_prior_multivariate_alpha_z <- function(trait_data_list, trait_names, tissue_names) {
 	trait_arr <- c()
 	tissue_arr <- c()
@@ -255,7 +553,7 @@ extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_tissue_prior
 
 				indices <- component_df$tissue==tissue_name
 				if (sum(indices) > 0) {
-					tissues_un_normalized[tissue_iter] = tissues_un_normalized[tissue_iter] + 1.0*(max(abs(component_df$tgfm_tissue_prior_twas_z_score[indices])) > 2.0)
+					tissues_un_normalized[tissue_iter] = tissues_un_normalized[tissue_iter] + 1.0*(max(abs(component_df$tgfm_tissue_prior_twas_z_score[indices])) >3.0)
 
 				}
 			
@@ -351,7 +649,7 @@ extract_proportion_of_trait_components_mediated_in_each_tissue_robust_tgfm_tissu
 
 				indices <- component_df$tissue==tissue_name
 				if (sum(indices) > 0) {
-					tissues_un_normalized[tissue_iter] = tissues_un_normalized[tissue_iter] + 1.0*(max(abs(component_df$robust_tgfm_tissue_prior_twas_z_score[indices])) > 2.0)
+					tissues_un_normalized[tissue_iter] = tissues_un_normalized[tissue_iter] + 1.0*(max(abs(component_df$robust_tgfm_tissue_prior_twas_z_score[indices])) > 1.0)
 
 				}
 			
@@ -653,7 +951,7 @@ get_probs_in_causal_tissues_cross_traits <- function(dicti, trait_name, causal_t
 	return(probs)
 }
 
-make_causal_tissue_prob <- function(methods, prob_list, trait_name, intercept) {
+make_causal_tissue_prob <- function(methods, prob_list, trait_name, intercept, informal_trait_name) {
 	K <- length(methods)
 	method_arr <- c()
 	prob_arr <- c()
@@ -670,10 +968,11 @@ make_causal_tissue_prob <- function(methods, prob_list, trait_name, intercept) {
 	p <- ggplot(df) +
     		geom_bar( aes(x=method, y=probability), stat="identity", fill="skyblue", alpha=0.7) +
     		theme(axis.text.x = element_text(angle = 90,hjust=1, vjust=.5, size=10)) +
-    		labs(y="Fraction of mediated trait components\nin correct tissue", x="",title=trait_name) +
+    		labs(y="% trait components\nin correct tissue", x="",title=informal_trait_name) +
     		geom_hline(yintercept=intercept, linetype="dashed", color = "black") +
     		geom_errorbar( aes(x=method, ymin=probability-se_probability, ymax=probability+se_probability), width=0.4, colour="orange", alpha=0.9, size=1.3) +
-    		figure_theme()
+    		figure_theme() +
+    		theme(plot.title = element_text(hjust = 0.5))
     return(p)
 }
 
@@ -915,80 +1214,152 @@ tissue_names <- str_replace_all(tissue_names, "-", "_")
 trait_df <- read.table(trait_file, header=TRUE)
 
 trait_df = trait_df[as.character(trait_df$study_name) != "biochemistry_Triglycerides", ]
-trait_names <- as.character(trait_df$study_name)
-#trait_names <- c(trait_names[3:4], trait_names[8], trait_names[10])
+trait_df = trait_df[as.character(trait_df$study_name) != "mental_NEUROTICISM", ]
 
-# Visualize variance componenets with bar plot
-if (FALSE) {
-for (trait_iter in 1:length(trait_names)) {
-	trait_name <- trait_names[trait_iter]
-	# Data files
-	fusion_true_precision_file <- paste0(pseudotissue_gtex_rss_multivariate_twas_dir, trait_name, "_cis_heritable_genes_count_genes_once_null_init_fusion_weights_True_tissue_specific_prior_precision_temp.txt")
-	fusion_true_robust_precision_file <- paste0(pseudotissue_gtex_rss_multivariate_twas_dir, trait_name, "_cis_heritable_genes_count_genes_once_null_init_fusion_weights_True_robust_tissue_specific_prior_precision_temp.txt")
-	fusion_false_precision_file <- paste0(pseudotissue_gtex_rss_multivariate_twas_dir, trait_name, "_cis_heritable_genes_count_genes_once_null_init_fusion_weights_False_tissue_specific_prior_precision_temp.txt")
-	fusion_false_robust_precision_file <- paste0(pseudotissue_gtex_rss_multivariate_twas_dir, trait_name, "_cis_heritable_genes_count_genes_once_null_init_fusion_weights_False_robust_tissue_specific_prior_precision_temp.txt")
-
-	fusion_true_precision_df <- read.table(fusion_true_precision_file, header=TRUE)
-	fusion_true_robust_precision_df <- read.table(fusion_true_robust_precision_file, header=TRUE)
-	fusion_false_precision_df <- read.table(fusion_false_precision_file, header=TRUE)
-	fusion_false_robust_precision_df <- read.table(fusion_false_robust_precision_file, header=TRUE)
-
-	bar_plot_fusion_false = tissue_specific_standard_dev_comparison_barplot(fusion_false_precision_df, fusion_false_robust_precision_df, paste0(trait_name, " / SuSiE distribution eQTL"))
-	bar_plot_fusion_true = tissue_specific_standard_dev_comparison_barplot(fusion_true_precision_df, fusion_true_robust_precision_df, paste0(trait_name, " / FUSION eQTL point estimates"))
-
-	bar_plot <- plot_grid(bar_plot_fusion_true, bar_plot_fusion_false, nrow=2)
-
-	output_file <- paste0(rss_multivariate_twas_visualization_dir, trait_name , "_standard_vs_robust_tissue_specific_variance_barplot.pdf")
-	ggsave(bar_plot, file=output_file, width=7.2, height=7.5, units="in")
-}
-}
+trait_names_big <- as.character(trait_df$study_name)
 
 
-# Visualize gene set variance info
-if (FALSE) {
-fusion_weights="False"
-robust="robust"
-output_file <- paste0(rss_multivariate_twas_visualization_dir, "tissue_and_gene_set_variance_heatmaps.pdf")
-heatmap <- make_tissue_and_gene_set_variance_heatmaps(pseudotissue_gtex_rss_multivariate_twas_dir, trait_names, fusion_weights, robust)
-ggsave(heatmap, file=output_file, width=7.2, height=8.0, units="in")
 
-
-fusion_weights="False"
-robust="robust"
-for (trait_iter in 1:length(trait_names)) {
-	trait_name <- trait_names[trait_iter]
-	output_file <- paste0(rss_multivariate_twas_visualization_dir, trait_name, "_tissue_and_gene_set_variance_heatmap.pdf")
-	heatmap <- make_tissue_and_gene_set_variance_heatmaps_in_single_trait(pseudotissue_gtex_rss_multivariate_twas_dir, trait_names, fusion_weights, robust,trait_name)
-	ggsave(heatmap, file=output_file, width=7.2, height=5.0, units="in")
-}
 # Visualize proportion of  variance componenets coming from each tissue with heatmap
+fusion_weights="False"
+robust="robust"
 print("HI")
-fusion_weights="False"
-robust="robust"
 output_file <- paste0(rss_multivariate_twas_visualization_dir , "tissue_variance_proportion_fusion_", fusion_weights, "_", robust, ".pdf")
-heatmap <- make_variance_proportion_heatmap(pseudotissue_gtex_rss_multivariate_twas_dir, trait_names, fusion_weights, robust)
-ggsave(heatmap, file=output_file, width=7.2, height=5.0, units="in")
+heatmap <- make_variance_proportion_heatmap(pseudotissue_gtex_rss_multivariate_twas_dir, trait_names_big, fusion_weights, robust)
+ggsave(heatmap, file=output_file, width=13.2, height=5.0, units="in")
+
+
+trait_names_small <- c("blood_EOSINOPHIL_COUNT")
+
+fig_list <- list()
+
+for (itera in 1:length(trait_names_small)) {
+
+trait_names <- c(trait_names_small[itera])
+
 
 fusion_weights="False"
-robust="non_robust"
-output_file <- paste0(rss_multivariate_twas_visualization_dir , "tissue_variance_proportion_fusion_", fusion_weights, "_", robust, ".pdf")
-heatmap <- make_variance_proportion_heatmap(pseudotissue_gtex_rss_multivariate_twas_dir, trait_names, fusion_weights, robust)
-ggsave(heatmap, file=output_file, width=7.2, height=5.0, units="in")
 
-fusion_weights="True"
-robust="robust"
-output_file <- paste0(rss_multivariate_twas_visualization_dir , "tissue_variance_proportion_fusion_", fusion_weights, "_", robust, ".pdf")
-heatmap <- make_variance_proportion_heatmap(pseudotissue_gtex_rss_multivariate_twas_dir, trait_names, fusion_weights, robust)
-ggsave(heatmap, file=output_file, width=7.2, height=5.0, units="in")
-
-fusion_weights="True"
-robust="non_robust"
-output_file <- paste0(rss_multivariate_twas_visualization_dir , "tissue_variance_proportion_fusion_", fusion_weights, "_", robust, ".pdf")
-heatmap <- make_variance_proportion_heatmap(pseudotissue_gtex_rss_multivariate_twas_dir, trait_names, fusion_weights, robust)
-ggsave(heatmap, file=output_file, width=7.2, height=5.0, units="in")
+trait_to_tgfm_ch_data_hash = list()
+for (trait_iter in 1:length(trait_names)) {
+	gene_version = "cis_heritable_genes"
+	trait_name <- trait_names[trait_iter]
+	trait_file <- paste0(pseudotissue_gtex_rss_multivariate_twas_dir, trait_name, "_", gene_version, "_fusion_weights_", fusion_weights, "_component_organized_with_and_without_genome_prior_tgfm_results.txt")
+	df <- read.table(trait_file, header=TRUE)
+	trait_to_tgfm_ch_data_hash[[trait_iter]] = df
+	#print(head(df))
+	#print(head(df))
 }
 
-if (FALSE) {
+proportion_trait_components_mediated_tgfm_univariate_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_univariate_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
+proportion_trait_components_mediated_tgfm_coloc_list = extract_proportion_of_trait_components_mediated_in_each_tissue_coloc(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
+proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_sum_posterior(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "robust_tgfm_rss_regression_tissue_prior_posterior_prob")
+
+
+
+
+for (trait_iter in 1:length(trait_names)) {
+	trait_name <- trait_names[trait_iter]
+	methods <- c("TWAS", "Coloc", "TGFM")
+
+	if (trait_name == "blood_WHITE_COUNT") {
+		causal_tissue =c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+		informal_trait_name <- "blood white count"
+	}
+	if (trait_name == "body_WHRadjBMIz") {
+		causal_tissue = c("Adipose_Subcutaneous", "Adipose_Visceral_Omentum")
+		informal_trait_name <- "WHR-adj BMI"
+	}
+	if (trait_name == "biochemistry_Cholesterol") {
+		causal_tissue = c("Liver")
+		informal_trait_name <- "Cholesterol"
+	}
+	if (trait_name == "bp_DIASTOLICadjMEDz") {
+		causal_tissue = c("Artery_Heart", "Artery_Tibial", "Heart_Atrial_Appendage", "Heart_Left_Ventricle")
+		informal_trait_name <- "Diastolic BP"
+
+	}
+	if (trait_name == "blood_EOSINOPHIL_COUNT") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+		informal_trait_name <- "Blood eosinophil count"
+	}
+	if (trait_name == "blood_RBC_DISTRIB_WIDTH") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+		informal_trait_name <- "Blood RBC Width"
+	}
+	if (trait_name == "blood_RED_COUNT") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+		informal_trait_name <- "Blood red count"
+	}
+	if (trait_name == "cov_EDU_COLLEGE") {
+		causal_tissue <- c("Brain_BasalGanglia", "Brain_Cerebellum", "Brain_Cortex", "Brain_Limbic", "Brain_Spinal_cord_cervical_c_1", "Brain_Substantia_nigra")
+		informal_trait_name <- "College Education"
+
+	}
+	if (trait_name == "mental_NEUROTICISM") {
+		causal_tissue <- c("Brain_BasalGanglia", "Brain_Cerebellum", "Brain_Cortex", "Brain_Limbic", "Brain_Spinal_cord_cervical_c_1", "Brain_Substantia_nigra")
+		informal_trait_name <- "Neurotocism"
+
+	}
+	if (trait_name == "disease_ALLERGY_ECZEMA_DIAGNOSED") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+		informal_trait_name <- "Eczema"
+
+	}
+
+
+	p_univariate <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_univariate_alpha_z_list[[1]][as.character(proportion_trait_components_mediated_tgfm_univariate_alpha_z_list[[1]]$trait)==trait_name,], paste0("TWAS on ", informal_trait_name), causal_tissue)
+	p_coloc <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_coloc_list[[1]][as.character(proportion_trait_components_mediated_tgfm_coloc_list[[1]]$trait)==trait_name,], paste0("Coloc on ", informal_trait_name), causal_tissue)
+
+	p_robust_tgfm <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list[[1]][as.character(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list[[1]]$trait)==trait_name,], paste0("TGFM on ", informal_trait_name), causal_tissue)
+
+	joint <- plot_grid(p_coloc, p_robust_tgfm, ncol=2)
+
+	fig_list[[itera]] <- joint
+	#ggsave(causal_tissue_prob_se_plot, file=output_file, width=7.2, height=5.0, units="in")
+}
+
+
+
+}
+
+
+output_file <- paste0(rss_multivariate_twas_visualization_dir, "joint_fraction_causal_mediated_in_correct_tiss_barplot_v2.pdf")
+joint <- plot_grid(plotlist=fig_list, ncol=1)
+ggsave(joint, file=output_file, width=12.2, height=4.0, units="in")
+
+
+
+
+
+
+print("DONE")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fig_list <- list()
+
+for (itera in 1:length(trait_names_big)) {
+
+trait_names <- c(trait_names_big[itera])
+
+
+
+
 
 #trait_names <- c("bp_DIASTOLICadjMEDz")
 
@@ -998,117 +1369,141 @@ trait_to_tgfm_ch_data_hash = list()
 for (trait_iter in 1:length(trait_names)) {
 	gene_version = "cis_heritable_genes"
 	trait_name <- trait_names[trait_iter]
-	trait_file <- paste0(pseudotissue_gtex_rss_multivariate_twas_dir, trait_name, "_", gene_version, "_fusion_weights_", fusion_weights, "_component_organized_tgfm_results.txt")
+	trait_file <- paste0(pseudotissue_gtex_rss_multivariate_twas_dir, trait_name, "_", gene_version, "_fusion_weights_", fusion_weights, "_component_organized_with_and_without_genome_prior_tgfm_results.txt")
 	df <- read.table(trait_file, header=TRUE)
 	trait_to_tgfm_ch_data_hash[[trait_iter]] = df
+	#print(head(df))
+	#print(head(df))
 }
 
 
 
-# Distribution of posterior probabilities per tissue histogram
+#proportion_trait_components_mediated_tgfm_multivariate_susie_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_multivariate_susie_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "tgfm_susie_pip")
+#print(proportion_trait_components_mediated_tgfm_multivariate_susie_alpha_z_list[[1]])
+#proportion_trait_components_mediated_robust_tgfm_multivariate_susie_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_multivariate_susie_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "robust_tgfm_susie_pip")
+#print(proportion_trait_components_mediated_robust_tgfm_multivariate_susie_alpha_z_list[[1]])
+
+#proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_susie_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_multivariate_susie_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "tgfm_tissue_prior_susie_pip")
+#print(proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_susie_alpha_z_list[[1]])
+#proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_susie_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_multivariate_susie_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "robust_tgfm_tissue_prior_susie_pip")
+#print(proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_susie_alpha_z_list[[1]])
+
+
+#proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_sum_posterior(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "robust_tgfm_rss_regression_tissue_prior_posterior_prob")
+#print(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list[[1]])
+
+
+#proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_robust_tgfm_tissue_prior_multivariate_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
+#print(proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z_list[[1]])
+
+proportion_trait_components_mediated_tgfm_univariate_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_univariate_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
+proportion_trait_components_mediated_tgfm_coloc_list = extract_proportion_of_trait_components_mediated_in_each_tissue_coloc(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
+
 proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_sum_posterior(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "robust_tgfm_rss_regression_tissue_prior_posterior_prob")
-proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_probs_hash = proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list[[2]]
 
 for (trait_iter in 1:length(trait_names)) {
 	trait_name <- trait_names[trait_iter]
-	p_robust_tgfm <- make_distribution_of_posterior_probs_in_each_tissue(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_probs_hash, trait_name, tissue_names, "Robust_TGFM")
-	output_file <- paste0(rss_multivariate_twas_visualization_dir, trait_name,"_robust_tgfm_posterior_prob_distribution_per_tissue_histogram.pdf")
-	ggsave(p_robust_tgfm, file=output_file, width=7.2, height=8.5, units="in")
-}
+	methods <- c("TWAS", "Coloc", "TGFM")
 
-
-
-trait_to_loglike_df_hash <- generate_trait_to_loglike_df_hash(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "robust_tgfm_rss_regression_tissue_prior_posterior_prob")
-
-
-for (trait_iter in 1:length(trait_names)) {
-	trait_name <- trait_names[trait_iter]
-	log_like_df <- trait_to_loglike_df_hash[[trait_name]]
-
-	component_log_like_histo = create_component_log_like_histogram(log_like_df, trait_name)
-	output_file <- paste0(rss_multivariate_twas_visualization_dir, trait_name,"_max_component_log_likelihood_histogram.pdf")
-	ggsave(component_log_like_histo, file=output_file, width=7.2, height=3.5, units="in")
-
-	component_log_like_histo = create_component_log_like_causal_prob_scatter(log_like_df, trait_name)
-	output_file <- paste0(rss_multivariate_twas_visualization_dir, trait_name,"_max_component_log_likelihood_causal_prob.pdf")
-	ggsave(component_log_like_histo, file=output_file, width=7.2, height=5.5, units="in")
-
-}
-
-
-proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_1 = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_sum_posterior_likelihood_threshold(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "robust_tgfm_rss_regression_tissue_prior_posterior_prob", 1.0)
-proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_3 = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_sum_posterior_likelihood_threshold(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "robust_tgfm_rss_regression_tissue_prior_posterior_prob", 3.0)
-proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_10 = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_sum_posterior_likelihood_threshold(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "robust_tgfm_rss_regression_tissue_prior_posterior_prob", 10.0)
-proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_20 = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_sum_posterior_likelihood_threshold(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "robust_tgfm_rss_regression_tissue_prior_posterior_prob", 20.0)
-
-
-
-for (trait_iter in 1:length(trait_names)) {
-	trait_name <- trait_names[trait_iter]
 	if (trait_name == "blood_WHITE_COUNT") {
 		causal_tissue =c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+		informal_trait_name <- "blood white count"
 	}
 	if (trait_name == "body_WHRadjBMIz") {
 		causal_tissue = c("Adipose_Subcutaneous", "Adipose_Visceral_Omentum")
+		informal_trait_name <- "WHR-adj BMI"
 	}
 	if (trait_name == "biochemistry_Cholesterol") {
 		causal_tissue = c("Liver")
+		informal_trait_name <- "Cholesterol"
 	}
 	if (trait_name == "bp_DIASTOLICadjMEDz") {
 		causal_tissue = c("Artery_Heart", "Artery_Tibial", "Heart_Atrial_Appendage", "Heart_Left_Ventricle")
+		informal_trait_name <- "Diastolic BP"
+
 	}
 	if (trait_name == "blood_EOSINOPHIL_COUNT") {
 		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+		informal_trait_name <- "Blood eosinophil count"
 	}
 	if (trait_name == "blood_RBC_DISTRIB_WIDTH") {
 		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+		informal_trait_name <- "Blood RBC Width"
 	}
 	if (trait_name == "blood_RED_COUNT") {
 		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+		informal_trait_name <- "Blood red count"
 	}
 	if (trait_name == "cov_EDU_COLLEGE") {
 		causal_tissue <- c("Brain_BasalGanglia", "Brain_Cerebellum", "Brain_Cortex", "Brain_Limbic", "Brain_Spinal_cord_cervical_c_1", "Brain_Substantia_nigra")
+		informal_trait_name <- "College Education"
+
 	}
 	if (trait_name == "mental_NEUROTICISM") {
 		causal_tissue <- c("Brain_BasalGanglia", "Brain_Cerebellum", "Brain_Cortex", "Brain_Limbic", "Brain_Spinal_cord_cervical_c_1", "Brain_Substantia_nigra")
+		informal_trait_name <- "Neurotocism"
+
 	}
-	if (trait_name == "Disease_ALLERGY_ECZEMA_DIAGNOSED") {
+	if (trait_name == "disease_ALLERGY_ECZEMA_DIAGNOSED") {
 		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+		informal_trait_name <- "Eczema"
+
 	}
 
-	causal_tissue_prob_na = extract_causal_tissue_prob(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list[[1]], trait_name, causal_tissue)
-	causal_tissue_prob_1 = extract_causal_tissue_prob(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_1[[1]], trait_name, causal_tissue)
-	causal_tissue_prob_3 = extract_causal_tissue_prob(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_3[[1]], trait_name, causal_tissue)
-	causal_tissue_prob_10 = extract_causal_tissue_prob(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_10[[1]], trait_name, causal_tissue)
-	causal_tissue_prob_20 = extract_causal_tissue_prob(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_20[[1]], trait_name, causal_tissue)
 
-	fraction_components_na = 1.0
-	fraction_components_1 = proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_1[[3]][trait_iter]
-	fraction_components_3 = proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_3[[3]][trait_iter]
-	fraction_components_10 = proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_10[[3]][trait_iter]
-	fraction_components_20 = proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list_thresh_20[[3]][trait_iter]
-
-	frac_correct_barplot <- fraction_correct_stacked_barplot(causal_tissue_prob_na, causal_tissue_prob_1, causal_tissue_prob_3, causal_tissue_prob_10, causal_tissue_prob_20, trait_name)
-	frac_component_barplot <- fraction_components_passed_stacked_barplot(fraction_components_na, fraction_components_1, fraction_components_3,fraction_components_10, fraction_components_20, trait_name)
-
-	p_merged = plot_grid(frac_component_barplot,frac_correct_barplot,ncol=1)
+	prob_list <- list()
+	prob_list[[1]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_univariate_alpha_z_list[[2]], trait_name, causal_tissue)
+	prob_list[[2]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_coloc_list[[2]], trait_name, causal_tissue)
+	prob_list[[3]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list[[2]], trait_name, causal_tissue)
 
 
-	output_file <- paste0(rss_multivariate_twas_visualization_dir, trait_name,"_robust_tgfm_fraction_correct_barplot_thresholds.pdf")
-	ggsave(p_merged, file=output_file, width=7.2, height=7.5, units="in")
-
-
+	output_file <- paste0(rss_multivariate_twas_visualization_dir, trait_name,"_fraction_causal_mediated_in_correct_tiss_v2.pdf")
+	causal_tissue_prob_se_plot <- make_causal_tissue_prob(methods, prob_list, trait_name, length(causal_tissue)/38.0, informal_trait_name)
+	fig_list[[itera]] <- causal_tissue_prob_se_plot
+	ggsave(causal_tissue_prob_se_plot, file=output_file, width=7.2, height=5.0, units="in")
 }
 
 
 
+}
 
+output_file <- paste0(rss_multivariate_twas_visualization_dir, "joint_fraction_causal_mediated_in_correct_tiss_v2.pdf")
+joint <- plot_grid(plotlist=fig_list, ncol=3)
+ggsave(joint, file=output_file, width=7.2, height=6.0, units="in")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+for (itera in 1:length(trait_names_big)) {
+
+
+
+if (FALSE) {
 proportion_trait_components_mediated_tgfm_univariate_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_univariate_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
 print('one')
-proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_tissue_prior_multivariate_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
+proportion_trait_components_mediated_tgfm_multivariate_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_multivariate_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
 print('two')
-proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_robust_tgfm_tissue_prior_multivariate_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
+proportion_trait_components_mediated_tgfm_multivariate_susie_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_multivariate_susie_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
+print('two')
+proportion_trait_components_mediated_tgfm_rss_regression_const_prior_sum_posterior_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_sum_posterior(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "tgfm_rss_regression_const_prior_posterior_prob")
+print('two')
+proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_tissue_prior_multivariate_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
 print('three')
+proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z_list = extract_proportion_of_trait_components_mediated_in_each_tissue_robust_tgfm_tissue_prior_multivariate_alpha_z(trait_to_tgfm_ch_data_hash, trait_names, tissue_names)
+print('four')
 proportion_trait_components_mediated_tgfm_rss_regression_tissue_prior_sum_posterior_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_sum_posterior(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "tgfm_rss_regression_tissue_prior_posterior_prob")
 print('four')
 proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list = extract_proportion_of_trait_components_mediated_in_each_tissue_tgfm_sum_posterior(trait_to_tgfm_ch_data_hash, trait_names, tissue_names, "robust_tgfm_rss_regression_tissue_prior_posterior_prob")
@@ -1118,6 +1513,9 @@ print('five')
 
 
 proportion_trait_components_mediated_tgfm_univariate_alpha_z = proportion_trait_components_mediated_tgfm_univariate_alpha_z_list[[1]]
+proportion_trait_components_mediated_tgfm_multivariate_alpha_z = proportion_trait_components_mediated_tgfm_multivariate_alpha_z_list[[1]]
+proportion_trait_components_mediated_tgfm_multivariate_susie_alpha_z = proportion_trait_components_mediated_tgfm_multivariate_susie_alpha_z_list[[1]]
+proportion_trait_components_mediated_tgfm_rss_regression_const_prior_sum_posterior = proportion_trait_components_mediated_tgfm_rss_regression_const_prior_sum_posterior_list[[1]]
 proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z = proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z_list[[1]]
 proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z = proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z_list[[1]]
 proportion_trait_components_mediated_tgfm_rss_regression_tissue_prior_sum_posterior = proportion_trait_components_mediated_tgfm_rss_regression_tissue_prior_sum_posterior_list[[1]]
@@ -1155,18 +1553,21 @@ for (trait_iter in 1:length(trait_names)) {
 	if (trait_name == "mental_NEUROTICISM") {
 		causal_tissue <- c("Brain_BasalGanglia", "Brain_Cerebellum", "Brain_Cortex", "Brain_Limbic", "Brain_Spinal_cord_cervical_c_1", "Brain_Substantia_nigra")
 	}
-	if (trait_name == "Disease_ALLERGY_ECZEMA_DIAGNOSED") {
+	if (trait_name == "disease_ALLERGY_ECZEMA_DIAGNOSED") {
 		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
 	}
 
-	p_univariate <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_univariate_alpha_z[as.character(proportion_trait_components_mediated_tgfm_univariate_alpha_z$trait)==trait_name,], "univariate_twas", causal_tissue)
-	p_multivariate_tp <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z[as.character(proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z$trait)==trait_name,], "multivariate_tissue_specific_prior_twas", causal_tissue)
-	p_robust_multivariate_tp <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z[as.character(proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z$trait)==trait_name,], "multivariate_tissue_specific_prior_robust_twas", causal_tissue)
+	p_univariate <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_univariate_alpha_z[as.character(proportion_trait_components_mediated_tgfm_univariate_alpha_z$trait)==trait_name,], "univariate const prior twas", causal_tissue)
+	p_multivariate_cp <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_multivariate_alpha_z[as.character(proportion_trait_components_mediated_tgfm_multivariate_alpha_z$trait)==trait_name,], "mv const prior TWAS", causal_tissue)
+	p_susie_multivariate_cp <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_multivariate_susie_alpha_z[as.character(proportion_trait_components_mediated_tgfm_multivariate_susie_alpha_z$trait)==trait_name,], "mv const prior SuSiE-TWAS", causal_tissue)
+	p_tgfm_cp <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_rss_regression_const_prior_sum_posterior[as.character(proportion_trait_components_mediated_tgfm_rss_regression_const_prior_sum_posterior$trait)==trait_name,], "const prior TGFM", causal_tissue)
+	p_multivariate_tp <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z[as.character(proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z$trait)==trait_name,], "mv tissue-prior TWAS", causal_tissue)
+	p_robust_multivariate_tp <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z[as.character(proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z$trait)==trait_name,], "mv tissue-prior r-TWAS", causal_tissue)
+	p_tgfm <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_rss_regression_tissue_prior_sum_posterior[as.character(proportion_trait_components_mediated_tgfm_rss_regression_tissue_prior_sum_posterior$trait)==trait_name,], "tissue-prior TGFM", causal_tissue)
+	p_robust_tgfm <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior[as.character(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior$trait)==trait_name,], "tissue-prior r-TGFM", causal_tissue)
 
-	p_tgfm <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_rss_regression_tissue_prior_sum_posterior[as.character(proportion_trait_components_mediated_tgfm_rss_regression_tissue_prior_sum_posterior$trait)==trait_name,], "TGFM", causal_tissue)
-	p_robust_tgfm <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior[as.character(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior$trait)==trait_name,], "Robust_TGFM", causal_tissue)
 
-	p_merged = plot_grid(p_univariate,NULL, p_multivariate_tp, p_robust_multivariate_tp, p_tgfm,p_robust_tgfm,ncol=2)
+	p_merged = plot_grid(p_univariate, p_multivariate_cp, p_susie_multivariate_cp, p_tgfm_cp, p_multivariate_tp, p_robust_multivariate_tp, p_tgfm, p_robust_tgfm, ncol=2)
 
 	output_file <- paste0(rss_multivariate_twas_visualization_dir, trait_name,"_fraction_causal_mediated.pdf")
 	ggsave(p_merged, file=output_file, width=10.7, height=9.5, units="in")
@@ -1174,10 +1575,9 @@ for (trait_iter in 1:length(trait_names)) {
 
 
 
-
 for (trait_iter in 1:length(trait_names)) {
 	trait_name <- trait_names[trait_iter]
-	methods <- c("univariate_twas", "multivariate_tissue_specific_prior_twas", "multivariate_tissue_specific_prior_robust_twas", "TGFM", "Robust_TGFM")
+	methods <- c("univariate const prior twas", "mv const prior TWAS", "mv const prior SuSiE-TWAS", "const prior TGFM", "mv tissue-prior TWAS", "mv tissue-prior r-TWAS", "tissue-prior TGFM", "tissue-prior r-TGFM")
 
 	if (trait_name == "blood_WHITE_COUNT") {
 		causal_tissue =c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
@@ -1206,30 +1606,132 @@ for (trait_iter in 1:length(trait_names)) {
 	if (trait_name == "mental_NEUROTICISM") {
 		causal_tissue <- c("Brain_BasalGanglia", "Brain_Cerebellum", "Brain_Cortex", "Brain_Limbic", "Brain_Spinal_cord_cervical_c_1", "Brain_Substantia_nigra")
 	}
-	if (trait_name == "Disease_ALLERGY_ECZEMA_DIAGNOSED") {
+	if (trait_name == "disease_ALLERGY_ECZEMA_DIAGNOSED") {
 		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
 	}
 
 
 	prob_list <- list()
 	prob_list[[1]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_univariate_alpha_z_list[[2]], trait_name, causal_tissue)
-	prob_list[[2]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z_list[[2]], trait_name, causal_tissue)
-	prob_list[[3]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z_list[[2]], trait_name, causal_tissue)
-	prob_list[[4]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_rss_regression_tissue_prior_sum_posterior_list[[2]], trait_name, causal_tissue)
-	prob_list[[5]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list[[2]], trait_name, causal_tissue)
+	prob_list[[2]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_multivariate_alpha_z_list[[2]], trait_name, causal_tissue)
+	prob_list[[3]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_multivariate_susie_alpha_z_list[[2]], trait_name, causal_tissue)
+	prob_list[[4]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_rss_regression_const_prior_sum_posterior_list[[2]], trait_name, causal_tissue)
+	prob_list[[5]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z_list[[2]], trait_name, causal_tissue)
+	prob_list[[6]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z_list[[2]], trait_name, causal_tissue)
+	prob_list[[7]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_rss_regression_tissue_prior_sum_posterior_list[[2]], trait_name, causal_tissue)
+	prob_list[[8]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_robust_tgfm_rss_regression_tissue_prior_sum_posterior_list[[2]], trait_name, causal_tissue)
 
 
 	output_file <- paste0(rss_multivariate_twas_visualization_dir, trait_name,"_fraction_causal_mediated_in_correct_tiss.pdf")
 	causal_tissue_prob_se_plot <- make_causal_tissue_prob(methods, prob_list, trait_name, length(causal_tissue)/38.0)
 	ggsave(causal_tissue_prob_se_plot, file=output_file, width=7.2, height=5.0, units="in")
-
 }
 
 
 
 
 
+for (trait_iter in 1:length(trait_names)) {
+	trait_name <- trait_names[trait_iter]
+	if (trait_name == "blood_WHITE_COUNT") {
+		causal_tissue =c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+	}
+	if (trait_name == "body_WHRadjBMIz") {
+		causal_tissue = c("Adipose_Subcutaneous", "Adipose_Visceral_Omentum")
+	}
+	if (trait_name == "biochemistry_Cholesterol") {
+		causal_tissue = c("Liver")
+	}
+	if (trait_name == "bp_DIASTOLICadjMEDz") {
+		causal_tissue = c("Artery_Heart", "Artery_Tibial", "Heart_Atrial_Appendage", "Heart_Left_Ventricle")
+	}
+	if (trait_name == "blood_EOSINOPHIL_COUNT") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+	}
+	if (trait_name == "blood_RBC_DISTRIB_WIDTH") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+	}
+	if (trait_name == "blood_RED_COUNT") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+	}
+	if (trait_name == "cov_EDU_COLLEGE") {
+		causal_tissue <- c("Brain_BasalGanglia", "Brain_Cerebellum", "Brain_Cortex", "Brain_Limbic", "Brain_Spinal_cord_cervical_c_1", "Brain_Substantia_nigra")
+	}
+	if (trait_name == "mental_NEUROTICISM") {
+		causal_tissue <- c("Brain_BasalGanglia", "Brain_Cerebellum", "Brain_Cortex", "Brain_Limbic", "Brain_Spinal_cord_cervical_c_1", "Brain_Substantia_nigra")
+	}
+	if (trait_name == "disease_ALLERGY_ECZEMA_DIAGNOSED") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+	}
+
+	p_univariate <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_univariate_alpha_z[as.character(proportion_trait_components_mediated_tgfm_univariate_alpha_z$trait)==trait_name,], "univariate const prior twas", causal_tissue)
+	p_multivariate_cp <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_multivariate_alpha_z[as.character(proportion_trait_components_mediated_tgfm_multivariate_alpha_z$trait)==trait_name,], "mv const prior TWAS", causal_tissue)
+	p_susie_multivariate_cp <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_multivariate_susie_alpha_z[as.character(proportion_trait_components_mediated_tgfm_multivariate_susie_alpha_z$trait)==trait_name,], "mv const prior SuSiE-TWAS", causal_tissue)
+	p_multivariate_tp <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z[as.character(proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z$trait)==trait_name,], "mv tissue-prior TWAS", causal_tissue)
+	p_robust_multivariate_tp <- make_comp_nominal_pvalue_thresh_fraction_bar_plot(proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z[as.character(proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z$trait)==trait_name,], "mv tissue-prior r-TWAS", causal_tissue)
+
+
+	p_merged = plot_grid(p_univariate, p_multivariate_cp, p_susie_multivariate_cp, p_multivariate_tp, p_robust_multivariate_tp, ncol=2)
+
+	output_file <- paste0(rss_multivariate_twas_visualization_dir, trait_name,"_fraction_causal_mediated_twas_only.pdf")
+	ggsave(p_merged, file=output_file, width=10.7, height=9.5, units="in")
 }
+
+
+
+for (trait_iter in 1:length(trait_names)) {
+	trait_name <- trait_names[trait_iter]
+	methods <- c("univariate const prior twas", "mv const prior TWAS", "mv const prior SuSiE-TWAS", "mv tissue-prior TWAS", "mv tissue-prior r-TWAS")
+
+	if (trait_name == "blood_WHITE_COUNT") {
+		causal_tissue =c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+	}
+	if (trait_name == "body_WHRadjBMIz") {
+		causal_tissue = c("Adipose_Subcutaneous", "Adipose_Visceral_Omentum")
+	}
+	if (trait_name == "biochemistry_Cholesterol") {
+		causal_tissue = c("Liver")
+	}
+	if (trait_name == "bp_DIASTOLICadjMEDz") {
+		causal_tissue = c("Artery_Heart", "Artery_Tibial", "Heart_Atrial_Appendage", "Heart_Left_Ventricle")
+	}
+	if (trait_name == "blood_EOSINOPHIL_COUNT") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+	}
+	if (trait_name == "blood_RBC_DISTRIB_WIDTH") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+	}
+	if (trait_name == "blood_RED_COUNT") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+	}
+	if (trait_name == "cov_EDU_COLLEGE") {
+		causal_tissue <- c("Brain_BasalGanglia", "Brain_Cerebellum", "Brain_Cortex", "Brain_Limbic", "Brain_Spinal_cord_cervical_c_1", "Brain_Substantia_nigra")
+	}
+	if (trait_name == "mental_NEUROTICISM") {
+		causal_tissue <- c("Brain_BasalGanglia", "Brain_Cerebellum", "Brain_Cortex", "Brain_Limbic", "Brain_Spinal_cord_cervical_c_1", "Brain_Substantia_nigra")
+	}
+	if (trait_name == "disease_ALLERGY_ECZEMA_DIAGNOSED") {
+		causal_tissue <- c("Whole_Blood", "Cells_EBV_transformed_lymphocytes")
+	}
+
+
+	prob_list <- list()
+	prob_list[[1]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_univariate_alpha_z_list[[2]], trait_name, causal_tissue)
+	prob_list[[2]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_multivariate_alpha_z_list[[2]], trait_name, causal_tissue)
+	prob_list[[3]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_multivariate_susie_alpha_z_list[[2]], trait_name, causal_tissue)
+	prob_list[[4]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_tgfm_tissue_prior_multivariate_alpha_z_list[[2]], trait_name, causal_tissue)
+	prob_list[[5]] = get_probs_in_causal_tissues_cross_traits(proportion_trait_components_mediated_robust_tgfm_tissue_prior_multivariate_alpha_z_list[[2]], trait_name, causal_tissue)
+
+
+	output_file <- paste0(rss_multivariate_twas_visualization_dir, trait_name,"_fraction_causal_mediated_in_correct_tiss_twas_only.pdf")
+	causal_tissue_prob_se_plot <- make_causal_tissue_prob(methods, prob_list, trait_name, length(causal_tissue)/38.0)
+	ggsave(causal_tissue_prob_se_plot, file=output_file, width=7.2, height=5.0, units="in")
+}
+
+}
+
+
+
 
 
 

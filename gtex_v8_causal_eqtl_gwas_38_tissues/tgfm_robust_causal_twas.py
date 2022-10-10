@@ -318,6 +318,8 @@ class TGFM_CAUSAL_TWAS(object):
 					eqtl_component_pmces = (twas_data_obj['susie_mu'][g_index][k_index,:])*(twas_data_obj['susie_alpha'][g_index][k_index,:])
 					self.precomputed_a_terms[g_index] = self.precomputed_a_terms[g_index] + .5*np.dot(np.dot(eqtl_component_pmces,D_mat), eqtl_component_pmces)
 				self.precomputed_a_terms[g_index] = self.precomputed_a_terms[g_index] - .5*np.dot(np.dot(self.gene_eqtl_pmces[g_index],D_mat), self.gene_eqtl_pmces[g_index])
+
+
 				self.global_pmces = self.global_pmces + self.gene_eqtl_pmces[g_index]*self.alpha_mu[g_index]
 		else:
 			for g_index in range(self.G):

@@ -222,17 +222,34 @@ component_data_file = sys.argv[4]
 ukbb_genome_wide_susie_organized_results_dir = sys.argv[5]
 output_dir = sys.argv[6]
 gene_version = sys.argv[7]
+fusion_weights = sys.argv[8]
 
 
 ordered_tissue_names = extract_tissue_names(gtex_pseudotissue_file)
+tissue_to_position_mapping = {}
+for i, val in enumerate(ordered_tissue_names):
+	tissue_to_position_mapping[val] = i
+
+
+# Extract tissue specific prior (vector of length number of tissues)
+tissue_specific_prior_precision_file = output_dir + trait_name + '_' + gene_version + '_count_genes_once_null_init_fusion_weights_' + fusion_weights + '_robust_tissue_specific_prior_precision_temp.txt'
+tissue_specific_prior_data = np.loadtxt(tissue_specific_prior_precision_file,dtype=str,delimiter='\t')
+tissue_specific_prior_expected_variance = 1.0/tissue_specific_prior_data[1:,1].astype(float)
+
+# Extract pleiotropic variance
+pleiotropic_variance_file = output_dir + trait_name + '_' + gene_version + '_count_genes_once_null_init_fusion_weights_' + fusion_weights + '_robust_pleiotropic_prior_precision_temp.txt'
+pleiotropic_variance = 1.0/float(np.loadtxt(pleiotropic_variance_file,dtype=str)[1,0])
+
+
+
 
 # open output file
-output_file = output_dir + trait_name + '_' + chrom_num + '_summary_tgfm_robust_susie_results_' + gene_version + '_const_prior_1e-5.txt'
+output_file = output_dir + trait_name + '_' + chrom_num + '_summary_tgfm_robust_susie_results_' + gene_version + '_tissue_specific_prior.txt'
 
 print(output_file)
 t = open(output_file,'w')
 # write header
-t.write('component_name\tnum_genes\ttgfm_twas_pickle\ttgfm_fusion_twas_pickle\ttgfm_non_robust_twas_pickle\tpickled_data_file\n')
+t.write('component_name\tnum_genes\ttgfm_twas_pickle\ttgfm_robust_twas_pickle\ttgfm_robust_twas_pickle_not_tissue_specific\tpickled_data_file\n')
 
 # Loop through trait components
 f = open(component_data_file)
@@ -282,57 +299,53 @@ for line in f:
 		pred = np.sum(gwas_new_susie_alpha*gwas_new_susie_mu,axis=0)
 		resid =twas_data['gwas_beta']- np.dot(XtX, pred)*(1.0/np.diag(XtX))
 
+		# Extract ordered tissues for this component
+		component_tissues = []
+		for gene_full_name in twas_data['genes']:
+			component_tissues.append('_'.join(gene_full_name.split('_')[1:]))
+		component_tissues = np.asarray(component_tissues)
+
+
+		# Extract ordered gene prior variances for this component
+		ordered_gene_prior_variances = []
+		for component_tissue in component_tissues:
+			prior_var = tissue_specific_prior_expected_variance[tissue_to_position_mapping[component_tissue]]
+			ordered_gene_prior_variances.append(prior_var)
+		ordered_gene_prior_variances = np.asarray(ordered_gene_prior_variances)
+
+
+
 		# RUN robust TGFM CAUSAL TWAS
-		#twas_obj = tgfm_robust_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True,fusion_weights=True, prior_variance=1.0, pleiotropic_prior_variance=1.0, convergence_thresh=1e-6, max_iter=50)
-
-		t_obj = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True,fusion_weights=False, robust=False, pleiotropic_prior_variance=1e-8, convergence_thresh=1e-8, max_iter=500)
-		t_obj.fit(twas_data_obj=twas_data)
-
-		#t_obj2 = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True,fusion_weights=False, robust=False, pleiotropic_prior_variance=1e-8, convergence_thresh=1e-8, max_iter=1000)
-		#t_obj2.fit(twas_data_obj=twas_data)
-
-		#t3_obj = tgfm_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=False, prior_variance=1000000, convergence_thresh=1e-7, max_iter=100)
-		#t3_obj.fit(twas_data_obj=twas_data)
-
-		#t4_obj = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True,fusion_weights=True, robust=False, pleiotropic_prior_variance=1e-8, convergence_thresh=1e-8, max_iter=1000)
-		#t4_obj.fit(twas_data_obj=twas_data)
-
-		#t2_obj = tgfm_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=False, prior_variance=1000000, convergence_thresh=1e-7, max_iter=100)
-		#t2_obj.fit(twas_data_obj=twas_data)
-
-		twas_obj = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True,fusion_weights=False, robust=True, pleiotropic_prior_variance=1e-8, convergence_thresh=1e-7, max_iter=500)
+		if fusion_weights == 'False':
+			twas_robust_obj = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True, estimate_pleiotropic_prior_variance=False,fusion_weights=False, robust=True, pleiotropic_prior_variance=pleiotropic_variance, init_pi=ordered_gene_prior_variances/np.sum(ordered_gene_prior_variances), convergence_thresh=1e-7, max_iter=500)
+			twas_obj = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True, estimate_pleiotropic_prior_variance=False,fusion_weights=False, robust=False, pleiotropic_prior_variance=pleiotropic_variance, init_pi=ordered_gene_prior_variances/np.sum(ordered_gene_prior_variances), convergence_thresh=1e-7, max_iter=500)
+			#t_obj = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True,fusion_weights=False, robust=False, pleiotropic_prior_variance=1e-8, convergence_thresh=1e-8, max_iter=1000)
+			t3 = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True, estimate_pleiotropic_prior_variance=False,fusion_weights=False, robust=True, pleiotropic_prior_variance=pleiotropic_variance, init_pi=np.ones(len(ordered_gene_prior_variances))/np.sum(np.ones(len(ordered_gene_prior_variances))), convergence_thresh=1e-7, max_iter=500)
+			#t4 = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True, estimate_pleiotropic_prior_variance=False,fusion_weights=False, robust=True, pleiotropic_prior_variance=(7.099814725039963e-08), init_pi=ordered_gene_prior_variances/np.sum(ordered_gene_prior_variances), convergence_thresh=1e-7, max_iter=400)
+		else:
+			twas_robust_obj = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True, estimate_pleiotropic_prior_variance=False,fusion_weights=True, robust=True, pleiotropic_prior_variance=pleiotropic_variance, init_pi=ordered_gene_prior_variances/np.sum(ordered_gene_prior_variances), convergence_thresh=1e-7, max_iter=500)
+			twas_obj = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True, estimate_pleiotropic_prior_variance=False,fusion_weights=True, robust=False, pleiotropic_prior_variance=pleiotropic_variance, init_pi=ordered_gene_prior_variances/np.sum(ordered_gene_prior_variances), convergence_thresh=1e-7, max_iter=500)
+		twas_robust_obj.fit(twas_data_obj=twas_data)
 		twas_obj.fit(twas_data_obj=twas_data)
-
-		twas_fusion_obj = tgfm_robust_susie_causal_twas.TGFM_CAUSAL_TWAS(estimate_prior_variance=True,fusion_weights=True, robust=True, pleiotropic_prior_variance=1e-8, convergence_thresh=1e-7, max_iter=500)
-		twas_fusion_obj.fit(twas_data_obj=twas_data)
-
-
-
-
-
-		# Run RSS TGFM fine mapping
-		#tgfm_rss_fm_data = {'gwas_susie_mu': gwas_new_susie_alpha, 'gwas_susie_alpha': gwas_new_susie_alpha, 'gwas_susie_mu_sd':gwas_new_susie_mu_sd, 'gwas_susie_component': gwas_new_susie_component_num, 'twas_alpha': twas_obj.alpha_mu, 'twas_alpha_sd': np.sqrt(twas_obj.alpha_var), 'ordered_tissue_names': ordered_tissue_names}
-
-		#tgfm_rss_fm_obj_regr = tgfm_rss_fine_mapping.TGFM_RSS_FM(residual_version='regress')
-		#tgfm_rss_fm_obj_regr.fit(twas_data_obj=twas_data, tgfm_data_obj=tgfm_rss_fm_data)
-
+		t3.fit(twas_data_obj=twas_data)
 
 		# Save TWAS results to output file
-		tgfm_twas_pkl_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_susie_twas_results.pkl'
-		g = open(tgfm_twas_pkl_file, "wb")
-		pickle.dump(twas_obj, g)
+		tgfm_robust_twas_pkl_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_susie_twas_tissue_specific_prior_results.pkl'
+		g = open(tgfm_robust_twas_pkl_file, "wb")
+		pickle.dump(twas_robust_obj, g)
+		g.close()
+
+		# Save TWAS results to output file
+		tgfm_robust_twas_not_ts_pkl_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_robust_susie_twas_not_tissue_specific_prior_results.pkl'
+		g = open(tgfm_robust_twas_not_ts_pkl_file, "wb")
+		pickle.dump(t3, g)
 		g.close()
 
 		# Save FUSION ROBUST TWAS results to output file
-		tgfm_fusion_twas_pkl_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_fusion_tgfm_robust_susie_twas_results.pkl'
-		g = open(tgfm_fusion_twas_pkl_file, "wb")
-		pickle.dump(twas_fusion_obj, g)
+		tgfm_twas_pkl_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_susie_twas_tissue_specific_prior_results.pkl'
+		g = open(tgfm_twas_pkl_file, "wb")
+		pickle.dump(twas_obj, g)
 		g.close()	
-
-		tgfm_twas_nr_pkl_file = output_dir + trait_name + '_' + component_name + '_' + gene_version + '_tgfm_susie_twas_results.pkl'
-		g = open(tgfm_twas_nr_pkl_file, "wb")
-		pickle.dump(t_obj, g)
-		g.close()
 
 
 
@@ -344,6 +357,6 @@ for line in f:
 
 
 		# Write output files to component level output
-		t.write(component_name + '\t' + str(num_genes) + '\t' + tgfm_twas_pkl_file + '\t' + tgfm_fusion_twas_pkl_file + '\t' + tgfm_twas_nr_pkl_file + '\t' + pickled_data_file + '\n')
+		t.write(component_name + '\t' + str(num_genes) + '\t' + tgfm_twas_pkl_file + '\t' + tgfm_robust_twas_pkl_file + '\t' + tgfm_robust_twas_not_ts_pkl_file + '\t' + pickled_data_file + '\n')
 f.close()
 t.close()

@@ -43,19 +43,18 @@ def calculate_distance_between_two_vectors(vec1, vec2):
 
 
 class TGFM_CAUSAL_TWAS(object):
-	def __init__(self, L=10, max_iter=200, convergence_thresh=1e-5, estimate_prior_variance=False, estimate_pleiotropic_prior_variance=False,fusion_weights=False,robust=True, pleiotropic_prior_variance=1000, ard_a_prior=1e-16, ard_b_prior=1e-16, init_pi=None):
+	def __init__(self, L=10, max_iter=200, convergence_thresh=1e-5, estimate_prior_variance=False, fusion_weights=False, ard_a_prior=1e-16, ard_b_prior=1e-16, init_pi=None, variant_init_pi=None, single_variance_component=True):
 		# Prior on gamma distributions defining residual variance and
 		self.L = L
 		self.max_iter = max_iter
 		self.convergence_thresh = convergence_thresh
 		self.estimate_prior_variance = estimate_prior_variance
-		self.estimate_pleiotropic_prior_variance = estimate_pleiotropic_prior_variance
-		self.pleiotropic_prior_variance = pleiotropic_prior_variance
 		self.ard_a_prior = ard_a_prior
 		self.ard_b_prior = ard_b_prior
 		self.fusion_weights = fusion_weights
-		self.robust = robust
 		self.init_pi = init_pi
+		self.variant_init_pi = variant_init_pi
+		self.single_variance_component = single_variance_component
 	def fit(self, twas_data_obj):
 		""" Fit the model.
 			Args:
@@ -71,27 +70,24 @@ class TGFM_CAUSAL_TWAS(object):
 		self.initialize_variables(twas_data_obj)
 		self.nominal_twas_rss_updates(twas_data_obj)
 
+
 		print('Initialization complete')
 		self.iter = 0
 		# Compute residual
-		self.residual = twas_data_obj['gwas_beta'] - np.dot(self.srs_inv, self.global_pmces)
-		for temper in range(1):
-			if self.robust:
-				# Update betea (ie predicted pleiotropic gwas effect sizes)
-				self.update_beta(self.expected_gamma_beta)
+		self.residual = twas_data_obj['gwas_beta']
+		self.residual_incl_alpha = twas_data_obj['gwas_beta']
+
 		# BEGIN CAVI
 		for itera in range(self.max_iter):
 			# Update alpha (ie predicted effect of each gene on the trait)
-			self.update_susie_alpha(np.log(self.pi), self.component_variances)
-			if self.robust:
-				# Update betea (ie predicted pleiotropic gwas effect sizes)
-				self.update_beta(self.expected_gamma_beta)
+			if self.single_variance_component:
+				self.update_susie_effects(np.log(self.pi), np.log(self.variant_pi), self.component_variances, self.component_variances)
+			else:
+				self.update_susie_effects(np.log(self.pi), np.log(self.variant_pi), self.alpha_component_variances, self.beta_component_variances)
 
 			if self.estimate_prior_variance:
 				self.update_component_variances()
-			if self.estimate_pleiotropic_prior_variance:
-				if self.robust:
-					self.update_gamma_beta()
+
 			diff = calculate_distance_between_two_vectors(self.alpha_mu, self.prev_alpha_mu)
 			self.convergence_tracker.append(diff)
 			self.prev_alpha_mu = np.copy(self.alpha_mu)
@@ -101,155 +97,139 @@ class TGFM_CAUSAL_TWAS(object):
 			self.iter = self.iter + 1
 			if diff <= self.convergence_thresh:
 				self.converged = True
-				self.update_susie_alpha_no_pi(self.component_variances)
+				if self.single_variance_component:
+					self.update_susie_effects_no_pi(self.component_variances, self.component_variances)
+				else:
+					self.update_susie_effects_no_pi(self.alpha_component_variances, self.beta_component_variances)
 				break
 
-		self.update_susie_alpha_no_pi(self.component_variances)
+		if self.single_variance_component:
+			self.update_susie_effects_no_pi(self.component_variances, self.component_variances)
+		else:
+			self.update_susie_effects_no_pi(self.alpha_component_variances, self.beta_component_variances)
 		if self.converged == False:
 			print('Did not converge after ' + str(self.max_iter) + ' iterations')
 
-	def update_susie_alpha(self, expected_log_pi, component_variances):
-		if False:
-			self.update_susie_alpha_fusion_weights(expected_log_pi, component_variances)
-		else:
-			self.update_susie_alpha_susie_weights(expected_log_pi, component_variances)
-	def update_susie_alpha_no_pi(self, component_variances):
-		if False:
-			self.update_susie_alpha_fusion_weights_no_pi(expected_log_pi, component_variances)
-		else:
-			self.update_susie_alpha_susie_weights_no_pi(component_variances)
 
-	def update_susie_alpha_susie_weights_no_pi(self, component_variances):
-		# Include effects of all components in residual
-		# residual should only contain beta-effects
-		gene_trait_pred = np.dot(np.sum(self.alpha_mu*self.phi,axis=0), self.gene_eqtl_pmces)
-		self.residual = self.residual + np.dot(self.srs_inv, gene_trait_pred)
 
-		self.phi_no_weights = np.copy(self.phi)
+	def update_susie_effects_no_pi(self, alpha_component_variances, beta_component_variances):
+		self.alpha_phi_no_weights = np.copy(self.alpha_phi)
+		self.beta_phi_no_weights = np.copy(self.beta_phi)
+
 		# Loop through components
 		for l_index in range(self.L):
+
+			# Include current component (as it is currently removed)
+			component_gene_trait_pred = np.dot(self.alpha_mu[l_index,:]*self.alpha_phi[l_index,:], self.gene_eqtl_pmces)
+			component_non_med_pred = self.beta_mu[l_index,:]*self.beta_phi[l_index,:]
+			self.residual = self.residual + np.dot(self.srs_inv, component_gene_trait_pred + component_non_med_pred)
+			self.residual_incl_alpha = self.residual_incl_alpha + np.dot(self.srs_inv, component_non_med_pred)
+
+			#################
+			# Alpha effects
+			#################
 			# Calculate terms inolved in update
-			gene_weights = np.sum(self.alpha_mu*self.phi,axis=0) - (self.alpha_mu[l_index,:]*self.phi[l_index,:])
-			b_terms = np.dot(self.gene_eqtl_pmces, np.multiply(self.residual, self.s_inv_2_diag)) + np.dot(self.precomputed_gene_gene_terms, gene_weights)
-			a_terms = self.precomputed_a_terms - .5*(1.0/component_variances[l_index])
+			gene_weights = np.sum(self.alpha_mu*self.alpha_phi,axis=0) - (self.alpha_mu[l_index,:]*self.alpha_phi[l_index,:])
+			b_terms = np.dot(self.gene_eqtl_pmces, np.multiply(self.residual_incl_alpha, self.s_inv_2_diag)) + np.dot(self.precomputed_gene_gene_terms, gene_weights)
+			a_terms = self.precomputed_a_terms - .5*(1.0/alpha_component_variances[l_index])
 
 			mixture_alpha_var = -1.0/(2.0*a_terms)
 			mixture_alpha_mu = b_terms*mixture_alpha_var
+
+			#################
+			# Beta effects
+			#################
+			variant_b_terms = self.residual*self.s_inv_2_diag
+			variant_a_terms = (-.5*self.D_diag) - .5*(1.0/beta_component_variances[l_index])
+
+			mixture_beta_var = -1.0/(2.0*variant_a_terms)
+			mixture_beta_mu = variant_b_terms*mixture_beta_var
 			
-			un_normalized_lv_weights = - (.5*np.log(component_variances[l_index])) + (.5*np.square(mixture_alpha_mu)/mixture_alpha_var) + (.5*np.log(mixture_alpha_var))
-			un_normalized_lv_weights = un_normalized_lv_weights - scipy.special.logsumexp(un_normalized_lv_weights)
-			self.phi_no_weights[l_index,:] = np.exp(un_normalized_lv_weights)
+			################
+			# Normalization (across beta and alpha)
+			###############
+			un_normalized_lv_alpha_weights = - (.5*np.log(alpha_component_variances[l_index])) + (.5*np.square(mixture_alpha_mu)/mixture_alpha_var) + (.5*np.log(mixture_alpha_var))
+			un_normalized_lv_beta_weights = - (.5*np.log(beta_component_variances[l_index])) + (.5*np.square(mixture_beta_mu)/mixture_beta_var) + (.5*np.log(mixture_beta_var))
 
-		gene_trait_pred = np.dot(np.sum(self.alpha_mu*self.phi,axis=0), self.gene_eqtl_pmces)
-		self.residual = self.residual - np.dot(self.srs_inv, gene_trait_pred)
+			normalizing_term = scipy.special.logsumexp(np.hstack((un_normalized_lv_alpha_weights, un_normalized_lv_beta_weights)))
+
+			# Save results to global model parameters
+			self.alpha_phi_no_weights[l_index,:] = np.exp(un_normalized_lv_alpha_weights-normalizing_term)
+
+			self.beta_phi_no_weights[l_index,:] = np.exp(un_normalized_lv_beta_weights-normalizing_term)
 
 
-	def update_susie_alpha_susie_weights(self, expected_log_pi, component_variances):
-		# Include effects of all components in residual
-		# residual should only contain beta-effects
-		gene_trait_pred = np.dot(np.sum(self.alpha_mu*self.phi,axis=0), self.gene_eqtl_pmces)
-		self.residual = self.residual + np.dot(self.srs_inv, gene_trait_pred)
+			# Remove current component (as it is currently removed)
+			component_gene_trait_pred = np.dot(self.alpha_mu[l_index,:]*self.alpha_phi[l_index,:], self.gene_eqtl_pmces)
+			component_non_med_pred = self.beta_mu[l_index,:]*self.beta_phi[l_index,:]
+			self.residual = self.residual - np.dot(self.srs_inv, component_gene_trait_pred + component_non_med_pred)
+			self.residual_incl_alpha = self.residual_incl_alpha - np.dot(self.srs_inv, component_non_med_pred)
+
+
+
+	def update_susie_effects(self, expected_log_pi, expected_log_variant_pi, alpha_component_variances, beta_component_variances):
 		# Loop through components
 		for l_index in range(self.L):
+
+			# Include current component (as it is currently removed)
+			component_gene_trait_pred = np.dot(self.alpha_mu[l_index,:]*self.alpha_phi[l_index,:], self.gene_eqtl_pmces)
+			component_non_med_pred = self.beta_mu[l_index,:]*self.beta_phi[l_index,:]
+			self.residual = self.residual + np.dot(self.srs_inv, component_gene_trait_pred + component_non_med_pred)
+			self.residual_incl_alpha = self.residual_incl_alpha + np.dot(self.srs_inv, component_non_med_pred)
+
+			#################
+			# Alpha effects
+			#################
 			# Calculate terms inolved in update
-			gene_weights = np.sum(self.alpha_mu*self.phi,axis=0) - (self.alpha_mu[l_index,:]*self.phi[l_index,:])
-			b_terms = np.dot(self.gene_eqtl_pmces, np.multiply(self.residual, self.s_inv_2_diag)) + np.dot(self.precomputed_gene_gene_terms, gene_weights)
-			a_terms = self.precomputed_a_terms - .5*(1.0/component_variances[l_index])
+			gene_weights = np.sum(self.alpha_mu*self.alpha_phi,axis=0) - (self.alpha_mu[l_index,:]*self.alpha_phi[l_index,:])
+			b_terms = np.dot(self.gene_eqtl_pmces, np.multiply(self.residual_incl_alpha, self.s_inv_2_diag)) + np.dot(self.precomputed_gene_gene_terms, gene_weights)
+			a_terms = self.precomputed_a_terms - .5*(1.0/alpha_component_variances[l_index])
 
 			mixture_alpha_var = -1.0/(2.0*a_terms)
 			mixture_alpha_mu = b_terms*mixture_alpha_var
+
+			#################
+			# Beta effects
+			#################
+			variant_b_terms = self.residual*self.s_inv_2_diag
+			variant_a_terms = (-.5*self.D_diag) - .5*(1.0/beta_component_variances[l_index])
+
+			mixture_beta_var = -1.0/(2.0*variant_a_terms)
+			mixture_beta_mu = variant_b_terms*mixture_beta_var
 			
-			un_normalized_lv_weights = expected_log_pi - (.5*np.log(component_variances[l_index])) + (.5*np.square(mixture_alpha_mu)/mixture_alpha_var) + (.5*np.log(mixture_alpha_var))
-			un_normalized_lv_weights = un_normalized_lv_weights - scipy.special.logsumexp(un_normalized_lv_weights)
-			self.phi[l_index,:] = np.exp(un_normalized_lv_weights)
+			################
+			# Normalization (across beta and alpha)
+			###############
+			un_normalized_lv_alpha_weights = expected_log_pi - (.5*np.log(alpha_component_variances[l_index])) + (.5*np.square(mixture_alpha_mu)/mixture_alpha_var) + (.5*np.log(mixture_alpha_var))
+			un_normalized_lv_beta_weights = expected_log_variant_pi - (.5*np.log(beta_component_variances[l_index])) + (.5*np.square(mixture_beta_mu)/mixture_beta_var) + (.5*np.log(mixture_beta_var))
+
+			normalizing_term = scipy.special.logsumexp(np.hstack((un_normalized_lv_alpha_weights, un_normalized_lv_beta_weights)))
+
+			# Save results to global model parameters
+			self.alpha_phi[l_index,:] = np.exp(un_normalized_lv_alpha_weights-normalizing_term)
 			self.alpha_mu[l_index,:] = mixture_alpha_mu
 			self.alpha_var[l_index,:] = mixture_alpha_var
 
-		gene_trait_pred = np.dot(np.sum(self.alpha_mu*self.phi,axis=0), self.gene_eqtl_pmces)
-		self.residual = self.residual - np.dot(self.srs_inv, gene_trait_pred)
+			self.beta_phi[l_index,:] = np.exp(un_normalized_lv_beta_weights-normalizing_term)
+			self.beta_mu[l_index,:] = mixture_beta_mu
+			self.beta_var[l_index,:] = mixture_beta_var
 
 
-	def update_susie_alpha_fusion_weights(self, expected_log_pi, component_variances):
-		# Include deffect of the first component (as it is currently removed)
-		component_gene_trait_pred = np.dot(self.alpha_mu[0,:]*self.phi[0,:], self.gene_eqtl_pmces)
-		self.residual = self.residual + np.dot(self.srs_inv, component_gene_trait_pred)
-
-		# Loop through components
-		for l_index in range(self.L):
-			# Calculate terms inolved in update
-			b_terms = np.dot(self.gene_eqtl_pmces, np.multiply(self.residual, self.s_inv_2_diag))
-			a_terms = self.precomputed_a_terms - .5*(1.0/component_variances[l_index])
-
-			mixture_alpha_var = -1.0/(2.0*a_terms)
-			mixture_alpha_mu = b_terms*mixture_alpha_var
-			
-			un_normalized_lv_weights = expected_log_pi - (.5*np.log(component_variances[l_index])) + (.5*np.square(mixture_alpha_mu)/mixture_alpha_var) + (.5*np.log(mixture_alpha_var))
-			un_normalized_lv_weights = un_normalized_lv_weights - scipy.special.logsumexp(un_normalized_lv_weights)
-			self.phi[l_index,:] = np.exp(un_normalized_lv_weights)
-			self.alpha_mu[l_index,:] = mixture_alpha_mu
-			self.alpha_var[l_index,:] = mixture_alpha_var
-
-			# Update resid for next round (after this resid includes effects of all components)
-			if l_index == (self.L - 1):
-				gene_trait_pred = -np.dot(self.alpha_mu[l_index,:]*self.phi[l_index,:], self.gene_eqtl_pmces)
-			else:
-				gene_trait_pred = np.dot(self.alpha_mu[(l_index+1),:]*self.phi[(l_index+1),:], self.gene_eqtl_pmces) - np.dot(self.alpha_mu[l_index,:]*self.phi[l_index,:], self.gene_eqtl_pmces)
-			self.residual = self.residual + np.dot(self.srs_inv, gene_trait_pred)
+			# Remove current component (as it is currently removed)
+			component_gene_trait_pred = np.dot(self.alpha_mu[l_index,:]*self.alpha_phi[l_index,:], self.gene_eqtl_pmces)
+			component_non_med_pred = self.beta_mu[l_index,:]*self.beta_phi[l_index,:]
+			self.residual = self.residual - np.dot(self.srs_inv, component_gene_trait_pred + component_non_med_pred)
+			self.residual_incl_alpha = self.residual_incl_alpha - np.dot(self.srs_inv, component_non_med_pred)
 
 
-	def update_alpha(self, expected_gamma_alpha):
-		# Include effect of the gene corresponding to 0 from the residaul
-		gene_trait_pred = self.gene_eqtl_pmces[0]*self.alpha_mu[0]
-		self.residual = self.residual + np.dot(self.srs_inv, gene_trait_pred)
-
-		for g_index in range(self.G):
-			# Calculate terms involved in update	
-			b_term = np.dot(np.multiply(self.residual, self.s_inv_2_diag), self.gene_eqtl_pmces[g_index])
-			a_term = self.precomputed_a_terms[g_index] - .5*expected_gamma_alpha[g_index]
-
-			# VI Updates
-			self.alpha_var[g_index] = -1.0/(2.0*a_term)
-			self.alpha_mu[g_index] = b_term*self.alpha_var[g_index]
-
-			# Update resid for next round (after this resid includes effects of all genes)
-			if g_index == (self.G - 1):
-				gene_trait_pred = -self.gene_eqtl_pmces[g_index]*self.alpha_mu[g_index]
-			else:
-				gene_trait_pred = self.gene_eqtl_pmces[(g_index+1)]*self.alpha_mu[(g_index+1)] - self.gene_eqtl_pmces[g_index]*self.alpha_mu[g_index]
-			self.residual = self.residual + np.dot(self.srs_inv, gene_trait_pred)
-
-
-	def update_beta(self, expected_gamma_beta):
-		precomputed_a_terms = (-.5*self.D_diag) - (.5*expected_gamma_beta)
-
-		# Remove the pleiotropic effect of the variant corresponding to 0 from the residaul
-		self.residual = self.residual + self.srs_inv[:,0]*self.beta_mu[0]
-
-		# Update each snp in parallel
-		for k_index in range(self.K):
-
-			# Remove the pleiotropic effect of the variant corresponding to k_index from the residaul
-			#self.residual = self.residual + self.srs_inv[:,k_index]*self.beta_mu[k_index]
-
-			# Calculate terms involved in update
-			b_term = self.residual[k_index]*self.s_inv_2_diag[k_index]
-			#a_term = (-.5*self.D_diag[k_index]) - (.5*expected_gamma_beta)
-
-			# VI Updates
-			self.beta_var[k_index] = -1.0/(2.0*precomputed_a_terms[k_index])
-			self.beta_mu[k_index] = b_term*self.beta_var[k_index]
-
-			# Update resid for next round (after this resid includes effects of all genes)
-			if k_index == (self.K - 1):
-				self.residual = self.residual - self.srs_inv[:,k_index]*self.beta_mu[k_index]
-			else:
-				self.residual = self.residual + self.srs_inv[:,(k_index+1)]*self.beta_mu[(k_index+1)]- self.srs_inv[:,k_index]*self.beta_mu[k_index]
 
 	def update_component_variances(self):
-		#for l_index in range(self.L):
-			#self.component_variances[l_index] = np.sum((np.square(self.alpha_mu[l_index,:]) + self.alpha_var[l_index,:])*self.phi[l_index,:])
-		self.component_variances = np.sum((np.square(self.alpha_mu) + self.alpha_var)*self.phi,axis=1)
-
+		# NOTE: COMPONENT VARIANCE IS SHARED ACROSS BETA AND ALPHA: Maybe a bad idea??
+		if self.single_variance_component:
+			self.component_variances = np.sum((np.square(self.alpha_mu) + self.alpha_var)*self.alpha_phi,axis=1) + np.sum((np.square(self.beta_mu) + self.beta_var)*self.beta_phi,axis=1)
+		else:
+			self.alpha_component_variances = np.sum((np.square(self.alpha_mu) + self.alpha_var)*self.alpha_phi,axis=1)/np.sum(self.alpha_phi,axis=1)
+			self.beta_component_variances = np.sum((np.square(self.beta_mu) + self.beta_var)*self.beta_phi,axis=1)/np.sum(self.beta_phi,axis=1)
 	def update_gamma_alpha(self):
 		alpha_squared_expected_val = np.square(self.alpha_mu) + self.alpha_var
 		# VI updates
@@ -299,11 +279,11 @@ class TGFM_CAUSAL_TWAS(object):
 		self.genes = twas_data_obj['genes']
 
 		if self.init_pi is None:
-			self.pi = np.ones(self.G)/self.G
+			self.pi = np.ones(self.G)/(self.G + self.K)
+			self.variant_pi = np.ones(self.K)/(self.G + self.K)
 		else:
 			self.pi = np.copy(self.init_pi)
-
-		self.expected_gamma_beta = 1.0/self.pleiotropic_prior_variance
+			self.variant_pi = np.copy(self.variant_init_pi)
 
 		# Compute nominal twas z-scores
 		self.nominal_twas_z = np.zeros(self.G)
@@ -324,14 +304,20 @@ class TGFM_CAUSAL_TWAS(object):
 		# Currently using null intitialization
 		self.alpha_mu = np.zeros((self.L, self.G))
 		self.alpha_var = np.ones((self.L, self.G))
-		self.phi = np.ones((self.L, self.G))/self.G
-		self.component_variances = np.ones(self.L)*1e-4
+		self.alpha_phi = np.ones((self.L, self.G))/(self.G + self.K)
+		if self.single_variance_component:
+			self.component_variances = np.ones(self.L)*1e-4
+		else:
+			self.alpha_component_variances = np.ones(self.L)*1e-4
+			self.beta_component_variances = np.ones(self.L)*1e-4
 
 		self.prev_alpha_mu = np.copy(self.alpha_mu)
 
 		# Initialize variational distribution defining betas (the causal effect of pleiotropic genotype on the trait)
-		self.beta_mu = np.zeros(self.K)
-		self.beta_var = np.ones(self.K)
+		self.beta_mu = np.zeros((self.L, self.K))
+		self.beta_var = np.ones((self.L, self.K))
+		self.beta_phi = np.ones((self.L, self.K))/(self.G + self.K)
+
 
 		# Generate S matrix
 		s_squared_vec = np.square(twas_data_obj['gwas_beta_se']) + (np.square(twas_data_obj['gwas_beta'])/twas_data_obj['gwas_sample_size'])
@@ -367,7 +353,7 @@ class TGFM_CAUSAL_TWAS(object):
 		# CAN PRECOMPUTE a-terms for variational updates (will not change iteration to iteration)
 		self.precomputed_a_terms = np.zeros(self.G)
 
-		self.global_pmces = np.zeros(self.K) + self.beta_mu
+		self.global_pmces = np.zeros(self.K) 
 
 		self.convergence_tracker = []
 
@@ -380,7 +366,7 @@ class TGFM_CAUSAL_TWAS(object):
 					eqtl_component_pmces = (twas_data_obj['susie_mu'][g_index][k_index,:])*(twas_data_obj['susie_alpha'][g_index][k_index,:])
 					self.precomputed_a_terms[g_index] = self.precomputed_a_terms[g_index] + .5*np.dot(np.dot(eqtl_component_pmces,D_mat), eqtl_component_pmces)
 				self.precomputed_a_terms[g_index] = self.precomputed_a_terms[g_index] - .5*np.dot(np.dot(self.gene_eqtl_pmces[g_index],D_mat), self.gene_eqtl_pmces[g_index])
-				self.global_pmces = self.global_pmces + self.gene_eqtl_pmces[g_index]*np.sum(self.alpha_mu[:,g_index]*self.phi[:, g_index])
+				self.global_pmces = self.global_pmces + self.gene_eqtl_pmces[g_index]*np.sum(self.alpha_mu[:,g_index]*self.alpha_phi[:, g_index])
 				
 				# Cross terms
 				self.precomputed_gene_gene_terms[g_index, g_index] = 2.0*self.precomputed_a_terms[g_index]
@@ -392,7 +378,7 @@ class TGFM_CAUSAL_TWAS(object):
 			self.precomputed_gene_gene_terms = np.zeros((self.G, self.G))
 			for g_index in range(self.G):
 				self.precomputed_a_terms[g_index] = - .5*np.dot(np.dot(self.gene_eqtl_pmces[g_index],D_mat), self.gene_eqtl_pmces[g_index])
-				self.global_pmces = self.global_pmces + self.gene_eqtl_pmces[g_index]*np.sum(self.alpha_mu[:,g_index]*self.phi[:, g_index])
+				self.global_pmces = self.global_pmces + self.gene_eqtl_pmces[g_index]*np.sum(self.alpha_mu[:,g_index]*self.alpha_phi[:, g_index])
 				# Cross terms
 				self.precomputed_gene_gene_terms[g_index, g_index] = 2.0*self.precomputed_a_terms[g_index]
 				for g_prime_index in range((g_index+1), self.G):
