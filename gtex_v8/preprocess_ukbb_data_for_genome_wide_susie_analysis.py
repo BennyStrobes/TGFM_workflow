@@ -650,6 +650,11 @@ for line in f:
 	# Extract valid window indices, as well as sample ld variant indices corresponding to those
 	valid_window_indices, sample_ld_variant_indices, sample_ld_flips = extract_overlapping_variants(window_rs_id, window_variant_arr, rs_id_to_in_sample_variant, rs_id_to_in_sample_alleles)
 
+	# Throw out windows with fewer than 50 variants
+	if len(sample_ld_variant_indices) < 50:
+		continue
+
+
 	# NOW GET LD matrix
 	ukbb_in_sample_ld_mat = extract_ld_mat_from_in_sample_ld(sample_ld_variant_indices, ukbb_in_sample_ld_dir, chrom_num)
 	# Flip alleles to make sure it matches summary statistics
