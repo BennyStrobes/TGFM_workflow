@@ -63,9 +63,20 @@ ukbb_sumstats_hg38_dir="/n/groups/price/ben/causal_eqtl_gwas/gtex_v8_causal_eqtl
 # Directory containing UKBB sumstats for genome-wide susie
 ukbb_preprocessed_for_genome_wide_susie_dir=$output_root"ukbb_preprocessed_for_genome_wide_susie/"
 
+# Directory containing hg38 GTEx preprocessed for Susie
+gtex_gene_set_dir_dir=$output_root"gtex_gene_sets/"
 
+# Directory containing GTEx processed expression
+gtex_processed_expression_dir=$output_root"gtex_processed_expression/"
 
+# Directory containing GTEx processed expression
+gtex_processed_genotype_dir=$output_root"gtex_processed_genotype/"
 
+# Directory containing pseudotissue GTEx gene model input summary files
+gtex_pseudotissue_gene_model_input_dir=$output_root"gtex_pseudotissue_gene_model_input/"
+
+# Directory containing GTEx Susie gene models
+gtex_susie_gene_models_dir=$output_root"gtex_susie_gene_models/"
 
 ##################
 # Analysis
@@ -88,7 +99,47 @@ fi
 
 
 
+########################################
+# Filter gene list to protein coding genes
+########################################
+xt_pc_gene_list_file=$gtex_gene_set_dir_dir"cross_tissue_protein_coding_gene_list.txt"
+if false; then
+python3 filter_gene_list_to_protein_coding_genes.py $xt_gene_list_file $xt_pc_gene_list_file $gene_annotation_file
+fi
 
 
+
+########################################
+# Preprocess GTEx gene expression data for gene model analysis (in each tissue seperately)
+########################################
+if false; then
+sed 1d $gtex_tissue_file | while read tissue_name sample_size pseudotissue_name; do
+	sbatch preprocess_gtex_expression_for_gene_model_analysis_in_single_tissue.sh $tissue_name $xt_pc_gene_list_file $gtex_expression_dir $gtex_covariate_dir $gtex_genotype_dir $gtex_processed_expression_dir $gtex_processed_genotype_dir $ukbb_preprocessed_for_genome_wide_susie_dir
+done
+fi
+
+########################################
+# Create pseudotissue gene model input summary file
+########################################
+num_jobs="10"
+if false; then
+sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample_repeat composit_tissue_string; do
+	echo $pseudotissue_name
+	sh create_pseudotissue_gene_model_input_summary_file.sh $pseudotissue_name $composit_tissue_string $gtex_processed_expression_dir $gtex_pseudotissue_gene_model_input_dir $num_jobs
+done
+fi
+
+
+
+########################################
+# Run GTEx gene model analysis (in each pseudo-tissue seperately)
+########################################
+if false; then
+for job_number in $(seq 0 $(($num_jobs-1))); do 
+	sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample_repeat composit_tissue_string; do
+		sbatch create_susie_gene_model_in_a_single_pseudotissue.sh $pseudotissue_name $composit_tissue_string $gtex_pseudotissue_gene_model_input_dir $gtex_processed_expression_dir $gtex_processed_genotype_dir $gtex_susie_gene_models_dir $job_number
+	done
+done
+fi
 
 

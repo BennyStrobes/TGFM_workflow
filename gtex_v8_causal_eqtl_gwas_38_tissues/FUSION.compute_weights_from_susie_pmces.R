@@ -253,7 +253,7 @@ if ( opt$rn ) {
 
 # Load in the covariates if needed
 if ( !is.na(opt$covar) ) {
-	covar = ( read.table(opt$covar,as.is=T,head=T) )
+	covar = ( read.table(opt$covar,as.is=T,head=F) )
 	if ( opt$verbose >= 1 ) cat( "Loaded",ncol(covar)-2,"covariates\n")
 	# Match up data
 	m = match( paste(fam[,1],fam[,2]) , paste(covar[,1],covar[,2]) )
