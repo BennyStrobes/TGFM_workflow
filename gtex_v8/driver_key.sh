@@ -5,6 +5,12 @@
 # Directory containing summary statistics
 ukbb_sumstats_hg19_dir="/n/groups/price/UKBiobank/sumstats/bolt_337K_unrelStringentBrit_MAF0.001_v3/"
 
+# Hapmap3 rsids
+hapmap3_rsid_file="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/w_hm3.noMHC.snplist"
+
+# UKBB genotype
+ukbb_hg38_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/plink_files/"
+
 #Directory that contains necessary liftover information.
 ##Specifically, it must contain:
 #####1. 'liftOver'   --> the executable
@@ -60,6 +66,9 @@ output_root="/n/scratch3/users/b/bes710/causal_eqtl_gwas/gtex/"
 # Directory containing hg38 ukbb summary stats
 ukbb_sumstats_hg38_dir="/n/groups/price/ben/causal_eqtl_gwas/gtex_v8_causal_eqtl_gwas_38_tissues/ukbb_sumstats_hg38/"
 
+# Directory containing misc. items
+misc_dir=$output_root"misc/"
+
 # Directory containing UKBB sumstats for genome-wide susie
 ukbb_preprocessed_for_genome_wide_susie_dir=$output_root"ukbb_preprocessed_for_genome_wide_susie/"
 
@@ -78,6 +87,9 @@ gtex_pseudotissue_gene_model_input_dir=$output_root"gtex_pseudotissue_gene_model
 # Directory containing GTEx Susie gene models
 gtex_susie_gene_models_dir=$output_root"gtex_susie_gene_models/"
 
+# Directory containing preprocessed TGFM data
+preprocessed_tgfm_data_dir=$output_root"preprocessed_tgfm_data/"
+
 ##################
 # Analysis
 ##################
@@ -87,6 +99,14 @@ gtex_susie_gene_models_dir=$output_root"gtex_susie_gene_models/"
 ########################################
 if false; then
 sbatch liftover_ukbb_summary_statistics_from_hg19_to_hg38.sh $liftover_directory $ukbb_sumstats_hg19_dir $ukbb_sumstats_hg38_dir
+fi
+
+########################################
+# Convert hapmap3 rsids to snp ids
+########################################
+hapmap3_snpid_file=$misc_dir"w_hm3.noMHC.snp_id_list.txt"
+if false; then
+sh convert_hapmap3_rsids_to_snpids.sh $hapmap3_rsid_file $ukbb_hg38_genotype_dir $hapmap3_snpid_file
 fi
 
 
@@ -134,6 +154,7 @@ fi
 ########################################
 # Run GTEx gene model analysis (in each pseudo-tissue seperately)
 ########################################
+num_jobs="10"  # Must match above
 if false; then
 for job_number in $(seq 0 $(($num_jobs-1))); do 
 	sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample_repeat composit_tissue_string; do
@@ -141,5 +162,44 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 	done
 done
 fi
+
+
+########################################
+# Organize GTEx gene model results (create pos file)
+########################################
+if false; then
+sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample_repeat composit_tissue_string; do
+	sbatch organize_susie_gene_model_results_in_a_single_pseudotissue.sh $pseudotissue_name $gtex_pseudotissue_gene_model_input_dir $gtex_susie_gene_models_dir
+done
+fi
+
+
+
+########################################
+# Preprocess data for TGFM
+########################################
+# Number of parallel jobs
+num_jobs="100"
+# FIle summarizing ukkbb windows
+ukkbb_window_summary_file=$ukbb_preprocessed_for_genome_wide_susie_dir"genome_wide_susie_windows_and_processed_data.txt"
+
+
+
+job_number="0"
+if false; then
+sh preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs
+fi
+
+
+
+
+
+
+
+
+
+
+
+
 
 
