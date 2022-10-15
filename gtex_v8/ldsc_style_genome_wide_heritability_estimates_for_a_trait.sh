@@ -20,4 +20,4 @@ module load python/3.6.0
 source /n/groups/price/ben/environments/tensor_flow_cpu/bin/activate
 
 
-python3 compute_genome_wide_heritability_estimates_for_a_trait.py $trait_name $ukkbb_window_summary_file $tissue_name_file $preprocessed_tgfm_data_dir $output_stem
+python3 ldsc_style_genome_wide_heritability_estimates_for_a_trait.py $trait_name $ukkbb_window_summary_file $tissue_name_file $preprocessed_tgfm_data_dir $output_stem
