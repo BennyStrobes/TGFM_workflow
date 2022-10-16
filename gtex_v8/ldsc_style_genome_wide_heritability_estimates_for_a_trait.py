@@ -157,16 +157,11 @@ tissue_names = get_tissue_names(tissue_name_file)
 window_names = get_window_names(ukkbb_window_summary_file)
 
 # Load in LDSC-style data
-#X,chi_sq,snp_weights = load_in_ldsc_style_data(preprocessed_tgfm_data_dir, trait_name, window_names, window_chi_sq_lb=9.0, window_chi_sq_ub=200.0)
 X,chi_sq,snp_weights = load_in_ldsc_style_data(preprocessed_tgfm_data_dir, trait_name, window_names, window_chi_sq_lb=0.0, window_chi_sq_ub=300.0)
 
 
 # Run LDSC-style regression
 h2, gene_h2 = compute_genome_wide_heritability_estimates(X, chi_sq, snp_weights, learn_intercept='learn_intercept', max_epochs=20000)
-
-pdb.set_trace()
-
-
 
 
 t = open(output_stem + 'mean_estimates.txt','w')

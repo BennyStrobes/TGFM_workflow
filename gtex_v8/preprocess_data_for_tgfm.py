@@ -392,6 +392,31 @@ def extract_rss_likelihood_trait_agnostic_data(twas_data_obj, window_name):
 	rss_trait_agnostic_data = {'gene_variances': gene_variances, 'middle_gene_indices': middle_gene_indices, 'middle_variant_indices': middle_variant_indices, 'gene_eqtl_pmces': gene_eqtl_pmces}
 	return rss_trait_agnostic_data
 
+# Convert gwas summary statistics to *STANDARDIZED* effect sizes
+# Following SuSiE code found in these two places:
+########1. https://github.com/stephenslab/susieR/blob/master/R/susie_rss.R  (LINES 277-279)
+########2. https://github.com/stephenslab/susieR/blob/master/R/susie_ss.R (LINES 148-156 AND 203-205)
+def convert_to_standardized_summary_statistics(gwas_beta_raw, gwas_beta_se_raw, gwas_sample_size, R, sigma2=1.0):
+	gwas_z_raw = gwas_beta_raw/gwas_beta_se_raw
+
+	XtX = (gwas_sample_size-1)*R
+	Xty = np.sqrt(gwas_sample_size-1)*gwas_z_raw
+	var_y = 1
+
+	dXtX = np.diag(XtX)
+	csd = np.sqrt(dXtX/(gwas_sample_size-1))
+	csd[csd == 0] = 1
+
+	XtX = (np.transpose((1/csd) * XtX) / csd)
+	Xty = Xty / csd
+
+	dXtX2 = np.diag(XtX)
+
+	beta_scaled = (1/dXtX2)*Xty
+	beta_se_scaled = np.sqrt(sigma2/dXtX2)
+
+	return beta_scaled, beta_se_scaled, XtX
+
 def extract_rss_likelihood_data_for_single_trait(study_pickle_output_file, gwas_beta, gwas_beta_se, gwas_sample_size, twas_data_obj, rss_likelihood_trait_agnostic_data):
 	# Initialize data obj
 	data_obj = {}
@@ -415,6 +440,11 @@ def extract_rss_likelihood_data_for_single_trait(study_pickle_output_file, gwas_
 	data_obj['gwas_beta_se'] = gwas_beta_se
 	data_obj['gwas_sample_size'] = gwas_sample_size
 
+	# Standardize betas and beta_se
+	beta_scaled, beta_se_scaled, XtX = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, gwas_sample_size, twas_data_obj['reference_ld'])
+	data_obj['standardized_gwas_beta'] = beta_scaled
+	data_obj['standardized_gwas_beta_se'] = beta_se_scaled
+	
 	# Generate S matrix
 	s_squared_vec = np.square(gwas_beta_se) + (np.square(gwas_beta)/gwas_sample_size)
 	s_vec = np.sqrt(s_squared_vec)
@@ -449,7 +479,14 @@ def extract_rss_likelihood_data_for_single_trait(study_pickle_output_file, gwas_
 	return
 
 
-def extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root):
+def extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize):
+	# Standardize eQTL effects
+	if standardize == True:
+		for g_index in range(len(tgfm_trait_agnostic_obj['susie_mu'])):
+			gene_variance = compute_gene_variance(tgfm_trait_agnostic_obj['susie_mu'][g_index], tgfm_trait_agnostic_obj['susie_mu_sd'][g_index], tgfm_trait_agnostic_obj['susie_alpha'][g_index], tgfm_trait_agnostic_obj['reference_ld'])
+			tgfm_trait_agnostic_obj['susie_mu'][g_index] = tgfm_trait_agnostic_obj['susie_mu'][g_index]/np.sqrt(gene_variance)
+			tgfm_trait_agnostic_obj['susie_mu_sd'][g_index] = tgfm_trait_agnostic_obj['susie_mu_sd'][g_index]/np.sqrt(gene_variance)
+
 	# First extract trait agnostic rss likelihood data
 	rss_likelihood_trait_agnostic_data = extract_rss_likelihood_trait_agnostic_data(tgfm_trait_agnostic_obj, window_name)
 
@@ -459,7 +496,10 @@ def extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agno
 		if study_name not in valid_studies:
 			continue
 		# Output file to save study-specific info
-		study_pickle_output_file = rss_likelihood_data_output_root + study_name + '_data.pkl'
+		if standardize == False:
+			study_pickle_output_file = rss_likelihood_data_output_root + study_name + '_data.pkl'
+		else:
+			study_pickle_output_file = rss_likelihood_data_output_root + study_name + '_standardized_data.pkl'
 		# Extract and save data
 		extract_rss_likelihood_data_for_single_trait(study_pickle_output_file, gwas_beta[study_index,:], gwas_beta_se[study_index,:], float(study_sample_sizes[study_index]), tgfm_trait_agnostic_obj, rss_likelihood_trait_agnostic_data)
 
@@ -504,7 +544,6 @@ for window_iter in range(num_windows):
 	# Name of window
 	window_name = str(window_chrom_num) + ':' + str(window_start) + ':' + str(window_end)
 
-
 	print(window_name)
 	end_time = time.time()
 	print((end_time-start_time)/60.0)
@@ -544,16 +583,18 @@ for window_iter in range(num_windows):
 	g = open(pkl_file, "wb")
 	pickle.dump(tgfm_trait_agnostic_obj, g)
 	g.close()
-	'''
-	pkl_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_trait_agnostic_data_obj.pkl'
-	f = open(pkl_file, "rb")
-	tgfm_trait_agnostic_obj = pickle.load(f)
-	f.close()
-	'''
+
 
 	# Extract RSS-likelihood formatted data
 	rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
-	extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root)
+	standardize=False
+	#extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
+
+	# Extract RSS-likelihood formatted data (standardized eQTLs)
+	rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
+	standardize=True
+	extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
+
 
 
 	'''

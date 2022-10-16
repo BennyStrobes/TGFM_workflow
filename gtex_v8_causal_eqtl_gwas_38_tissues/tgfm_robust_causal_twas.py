@@ -112,7 +112,7 @@ class TGFM_CAUSAL_TWAS(object):
 			self.alpha_var[g_index] = -1.0/(2.0*a_term)
 			self.alpha_mu[g_index] = b_term*self.alpha_var[g_index]
 
-			# Update resid for next round (after this resid includes effects of all genes)
+			# Update resid for next round (after this resid includces effects of all genes)
 			gene_trait_pred = self.gene_eqtl_pmces[g_index]*self.alpha_mu[g_index]
 			self.residual = self.residual - np.dot(self.srs_inv, gene_trait_pred)
 

@@ -198,15 +198,50 @@ fi
 
 
 ########################################
-# Compute genome-wide heritability estimates
+# LDSC-style genome-wide heritability estimates
 ########################################
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
-	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $tgfm_heritability_results_dir"tgfm_heritability_"$trait_name"_"
+	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $tgfm_heritability_results_dir"tgfm_ldsc_style_heritability_"$trait_name"_"
 done
 fi
 
 
+
+########################################
+# RSS likelihood heritability estimates
+########################################
+standardize_expression_boolean="False"
+trait_name="blood_WHITE_COUNT"
+if false; then
+sbatch rss_likelihood_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
+fi
+
+#trait_names=( "biochemistry_Cholesterol" "blood_WHITE_COUNT" "body_WHRadjBMIz" "bp_DIASTOLICadjMEDz" "body_BMIz" "blood_RED_COUNT")
+trait_names=( "biochemistry_Cholesterol" "body_WHRadjBMIz" "bp_DIASTOLICadjMEDz" "body_BMIz" "blood_RED_COUNT")
+if false; then
+for trait_name in "${trait_names[@]}"; do
+	sbatch rss_likelihood_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
+done
+fi
+
+
+########################################
+# RSS likelihood SVI heritability estimates
+########################################
+standardize_expression_boolean="False"
+trait_name="blood_WHITE_COUNT"
+if false; then
+sh rss_likelihood_svi_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_svi_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
+fi
+
+#trait_names=( "biochemistry_Cholesterol" "blood_WHITE_COUNT" "body_WHRadjBMIz" "bp_DIASTOLICadjMEDz" "body_BMIz" "blood_RED_COUNT")
+trait_names=( "biochemistry_Cholesterol" "body_WHRadjBMIz" "bp_DIASTOLICadjMEDz" "body_BMIz" "blood_RED_COUNT")
+if false; then
+for trait_name in "${trait_names[@]}"; do
+	sbatch rss_likelihood_svi_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_svi_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
+done
+fi
 
 
 
