@@ -8,7 +8,8 @@ import tensorflow as tf
 import tensorflow_recommenders as tfrs
 import gzip
 import time
-
+import scipy.optimize
+import scipy.stats
 
 
 def get_window_names(ukkbb_window_summary_file):
@@ -71,6 +72,8 @@ def load_in_ldsc_style_data(preprocessed_tgfm_data_dir, trait_name, window_names
 	X = np.vstack(X)
 	y=np.hstack(y)
 	weights = np.hstack(weights)
+
+
 	return X,y,weights
 
 def ldsc_tf_loss_fxn(chi_sq, ldsc_model,X, snp_weights, intercept_variable):
@@ -84,7 +87,122 @@ def ldsc_tf_loss_fxn(chi_sq, ldsc_model,X, snp_weights, intercept_variable):
 
 	return -tf.math.reduce_sum(weighted_middle_indices_log_like) #+ tf.math.reduce_sum(tf.math.softplus(ldsc_model))
 
-def softplus_np(x): return np.log1p(np.exp(-np.abs(x))) + np.maximum(x, 0)
+def ldsc_np_gradient_fxn(x, chi_sq, ld_scores, snp_weights):
+	pred_chi_sq = np.dot(ld_scores, softplus_np(x))
+
+	gradient_term_a = (np.exp(x)/(np.exp(x)+1.0))*np.dot((0.5*chi_sq/(np.square(pred_chi_sq)*snp_weights)), ld_scores)
+	gradient_term_b = -(np.exp(x)/(np.exp(x)+1.0))*np.dot((0.5)/(pred_chi_sq*snp_weights), ld_scores)
+	gradient = gradient_term_a + gradient_term_b
+	return -gradient
+
+
+def ldsc_np_loss_fxn(x, chi_sq,ld_scores, snp_weights):
+	pred_chi_sq = np.dot(ld_scores, softplus_np(x))
+
+	log_like = (-.5)*np.log(chi_sq) - np.divide(chi_sq, 2.0*pred_chi_sq) - (.5*np.log(2.0*pred_chi_sq))
+
+	weighted_middle_indices_log_like = np.divide(log_like, snp_weights)
+
+	return -np.sum(weighted_middle_indices_log_like)
+
+def ldsc_np_loss_fxn_regularized(x, chi_sq, ld_scores, snp_weights, regularization_weight):
+	pred_chi_sq = np.dot(ld_scores, softplus_np(x))
+
+
+	log_like = (-.5)*np.log(chi_sq) - np.divide(chi_sq, 2.0*pred_chi_sq) - (.5*np.log(2.0*pred_chi_sq))	
+	weighted_log_like = np.divide(log_like, snp_weights)
+	loss = -np.sum(weighted_log_like) + np.sum(softplus_np(x[1:]))*regularization_weight
+	return loss
+
+
+def ldsc_np_loss_and_gradient_fxn_regularized(x, chi_sq, ld_scores, snp_weights, regularization_weight):
+	pred_chi_sq = np.dot(ld_scores, softplus_np(x))
+
+	gradient_term_a = (np.exp(x)/(np.exp(x)+1.0))*np.dot((0.5*chi_sq/(np.square(pred_chi_sq)*snp_weights)), ld_scores)
+
+	gradient_term_b = -(np.exp(x)/(np.exp(x)+1.0))*np.dot((0.5)/(pred_chi_sq*snp_weights), ld_scores)
+
+	gradient = -gradient_term_a - gradient_term_b 
+	gradient[1:] = gradient[1:] + regularization_weight*np.exp(x[1:])/(1.0 + np.exp(x[1:]))
+
+	log_like = (-.5)*np.log(chi_sq) - np.divide(chi_sq, 2.0*pred_chi_sq) - (.5*np.log(2.0*pred_chi_sq))	
+	weighted_log_like = np.divide(log_like, snp_weights)
+	loss = -np.sum(weighted_log_like) + np.sum(softplus_np(x[1:]))*regularization_weight
+	return loss, gradient
+
+def ldsc_np_loss_and_gradient_fxn(x, chi_sq, ld_scores, snp_weights):
+	pred_chi_sq = np.dot(ld_scores, softplus_np(x))
+
+	gradient_term_a = (np.exp(x)/(np.exp(x)+1.0))*np.dot((0.5*chi_sq/(np.square(pred_chi_sq)*snp_weights)), ld_scores)
+
+	gradient_term_b = -(np.exp(x)/(np.exp(x)+1.0))*np.dot((0.5)/(pred_chi_sq*snp_weights), ld_scores)
+
+	gradient = -gradient_term_a - gradient_term_b
+
+	log_like = (-.5)*np.log(chi_sq) - np.divide(chi_sq, 2.0*pred_chi_sq) - (.5*np.log(2.0*pred_chi_sq))	
+	weighted_log_like = np.divide(log_like, snp_weights)
+	loss = -np.sum(weighted_log_like)
+	return loss, gradient
+
+def ldsc_np_loss_and_gradient_fxn_exp_link(x, chi_sq, ld_scores, snp_weights):
+	pred_chi_sq = np.dot(ld_scores, np.exp(x))
+	gradient_term_a = np.exp(x)*np.dot((0.5*chi_sq/(np.square(pred_chi_sq)*snp_weights)), ld_scores)
+	gradient_term_b = -np.exp(x)*np.dot((0.5)/(pred_chi_sq*snp_weights), ld_scores)
+	gradient = -gradient_term_a - gradient_term_b
+
+	log_like = (-.5)*np.log(chi_sq) - np.divide(chi_sq, 2.0*pred_chi_sq) - (.5*np.log(2.0*pred_chi_sq))	
+	weighted_log_like = np.divide(log_like, snp_weights)
+	loss = -np.sum(weighted_log_like)
+	return loss, gradient
+
+def ldsc_np_loss_no_transform(x, chi_sq, ld_scores, snp_weights):
+	pred_chi_sq = np.dot(ld_scores, np.exp(x))
+
+	log_like = (-.5)*np.log(chi_sq) - np.divide(chi_sq, 2.0*pred_chi_sq) - (.5*np.log(2.0*pred_chi_sq))	
+	weighted_log_like = np.divide(log_like, snp_weights)
+	loss = -np.sum(weighted_log_like)
+	return loss
+
+def ldsc_np_loss_and_gradient_fxn_no_intercept(x, chi_sq, ld_scores, snp_weights):
+	pred_chi_sq = np.dot(ld_scores, softplus_np(x)) + 1.0
+
+	gradient_term_a = (np.exp(x)/(np.exp(x)+1.0))*np.dot((0.5*chi_sq/(np.square(pred_chi_sq)*snp_weights)), ld_scores)
+	gradient_term_b = -(np.exp(x)/(np.exp(x)+1.0))*np.dot((0.5)/(pred_chi_sq*snp_weights), ld_scores)
+	gradient = -gradient_term_a - gradient_term_b
+
+	log_like = (-.5)*np.log(chi_sq) - np.divide(chi_sq, 2.0*pred_chi_sq) - (.5*np.log(2.0*pred_chi_sq))	
+	weighted_log_like = np.divide(log_like, snp_weights)
+	loss = -np.sum(weighted_log_like)
+	return loss, gradient
+
+
+def ldsc_np_loss_fxn_old(x, chi_sq,ld_scores, snp_weights):
+	predy = np.dot(ld_scores, softplus_np(x[1:]))
+	pred_chi_sq = (predy) + (softplus_np(x[0]))
+
+
+	log_like = (-.5)*np.log(chi_sq) - np.divide(chi_sq, 2.0*pred_chi_sq) - (.5*np.log(2.0*pred_chi_sq))
+
+	weighted_middle_indices_log_like = np.divide(log_like, snp_weights)
+
+	return -np.sum(weighted_middle_indices_log_like) #+ tf.math.reduce_sum(tf.math.softplus(ldsc_model))
+
+def ldsc_np_loss_fxn_no_intercept(x, chi_sq,ld_scores, snp_weights):
+	predy = np.dot(ld_scores, softplus_np(x))
+	pred_chi_sq = (predy) + 1.0
+
+
+	log_like = (-.5)*np.log(chi_sq) - np.divide(chi_sq, 2.0*pred_chi_sq) - (.5*np.log(2.0*pred_chi_sq))
+
+	weighted_middle_indices_log_like = np.divide(log_like, snp_weights)
+
+	return -np.sum(weighted_middle_indices_log_like) #+ tf.math.reduce_sum(tf.math.softplus(ldsc_model))
+
+
+
+#def softplus_np(x): return np.log1p(np.exp(-np.abs(x))) + np.maximum(x, 0)
+
+def softplus_np(x): return np.log(np.exp(x) + 1)
 
 def get_tissue_names(tissue_name_file):
 	aa = np.loadtxt(tissue_name_file,dtype=str,delimiter='\t')
@@ -142,32 +260,195 @@ def compute_genome_wide_heritability_estimates(X, chi_sq, snp_weights, learn_int
 	return h2, gene_h2
 
 
+def compute_genome_wide_heritability_estimates_lbfgs_exp_link(ld_scores, chi_sq, snp_weights, learn_intercept='learn_intercept', factr=10000000.0):
+	if learn_intercept == 'learn_intercept':
+		x0 = np.ones(ld_scores.shape[1] +1)*-15
+		x0[0] = 0.0
+		ld_scores_plus_intercept = np.hstack((np.ones((ld_scores.shape[0],1)), ld_scores))
+
+
+		# scipy.optimize.approx_fprime(x0, ldsc_np_loss_no_transform, x0,chi_sq,ld_scores_plus_intercept,snp_weights)
+		# ldsc_np_loss_and_gradient_fxn_no_transform(x0, chi_sq, ld_scores_plus_intercept,snp_weights)
+		opti=scipy.optimize.fmin_l_bfgs_b(ldsc_np_loss_and_gradient_fxn_exp_link,x0, args=(chi_sq, ld_scores_plus_intercept, snp_weights), approx_grad=False)
+		#opti=scipy.optimize.fmin_l_bfgs_b(ldsc_np_loss_no_transform,x0, args=(chi_sq, ld_scores_plus_intercept, snp_weights), approx_grad=True,  bounds=bounds)
+
+		print('Warnflag: ' + str(opti[2]['warnflag']))
+		opt_val = opti[0]
+		t_opt_val = softplus_np(opt_val)
+		opt_intercept = t_opt_val[0]
+		opt_h2 = t_opt_val[1:]
+		opt_h2_gene = opt_h2[1:]
+	elif learn_intercept == 'fixed_intercept':
+		pdb.set_trace()
+		x0 = np.ones(X.shape[1])*-16
+		opti=scipy.optimize.fmin_l_bfgs_b(ldsc_np_loss_and_gradient_fxn_no_intercept,x0, args=(chi_sq, ld_scores, snp_weights),approx_grad=False, factr=factr)
+		print('Warnflag: ' + str(opti[2]['warnflag']))
+		opt_val = opti[0]
+		t_opt_val = softplus_np(opt_val)
+		opt_intercept = 1.0
+		opt_h2 = np.copy(t_opt_val)
+		opt_h2_gene = opt_h2[1:]
+	return opt_intercept, opt_h2, opt_h2_gene
+
+
+def compute_genome_wide_heritability_estimates_lbfgs(ld_scores, chi_sq, snp_weights, learn_intercept='learn_intercept', factr=10000000.0):
+	if learn_intercept == 'learn_intercept':
+		x0 = np.ones(ld_scores.shape[1] +1)*-16
+		x0[0] = .541324854612918
+		ld_scores_plus_intercept = np.hstack((np.ones((ld_scores.shape[0],1)), ld_scores))
+		#loss, grad = ldsc_np_loss_and_gradient_fxn(x0, chi_sq, ld_scores_plus_intercept, snp_weights)
+		#loss, grad = ldsc_np_loss_and_gradient_fxn_regularized(x0, chi_sq, ld_scores_plus_intercept, snp_weights, 100000.0)
+		#grad2 = scipy.optimize.approx_fprime(x0, ldsc_np_loss_fxn_regularized,1.4901161193847656e-08 ,chi_sq,ld_scores_plus_intercept,snp_weights, 100000.0)
+
+		opti=scipy.optimize.fmin_l_bfgs_b(ldsc_np_loss_and_gradient_fxn, x0, args=(chi_sq, ld_scores_plus_intercept, snp_weights), approx_grad=False, factr=factr)
+		#optir=scipy.optimize.fmin_l_bfgs_b(ldsc_np_loss_and_gradient_fxn_regularized, x0, args=(chi_sq, ld_scores_plus_intercept, snp_weights,10000000000.0), approx_grad=False, factr=factr)
+
+		print('Warnflag: ' + str(opti[2]['warnflag']))
+		opt_val = opti[0]
+		t_opt_val = softplus_np(opt_val)
+		opt_intercept = t_opt_val[0]
+		opt_h2 = t_opt_val[1:]
+		opt_h2_gene = opt_h2[1:]
+	elif learn_intercept == 'fixed_intercept':
+		x0 = np.ones(X.shape[1])*-16
+		opti=scipy.optimize.fmin_l_bfgs_b(ldsc_np_loss_and_gradient_fxn_no_intercept,x0, args=(chi_sq, ld_scores, snp_weights),approx_grad=False, factr=factr)
+		print('Warnflag: ' + str(opti[2]['warnflag']))
+		opt_val = opti[0]
+		t_opt_val = softplus_np(opt_val)
+		opt_intercept = 1.0
+		opt_h2 = np.copy(t_opt_val)
+		opt_h2_gene = opt_h2[1:]
+	return opt_intercept, opt_h2, opt_h2_gene
+
+def identify_outlier_window_indices_based_on_genomic_jacknife_md(jacknifed_file, tissue_names, num_jacknife_windows, jacknife_windows):
+	# First fill in h2 mat
+	h2_mat = np.zeros((num_jacknife_windows, len(tissue_names)))
+	mapping = {}
+	for indexer, tissue_name in enumerate(tissue_names):
+		mapping[tissue_name] = indexer
+	f = open(jacknifed_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		if data[0] not in mapping:
+			continue
+		tiss_index = mapping[data[0]]
+		jacknife_num = int(data[1])
+		h2 = float(data[2])
+		h2_mat[jacknife_num, tiss_index] = h2
+	f.close()
+
+	# Now compute mahalanobis distance on h2_mat
+	V = np.cov(np.transpose(h2_mat))
+	VI = np.linalg.inv(V)
+	mu = np.mean(h2_mat,axis=0)
+	mds = []
+	for jacknife_iter in range(num_jacknife_windows):
+		xx = h2_mat[jacknife_iter,:]
+		md = np.sqrt(np.dot(np.dot((xx-mu),VI),(xx-mu).T))
+		mds.append(md)
+	mds = np.asarray(mds)
+	md_pvalues = 1.0 - scipy.stats.chi2.cdf(np.square(mds),len(tissue_names) -1)
+
+	print(sum(md_pvalues<.001))
+
+	outlier_indices = []
+	for jacknife_window in range(num_jacknife_windows):
+		if md_pvalues[jacknife_window] < .001:
+			outlier_indices.append(jacknife_windows[jacknife_window])
+	outlier_indices = np.hstack(outlier_indices)
+
+	return outlier_indices
+
 
 trait_name = sys.argv[1]
 ukkbb_window_summary_file = sys.argv[2]
 tissue_name_file = sys.argv[3]
 preprocessed_tgfm_data_dir = sys.argv[4]
-output_stem = sys.argv[5]
+learn_intercept = sys.argv[5]
+output_stem = sys.argv[6]
 
+num_jacknife_windows = 200
+
+np.random.seed(1)
 
 # Get names of tissues
 tissue_names = get_tissue_names(tissue_name_file)
 
 # Get array of names of windows
 window_names = get_window_names(ukkbb_window_summary_file)
+#window_names = np.random.choice(window_names,300,replace=False)
 
 # Load in LDSC-style data
 X,chi_sq,snp_weights = load_in_ldsc_style_data(preprocessed_tgfm_data_dir, trait_name, window_names, window_chi_sq_lb=0.0, window_chi_sq_ub=300.0)
 
 
-# Run LDSC-style regression
-h2, gene_h2 = compute_genome_wide_heritability_estimates(X, chi_sq, snp_weights, learn_intercept='learn_intercept', max_epochs=20000)
+# Run LDSC-style regression (on full data)
+intercept, h2, gene_h2 = compute_genome_wide_heritability_estimates_lbfgs(X, chi_sq, snp_weights, learn_intercept=learn_intercept)
 
-
+# Print to output
 t = open(output_stem + 'mean_estimates.txt','w')
 t.write('Class_name\th2\n')
+t.write('Intercept\t' + str(intercept) + '\n')
 t.write('Genotype\t' + str(h2[0]) + '\n')
 for tiss_index, tissue_name in enumerate(tissue_names):
 	t.write(tissue_name + '\t' + str(gene_h2[tiss_index]) + '\n')
 t.close()
 
+# Jacknife ldsc-style regression
+
+# Get indices corresponding to 200 jacknife windows
+jacknife_windows = np.array_split(np.arange(X.shape[0]), num_jacknife_windows)
+
+# Open output file
+t = open(output_stem + 'jacknifed_mean_estimates.txt','w')
+t.write('Class_name\tjacknife_window\th2\n')
+
+
+# Loop through jacknife windows
+for jacknife_window_iter in range(num_jacknife_windows):
+	print(X.shape)
+	# Remove points from jacknife window from data
+	X_jack = np.delete(X, jacknife_windows[jacknife_window_iter], axis=0)
+	chi_sq_jack = np.delete(chi_sq, jacknife_windows[jacknife_window_iter])
+	snp_weights_jack = np.delete(snp_weights, jacknife_windows[jacknife_window_iter])
+
+	print(X_jack.shape)
+
+
+	# Run LDSC-style regression (on jacknifed data)
+	jack_intercept, jack_h2, jack_gene_h2 = compute_genome_wide_heritability_estimates_lbfgs(X_jack, chi_sq_jack, snp_weights_jack, learn_intercept=learn_intercept)
+
+	t.write('Intercept\t' + str(jacknife_window_iter) + '\t' + str(jack_intercept) + '\n')
+	t.write('Genotype\t' + str(jacknife_window_iter) + '\t' + str(jack_h2[0]) + '\n')
+	for tiss_index, tissue_name in enumerate(tissue_names):
+		t.write(tissue_name + '\t' + str(jacknife_window_iter) + '\t' + str(jack_gene_h2[tiss_index]) + '\n')
+	t.flush()
+
+t.close()
+
+
+# Re-run regression with jacknife windows removed
+
+jacknifed_file = output_stem + 'jacknifed_mean_estimates.txt'
+outlier_window_indices = identify_outlier_window_indices_based_on_genomic_jacknife_md(jacknifed_file, tissue_names, num_jacknife_windows, jacknife_windows)
+
+X_non_outlier = np.delete(X, outlier_window_indices, axis=0)
+chi_sq_non_outlier = np.delete(chi_sq, outlier_window_indices)
+snp_weights_non_outlier = np.delete(snp_weights, outlier_window_indices)
+
+
+non_outlier_intercept, non_outlier_h2, non_outlier_gene_h2 = compute_genome_wide_heritability_estimates_lbfgs(X_non_outlier, chi_sq_non_outlier, snp_weights_non_outlier, learn_intercept=learn_intercept, factr=100000.0)
+
+# Print to output
+t = open(output_stem + 'outlier_removed_mean_estimates.txt','w')
+t.write('Class_name\th2\n')
+t.write('Intercept\t' + str(non_outlier_intercept) + '\n')
+t.write('Genotype\t' + str(non_outlier_h2[0]) + '\n')
+for tiss_index, tissue_name in enumerate(tissue_names):
+	t.write(tissue_name + '\t' + str(non_outlier_gene_h2[tiss_index]) + '\n')
+t.close()

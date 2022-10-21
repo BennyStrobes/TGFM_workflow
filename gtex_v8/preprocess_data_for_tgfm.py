@@ -225,6 +225,7 @@ def extract_ld_annotations_for_this_region_old(ld, susie_mu, susie_mu_sd, susie_
 		gene_variance = compute_gene_variance(susie_mu[gene_iter], susie_mu_sd[gene_iter], susie_alpha[gene_iter], ld)
 		per_gene_variance.append(gene_variance)
 
+
 		gene_eqtl_weighted_ld_scores = np.sum((np.square(ld)*gene_squared_eqtl_effect_sizes),axis=1)
 
 		per_gene_eqtl_cross_terms.append(cross_terms)
@@ -261,8 +262,7 @@ def extract_ld_annotations_for_this_region_old(ld, susie_mu, susie_mu_sd, susie_
 
 	return filtered_ld_scores, np.transpose(np.asarray(tissue_eqtl_ld_scores)), np.transpose(np.asarray(standardized_tissue_eqtl_ld_scores)), regression_weights
 
-
-def extract_ld_annotations_for_this_region(ld, susie_mu, susie_mu_sd, susie_alpha, ordered_tissue_names, region_tissue_names, variant_indices, hapmap3_snp_indices):
+def extract_ld_annotations_for_this_region_v2(ld, susie_mu, susie_mu_sd, susie_alpha, ordered_tissue_names, region_tissue_names, variant_indices, hapmap3_snp_indices):
 	# LD scores
 	ld_scores = np.sum(np.square(ld),axis=0)
 	# Number of variants
@@ -272,6 +272,10 @@ def extract_ld_annotations_for_this_region(ld, susie_mu, susie_mu_sd, susie_alph
 	per_gene_eqtl_weighted_ld_scores_arr = []
 	per_gene_variance = []
 	for gene_iter, region_tissue_name in enumerate(region_tissue_names):
+
+		gene_variance_init = compute_gene_variance(susie_mu[gene_iter], susie_mu_sd[gene_iter], susie_alpha[gene_iter], ld)
+		susie_mu[gene_iter] = susie_mu[gene_iter]/np.sqrt(gene_variance_init)
+		susie_mu_sd[gene_iter] = susie_mu_sd[gene_iter]/np.sqrt(gene_variance_init)
 
 		# Component level eqtl effect sizes for this gene		
 		gene_component_effect_sizes = (susie_mu[gene_iter])*susie_alpha[gene_iter]
@@ -323,6 +327,69 @@ def extract_ld_annotations_for_this_region(ld, susie_mu, susie_mu_sd, susie_alph
 	return filtered_ld_scores, np.transpose(np.asarray(tissue_eqtl_ld_scores)), np.transpose(np.asarray(standardized_tissue_eqtl_ld_scores)), regression_weights
 
 
+
+def extract_ld_annotations_for_this_region(ld, susie_mu, susie_mu_sd, susie_alpha, ordered_tissue_names, region_tissue_names, variant_indices, hapmap3_snp_indices):
+	# LD scores
+	ld_scores = np.sum(np.square(ld),axis=0)
+	# Number of variants
+	num_var = len(ld_scores)
+
+	# Create eqtl weighted scores for each gene, independently
+	per_gene_eqtl_weighted_ld_scores_arr = []
+	per_gene_variance = []
+	for gene_iter, region_tissue_name in enumerate(region_tissue_names):
+
+		# Component level eqtl effect sizes for this gene		
+		gene_component_effect_sizes = (susie_mu[gene_iter])*susie_alpha[gene_iter]
+
+		# eQTL effect sizes for this gene
+		gene_eqtl_effect_sizes = np.sum(gene_component_effect_sizes,axis=0)
+
+		# Compute squared eqtl effect sizes for this gene
+		gene_squared_eqtl_effect_sizes = np.sum((np.square(susie_mu[gene_iter]) + np.square(susie_mu_sd[gene_iter]))*susie_alpha[gene_iter],axis=0) + gene_eqtl_effect_sizes*gene_eqtl_effect_sizes - np.sum(gene_component_effect_sizes*gene_component_effect_sizes,axis=0)
+
+		# E[beta_k*beta_j]
+		cross_terms = np.dot(np.reshape(gene_eqtl_effect_sizes, (num_var,1)), np.reshape(gene_eqtl_effect_sizes, (1,num_var))) - np.dot(np.transpose(gene_component_effect_sizes), gene_component_effect_sizes)
+
+
+		gene_variance = compute_gene_variance(susie_mu[gene_iter], susie_mu_sd[gene_iter], susie_alpha[gene_iter], ld)
+		per_gene_variance.append(gene_variance)
+
+		gene_eqtl_weighted_ld_scores = np.sum((np.square(ld)*gene_squared_eqtl_effect_sizes),axis=1)
+
+
+		# Temp
+		cross_terms = cross_terms - np.diag(np.diag(cross_terms))
+		cross_effects = np.sum(np.dot(cross_terms, ld[:, variant_indices])*ld[:,variant_indices],axis=0)
+
+		per_gene_eqtl_weighted_ld_scores_arr.append(gene_eqtl_weighted_ld_scores[variant_indices] + cross_effects)
+
+
+	filtered_ld_scores = ld_scores[variant_indices]
+
+	tissue_eqtl_ld_scores = []
+	standardized_tissue_eqtl_ld_scores = []
+
+
+	for tissue_name in ordered_tissue_names:
+		eqtl_ld_score = np.zeros(len(filtered_ld_scores))
+		standardized_eqtl_ld_score = np.zeros(len(filtered_ld_scores))
+		# Get gene indices corresponding to the tissue
+		if len(region_tissue_names) > 0:
+			gene_indices = np.where(region_tissue_names==tissue_name)[0]
+			for gene_index in gene_indices:
+				eqtl_ld_score = eqtl_ld_score + per_gene_eqtl_weighted_ld_scores_arr[gene_index]
+				standardized_eqtl_ld_score = standardized_eqtl_ld_score + per_gene_eqtl_weighted_ld_scores_arr[gene_index]/per_gene_variance[gene_index]
+
+		tissue_eqtl_ld_scores.append(eqtl_ld_score)
+		standardized_tissue_eqtl_ld_scores.append(standardized_eqtl_ld_score)
+
+
+	regression_weights = np.sum(np.square(ld)[variant_indices,:][:,hapmap3_snp_indices],axis=1)
+
+	return filtered_ld_scores, np.transpose(np.asarray(tissue_eqtl_ld_scores)), np.transpose(np.asarray(standardized_tissue_eqtl_ld_scores)), regression_weights
+
+
 def extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, window_unstandardized_ld_score_annotation_file, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, ordered_tissue_names):
 	t = open(window_ld_score_annotation_file,'w')
 	t.write('variant_name\tregression_weight\tld_score')
@@ -340,6 +407,8 @@ def extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, windo
 	region_tissue_names = get_tissue_names_from_gene_tissue_names_arr(tgfm_trait_agnostic_obj['genes'])
 
 	ld_scores, eqtl_ld_scores, standardized_eqtl_ld_scores, regression_weights = extract_ld_annotations_for_this_region(tgfm_trait_agnostic_obj['reference_ld'], tgfm_trait_agnostic_obj['susie_mu'], tgfm_trait_agnostic_obj['susie_mu_sd'], tgfm_trait_agnostic_obj['susie_alpha'], ordered_tissue_names, region_tissue_names, regression_snp_indices, hapmap3_snp_indices)	
+	#ld_scores2, eqtl_ld_scores2, standardized_eqtl_ld_scores2, regression_weights2 = extract_ld_annotations_for_this_region_v2(tgfm_trait_agnostic_obj['reference_ld'], tgfm_trait_agnostic_obj['susie_mu'], tgfm_trait_agnostic_obj['susie_mu_sd'], tgfm_trait_agnostic_obj['susie_alpha'], ordered_tissue_names, region_tissue_names, regression_snp_indices, hapmap3_snp_indices)	
+
 
 	for variant_index, variant_id in enumerate(tgfm_trait_agnostic_obj['variants'][regression_snp_indices]):
 		t.write(variant_id + '\t' + str(regression_weights[variant_index]) + '\t' + str(ld_scores[variant_index]) + '\t' + '\t'.join(standardized_eqtl_ld_scores[variant_index,:].astype(str)) + '\n')
@@ -504,6 +573,27 @@ def extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agno
 		extract_rss_likelihood_data_for_single_trait(study_pickle_output_file, gwas_beta[study_index,:], gwas_beta_se[study_index,:], float(study_sample_sizes[study_index]), tgfm_trait_agnostic_obj, rss_likelihood_trait_agnostic_data)
 
 
+def get_dictionary_list_of_all_regression_snps(hapmap3_snps, ukbb_windows):
+	all_regression_snps = {}
+	num_windows = ukbb_windows.shape[0]
+	for window_iter in range(num_windows):
+		# Extract relevent info for this window
+		window_start = int(ukbb_windows[window_iter,1])
+		window_end = int(ukbb_windows[window_iter,2])
+		window_variant_id_file = ukbb_windows[window_iter,7]
+		# Load variant names
+		window_variant_names = np.loadtxt(window_variant_id_file, dtype=str)
+		regression_snp_indices, hapmap3_snp_indices = extract_regression_snp_indices(window_variant_names, hapmap3_snps, window_start, window_end)
+		if len(regression_snp_indices) == 0:
+			continue
+		regression_snps = window_variant_names[regression_snp_indices]
+		for regression_snp in regression_snps:
+			regression_snp_info = regression_snp.split('_')
+			regression_snp_alt = regression_snp_info[0] + '_' + regression_snp_info[1] + '_' + regression_snp_info[3] + '_' + regression_snp_info[2]
+			all_regression_snps[regression_snp] = 1
+			all_regression_snps[regression_snp_alt] = 1
+	return all_regression_snps
+
 ukkbb_window_summary_file = sys.argv[1]
 hapmap3_snpid_file = sys.argv[2]
 gtex_pseudotissue_file = sys.argv[3]
@@ -525,6 +615,8 @@ tissue_to_gene_model_df = create_tissue_to_gene_model_df(pseudotissues, gtex_sus
 
 # Get dictionary list of hapmap3 snpids
 hapmap3_snps = get_dictionary_list_of_hapmap3_snpids(hapmap3_snpid_file)
+# This is all hapmap3 snps that fall in the middle of a window that is tested
+all_regression_snps = get_dictionary_list_of_all_regression_snps(hapmap3_snps, ukbb_windows)
 
 start_time = time.time()
 # Loop through windows
@@ -538,6 +630,7 @@ for window_iter in range(num_windows):
 	window_gwas_beta_se_file = ukbb_windows_parr[window_iter,6]
 	window_variant_id_file = ukbb_windows_parr[window_iter,7]
 	window_study_name_file = ukbb_windows_parr[window_iter,8]
+	window_1kg_genotype_file = ukbb_windows_parr[window_iter,9]
 	window_variant_in_sample_ld_file = ukbb_windows_parr[window_iter,10]
 	window_study_sample_size_file = ukbb_windows_parr[window_iter,11]
 
@@ -552,11 +645,17 @@ for window_iter in range(num_windows):
 	# Load in LD
 	LD = np.loadtxt(window_variant_in_sample_ld_file)
 
+	# Load in ukbb ld
+	kg_geno = np.loadtxt(window_1kg_genotype_file)
+	kg_LD = np.corrcoef(np.transpose(kg_geno))
+
 	# Load variant names
 	window_variant_names = np.loadtxt(window_variant_id_file, dtype=str)
 
 	# GET HAPMAP3 SNPS and middle snps
-	regression_snp_indices, hapmap3_snp_indices = extract_regression_snp_indices(window_variant_names, hapmap3_snps, window_start, window_end)
+	regression_snp_indices, hapmap3_snp_indices = extract_regression_snp_indices(window_variant_names, all_regression_snps, window_start, window_end)
+	#regression_snp_indices, hapmap3_snp_indices2 = extract_regression_snp_indices(window_variant_names, hapmap3_snps, window_start, window_end)
+
 	if len(regression_snp_indices) == 0:
 		continue
 
@@ -590,16 +689,21 @@ for window_iter in range(num_windows):
 	standardize=False
 	#extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
 
-	# Extract RSS-likelihood formatted data (standardized eQTLs)
+	# Extract RSS-likelihood formatted data (standardized eQTLs) (NEVER RUN)
 	rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
 	standardize=True
-	extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
+	# extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
 
 
-
-	'''
 	# Extract ld score annotation file
 	window_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file.txt'
 	window_unstandardized_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file.txt'
 	extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, window_unstandardized_ld_score_annotation_file, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, pseudotissues)
-	'''
+
+	# Extract ld score annotation with 1kg LD file
+	tgfm_trait_agnostic_obj['reference_ld'] = kg_LD
+	window_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file_1kg_ld.txt'
+	window_unstandardized_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file_1kg_ld.txt'
+	# extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, window_unstandardized_ld_score_annotation_file, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, pseudotissues)
+
+

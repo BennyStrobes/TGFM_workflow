@@ -93,6 +93,9 @@ preprocessed_tgfm_data_dir=$output_root"preprocessed_tgfm_data/"
 # Directory containing TGFM heritability estimates
 tgfm_heritability_results_dir=$output_root"tgfm_heritability_results/"
 
+# Directory containing visualizations of TGFM h2 estimates
+visualize_tgfm_h2_dir=$output_root"visualize_tgfm_heritability_estimates/"
+
 ##################
 # Analysis
 ##################
@@ -196,17 +199,48 @@ done
 fi
 
 
-
 ########################################
 # LDSC-style genome-wide heritability estimates
 ########################################
+learn_intercept="fixed_intercept"
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
-	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $tgfm_heritability_results_dir"tgfm_ldsc_style_heritability_"$trait_name"_"
+	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $learn_intercept $tgfm_heritability_results_dir"tgfm_ldsc_style_heritability_"$trait_name"_"$learn_intercept"_"
+done
+fi
+
+learn_intercept="fixed_intercept"
+learn_intercept="learn_intercept"
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $learn_intercept $tgfm_heritability_results_dir"tgfm_ldsc_style_heritability_"$trait_name"_"$learn_intercept"_"
 done
 fi
 
 
+source ~/.bash_profile
+module load R/3.5.1
+Rscript visualize_tgfm_heritability_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $tgfm_heritability_results_dir $visualize_tgfm_h2_dir
+
+
+
+
+
+
+########################################
+# RSS likelihood heritability estimates
+########################################
+standardize_expression_boolean="False"
+trait_names=( "blood_WHITE_COUNT" "biochemistry_Cholesterol" "body_WHRadjBMIz" "bp_DIASTOLICadjMEDz" "body_BMIz" "blood_RED_COUNT")
+if false; then
+for trait_name in "${trait_names[@]}"; do
+	sbatch rss_likelihood_parallel_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_parallel_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
+done
+fi
+if false; then
+trait_name="blood_WHITE_COUNT"
+sbatch rss_likelihood_parallel_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_parallel_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
+fi
 
 ########################################
 # RSS likelihood heritability estimates
@@ -232,7 +266,7 @@ fi
 standardize_expression_boolean="False"
 trait_name="blood_WHITE_COUNT"
 if false; then
-sh rss_likelihood_svi_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_svi_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
+sbatch rss_likelihood_svi_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_svi_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
 fi
 
 #trait_names=( "biochemistry_Cholesterol" "blood_WHITE_COUNT" "body_WHRadjBMIz" "bp_DIASTOLICadjMEDz" "body_BMIz" "blood_RED_COUNT")

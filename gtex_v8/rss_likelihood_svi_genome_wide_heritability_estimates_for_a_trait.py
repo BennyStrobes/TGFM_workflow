@@ -124,7 +124,11 @@ def create_alpha_mu_and_alpha_var_objects(twas_pickle_file_names, tissue_to_posi
 	return alpha_mu_object, alpha_var_object, beta_mu_object, beta_var_object, tissue_object, valid_gene_object, valid_variant_object, np.asarray(twas_obj_file_names), total_variants, total_genes
 
 
-def update_alphas_and_betas(alpha_mu_object, alpha_var_object, beta_mu_object, beta_var_object, tissue_object, twas_obj_file_names, expected_gamma_alpha, expected_gamma_beta, iteration_svi_window_indices):
+def calculate_distance_between_two_vectors(vec1, vec2):
+	dist = np.mean(np.abs(vec1-vec2))
+	return dist
+
+def update_alphas_and_betas(alpha_mu_object, alpha_var_object, beta_mu_object, beta_var_object, tissue_object, twas_obj_file_names, expected_gamma_alpha, expected_gamma_beta, iteration_svi_window_indices, num_inner_iterations):
 	# Number of windows to loop over
 	num_windows = len(alpha_mu_object)
 
@@ -163,15 +167,27 @@ def update_alphas_and_betas(alpha_mu_object, alpha_var_object, beta_mu_object, b
 		##########################
 		# Update alpha and beta in this window
 		#########################
-		# Perform VI UPDATES on alpha_mu and alpha_var
-		alpha_mu, alpha_var, residual = rss.update_alpha(alpha_mu, alpha_var, residual, twas_obj['gene_eqtl_pmces'], twas_obj['srs_inv'], twas_obj['G'], twas_obj['s_inv_2_diag'], twas_obj['precomputed_a_terms'], component_gamma_alpha)
+		prev_alpha_mu = np.copy(alpha_mu)
+		for inner_iteration in range(num_inner_iterations):
+			# Perform VI UPDATES on alpha_mu and alpha_var
+			alpha_mu, alpha_var, residual = rss.update_alpha(alpha_mu, alpha_var, residual, twas_obj['gene_eqtl_pmces'], twas_obj['srs_inv'], twas_obj['G'], twas_obj['s_inv_2_diag'], twas_obj['precomputed_a_terms'], component_gamma_alpha)
+
+			# Perform VI UPDATES on beta_mu and beta_var
+			beta_mu, beta_var, residual = rss.update_beta(beta_mu, beta_var, residual, twas_obj['srs_inv'], twas_obj['K'], twas_obj['D_diag'], twas_obj['s_inv_2_diag'], expected_gamma_beta)
+
+			if len(alpha_mu) > 0:
+				diff = calculate_distance_between_two_vectors(alpha_mu, prev_alpha_mu)
+			else:
+				diff = 1.0
+
+			if diff < 1e-4:
+				break
+			prev_alpha_mu = np.copy(alpha_mu)
+
 
 		# Now set alpha_mu_object and alpha_var_object to current estimates of alpha_mu and alpha_var
 		alpha_mu_object[nn] = np.copy(alpha_mu)
 		alpha_var_object[nn] = np.copy(alpha_var)
-
-		# Perform VI UPDATES on beta_mu and beta_var
-		beta_mu, beta_var, residual = rss.update_beta(beta_mu, beta_var, residual, twas_obj['srs_inv'], twas_obj['K'], twas_obj['D_diag'], twas_obj['s_inv_2_diag'], expected_gamma_beta)
 
 		# Now set beta_mu_object and beta_var_object to current estimates of beta_mu and beta_var
 		beta_mu_object[nn] = np.copy(beta_mu)
@@ -252,7 +268,7 @@ def infer_rss_likelihood_genome_wide_heritabilities(ordered_tissue_names, twas_p
 		expected_gamma_beta = gamma_beta_a/gamma_beta_b
 
 		# Update alpha and beta distributions
-		alpha_mu_object, alpha_var_object, beta_mu_object, beta_var_object = update_alphas_and_betas(alpha_mu_object, alpha_var_object, beta_mu_object, beta_var_object, tissue_object, twas_obj_file_names, expected_gamma_alpha, expected_gamma_beta, iteration_svi_window_indices)
+		alpha_mu_object, alpha_var_object, beta_mu_object, beta_var_object = update_alphas_and_betas(alpha_mu_object, alpha_var_object, beta_mu_object, beta_var_object, tissue_object, twas_obj_file_names, expected_gamma_alpha, expected_gamma_beta, iteration_svi_window_indices, svi_params['inner_iterations'])
 
 		# Update gamma_alpha
 		gamma_alpha_a, gamma_alpha_b = update_gamma_alpha(gamma_alpha_a, gamma_alpha_b, alpha_mu_object, alpha_var_object, tissue_object, valid_gene_object, num_tiss, 1e-16, 1e-16, iteration_svi_window_indices, svi_learning_rate, total_num_genes)
@@ -282,7 +298,7 @@ output_root = sys.argv[6]
 
 
 # SVI parameters
-svi_params = {'batch_size':400, 'tau': .75, 'kappa':.5}
+svi_params = {'batch_size':100, 'tau': .75, 'kappa':.5, 'inner_iterations':50}
 
 # Set seed
 np.random.seed(1)
@@ -298,8 +314,8 @@ window_pickle_file_names = extract_window_pickle_file_names(trait_name, preproce
 
 
 # Temporary output files used to save intermediate results
-temp_alpha_output_file = output_root + 'robust_tissue_specific_prior_precision_temp.txt'
-temp_beta_output_file =output_root + 'robust_pleiotropic_prior_precision_temp.txt'
+temp_alpha_output_file = output_root + 'robust_tissue_specific_prior_precision_temp_v2.txt'
+temp_beta_output_file =output_root + 'robust_pleiotropic_prior_precision_temp_v2.txt'
 
 # Run iterative variational algorithm to get heritability estimates
 expected_gamma_alpha, gamma_alpha_a, gamma_alpha_b, gamma_beta_a, gamma_beta_b = infer_rss_likelihood_genome_wide_heritabilities(ordered_tissue_names, window_pickle_file_names, temp_alpha_output_file, temp_beta_output_file, svi_params)
