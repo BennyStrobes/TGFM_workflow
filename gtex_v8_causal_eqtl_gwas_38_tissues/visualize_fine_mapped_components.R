@@ -92,13 +92,13 @@ fine_mapped_manhatten_plot <- function(df) {
 
 
 	p <- ggplot() +
-  		geom_point(data=df_null, aes(x=position, y=log_10_pvalue), color='grey', size=.5) +
-    	geom_point(data=df_comp, aes(x=position, y=log_10_pvalue, color=fm_annotation), size=2.6) +
+  		geom_point(data=df_null, aes(x=position, y=log_10_pvalue), color='grey', size=.9) +
+    	geom_point(data=df_comp, aes(x=position, y=log_10_pvalue, color=fm_annotation), size=6.6) +
   		figure_theme() + 
   		theme(legend.position="top") + 
   		labs(color="", y="-log10(p-value)", x="Position (MB)") +
   		guides(color = guide_legend( nrow=2, byrow=TRUE)) +
-    	theme(legend.key.size = unit(.8, 'cm'), legend.title = element_text(size=9),legend.text = element_text(size=9))
+    	theme(legend.key.size = unit(1.3, 'cm'), legend.title = element_text(size=9),legend.text = element_text(size=9))
 
   	return(p)
 }
@@ -182,9 +182,9 @@ for (component_iter in 1:length(components)) {
 
 	component_annotations <- unique(as.character(df$fm_annotation))
 	if (component_contains_causal_annotation(component_annotations, single_causal_tissue)) {
-		fm_manhatten_plot <- fine_mapped_manhatten_plot(df)
+		fm_manhatten_plot <- fine_mapped_manhatten_plot(df) + theme(text = element_text(size = 25), axis.text=element_text(size=23), legend.text=element_text(size=23))
 		output_file <- paste0(output_dir, namer, "_fm_manhatten_plot.pdf")
-		ggsave(fm_manhatten_plot, file=output_file, width=7.2, height=4.0, units="in")
+		ggsave(fm_manhatten_plot, file=output_file, width=15.0, height=5.2, units="in")
 
 	}
 }

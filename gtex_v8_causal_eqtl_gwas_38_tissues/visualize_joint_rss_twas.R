@@ -1791,7 +1791,7 @@ make_number_of_susie_components_histogram <- function(num_components, model_name
 	return(p)
 }
 
-summarize_mediated_components_for_joint_susie_model_for_pres <- function(susie_joint_tissue_prior_df, tissue_names, trait_name, gtex_colors_df) {
+summarize_mediated_components_for_joint_susie_model_for_pres <- function(susie_joint_tissue_prior_df, tissue_names, trait_name, gtex_colors_df, readable_trait_name) {
 	# Standard summary
 	tissue_arr <- c()
 	fraction_arr <- c()
@@ -1873,7 +1873,7 @@ summarize_mediated_components_for_joint_susie_model_for_pres <- function(susie_j
 	p <- ggplot(df2, aes(fill=tissue, y=trait, x=fraction)) + 
     	geom_bar(position="fill", stat="identity") +
     	figure_theme() +
-    	labs(x="Fraction of expression-mediated disease components", title=trait_name, y="", fill="") +
+    	labs(x="Fraction of expression-mediated disease components", title=readable_trait_name, y="", fill="") +
     	scale_fill_manual(values=rev(as.character(df2$color))) +
     	theme(legend.position="bottom") +
     	theme(axis.text.y=element_blank(),  axis.ticks.y=element_blank())  +
@@ -2069,6 +2069,20 @@ summarize_mediated_and_non_mediated_components_for_joint_susie_model <- function
    	return(p)
 }
 
+make_mediated_prob_se_barplot_for_ashg_poster <- function(df) {
+	print(df)
+
+	df$trait <- recode(df$trait, cov_EDU_COLLEGE="College education", bp_DIASTOLICadjMEDz="Diastolic BP", body_WHRadjBMIz="WHR-adj BMI", blood_WHITE_COUNT="White blood count",blood_RED_COUNT="Red blood count",blood_RBC_DISTRIB_WIDTH="RBC width",blood_EOSINOPHIL_COUNT="Eosinophil count", biochemistry_Cholesterol="Cholesterol")
+
+	p <- ggplot(df) +
+    		geom_bar( aes(y=trait, x=average_mediated_probability), stat="identity", fill="skyblue", alpha=0.7) +
+    		#theme(axis.text.x = element_text(angle = 90,hjust=1, vjust=.5, size=10)) +
+    		labs(x="Average expression-mediated probability", y="") +
+    		geom_errorbar( aes(y=trait, xmin=average_mediated_probability-(1.96*average_mediated_probability_se), xmax=average_mediated_probability+(1.96*average_mediated_probability_se)), colour="orange", alpha=0.9, size=1.3) +
+    		figure_theme() +
+    		theme(text = element_text(size = 25), axis.text=element_text(size=23))
+    return(p)
+}
 
 make_mediated_prob_se_barplot <- function(df) {
 	p <- ggplot(df) +
@@ -2149,7 +2163,6 @@ pseudotissue_gtex_rss_multivariate_twas_dir <- args[3]
 rss_multivariate_twas_visualization_dir <- args[4]
 gtex_tissue_colors_file <- args[5]
 
-if (FALSE) {
 # Load in gtex tissues
 tissue_df <- read.table(gtex_pseudotissue_file,header=TRUE)
 tissue_names <- as.character(tissue_df$pseudotissue_name)
@@ -2173,6 +2186,47 @@ trait_names_big <- as.character(trait_df$study_name)
 fusion_weights="False"
 gene_version = "cis_heritable_genes"
 
+if (FALSE) {
+# Keep track of average mediated probability and se
+avg_med_prob_arr <- c()
+se_med_prob_arr <- c()
+
+
+
+# Loop through traits
+for (itera in 1:length(trait_names_big)) {
+
+
+	# Name of trait defining current loop
+	trait_name <- trait_names_big[itera]
+
+	# Load in organized TGFM results
+	trait_file <- paste0(pseudotissue_gtex_rss_multivariate_twas_dir, trait_name, "_", gene_version, "_fusion_weights_", fusion_weights, "_component_organized_joint_tgfm_results.txt")
+	trait_df <- read.table(trait_file, header=TRUE)
+
+
+	# Name of trait defining current loop
+	trait_name <- trait_names_big[itera]
+
+	susie_joint_non_med_prob_df <- extract_joint_susie_non_med_prob_df(trait_df, trait_name, tissue_names, "robust_tgfm_tissue_prior_joint_susie_prob")
+
+
+	# Keep track of average mediated probability (and its standard errror) for each trait
+	avg_med_prob_arr <- c(avg_med_prob_arr, mean(1.0 - susie_joint_non_med_prob_df$non_mediated_probability))
+	se_med_prob_arr <- c(se_med_prob_arr, std_mean(1.0 - susie_joint_non_med_prob_df$non_mediated_probability))
+
+}
+# Create plot summarizing fraction of trait components that are mediated in each trait
+df <- data.frame(average_mediated_probability=avg_med_prob_arr, average_mediated_probability_se=se_med_prob_arr, trait=factor(trait_names_big,levels=trait_names_big))
+output_file <- paste0(rss_multivariate_twas_visualization_dir, "joint_average_expression_mediated_probability_se_barplot_for_ashg_poster.pdf")
+#med_prob_se_barplot <- make_mediated_prob_se_barplot(df)
+med_prob_se_barplot <- make_mediated_prob_se_barplot_for_ashg_poster(df)
+
+ggsave(med_prob_se_barplot, file=output_file, width=15.0, height=4.5, units="in")
+
+}
+
+if (FALSE) {
 
 # Keep track of average mediated probability and se
 avg_med_prob_arr <- c()
@@ -2286,7 +2340,6 @@ med_prob_se_barplot <- make_mediated_prob_se_barplot(df)
 ggsave(med_prob_se_barplot, file=output_file, width=7.2, height=5.0, units="in")
 
 
-
 }
 
 
@@ -2311,7 +2364,8 @@ trait_df = trait_df[as.character(trait_df$study_name) != "disease_ALLERGY_ECZEMA
 
 trait_names_big <- as.character(trait_df$study_name)
 trait_names_big <- c("biochemistry_Cholesterol", "blood_WHITE_COUNT")
-trait_names_big <- c("bp_DIASTOLICadjMEDz", "body_WHRadjBMIz")
+trait_names_big <- c("bp_DIASTOLICadjMEDz", "body_WHRadjBMIz", "biochemistry_Cholesterol", "blood_WHITE_COUNT")
+readable_titles <- c("Diastolic BP", "WHR-adj BMI", "Cholesterol", "White blood count")
 
 # Model parameters
 fusion_weights="False"
@@ -2319,12 +2373,15 @@ gene_version = "cis_heritable_genes"
 
 stacked_barplot_joint_susie_mediated_list <- list()
 
+print(head(trait_df))
+
 
 # Loop through traits
 for (itera in 1:length(trait_names_big)) {
 
 	# Name of trait defining current loop
 	trait_name <- trait_names_big[itera]
+	readable_trait_name <- readable_titles[itera]
 
 	# Get causal tissue and single_causal tissue corresponding to this trait
 	causal_tissue_list <- get_causal_tissues_corresponding_to_trait(trait_name)
@@ -2343,17 +2400,17 @@ for (itera in 1:length(trait_names_big)) {
 	med_prob = 1.0 - non_med_prob
 
 	# Summarize mediated and probabilities across components
-	stacked_barplot_mediated_summary <- summarize_mediated_components_for_joint_susie_model_for_pres(susie_joint_tissue_prior_df, tissue_names, trait_name, gtex_colors_df) 
-	stacked_barplot_joint_susie_mediated_list[[itera]] = stacked_barplot_mediated_summary
+	stacked_barplot_mediated_summary <- summarize_mediated_components_for_joint_susie_model_for_pres(susie_joint_tissue_prior_df, tissue_names, trait_name, gtex_colors_df, readable_trait_name) 
+	stacked_barplot_joint_susie_mediated_list[[itera]] = stacked_barplot_mediated_summary + theme(text = element_text(size = 25), axis.text=element_text(size=23),plot.title = element_text(size = 30),legend.text=element_text(size=23))
 
 }
 
 
 
 # Create joint plot summarizing fraction of trait components that are mediated and coming from each tissue
-output_file <- paste0(rss_multivariate_twas_visualization_dir, "joint_susie_mediated_components_stacked_barplot_summary_joint_for_presentation.pdf")
-joint_stacked_bar_plot_summary <- plot_grid(plotlist=stacked_barplot_joint_susie_mediated_list, ncol=1)
-ggsave(joint_stacked_bar_plot_summary, file=output_file, width=14.5, height=5.5, units="in")
+output_file <- paste0(rss_multivariate_twas_visualization_dir, "joint_susie_mediated_components_stacked_barplot_summary_joint_for_ashg.pdf")
+joint_stacked_bar_plot_summary <- plot_grid(plotlist=stacked_barplot_joint_susie_mediated_list, ncol=2)
+ggsave(joint_stacked_bar_plot_summary, file=output_file, width=32, height=6.2, units="in")
 
 
 

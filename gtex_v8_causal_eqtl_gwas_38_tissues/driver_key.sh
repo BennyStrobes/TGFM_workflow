@@ -282,11 +282,12 @@ samp_size="326723"
 sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_fusion_weights_dir $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_set_annotation_file $coloc_results_dir
 fi
 
+if false; then
+
 gene_version="cis_heritable_genes"
 trait_name="bp_DIASTOLICadjMEDz"
 samp_size="310831"
 sh multivariate_rss_twas_shell.sh $trait_name $ukbb_genome_wide_susie_organized_results_dir $gtex_pseudotissue_file $pseudotissue_gtex_fusion_weights_dir $pseudotissue_gtex_susie_pmces_fusion_weights_dir $gtex_fusion_processed_intermediate_data $samp_size $pseudotissue_gtex_rss_multivariate_twas_data_dir $pseudotissue_gtex_rss_multivariate_twas_dir $gene_version $gene_set_annotation_file $coloc_results_dir
-if false; then
 gene_version="cis_heritable_genes"
 trait_name="biochemistry_Cholesterol"
 samp_size="321595"
@@ -320,7 +321,6 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
-
 if false; then
 Rscript visualize_joint_rss_twas.R $trait_file $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $rss_joint_multivariate_twas_visualization_dir $gtex_tissue_colors_file
 fi
@@ -341,9 +341,8 @@ Rscript visualize_rss_twas_thresholds.R $trait_file $gtex_pseudotissue_file $pse
 fi
 
 
-if false; then
 Rscript visualize_fine_mapped_components.R $trait_file $gtex_pseudotissue_file $pseudotissue_gtex_rss_multivariate_twas_dir $viz_fine_mapped_components_dir $gtex_tissue_colors_file
-fi
+
 
 
 
