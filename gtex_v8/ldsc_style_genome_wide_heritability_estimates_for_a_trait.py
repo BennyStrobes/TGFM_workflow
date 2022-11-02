@@ -12,7 +12,7 @@ import scipy.optimize
 import scipy.stats
 
 
-def get_window_names(ukkbb_window_summary_file):
+def get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir):
 	f = open(ukkbb_window_summary_file)
 	arr = []
 	head_count = 0
@@ -23,6 +23,11 @@ def get_window_names(ukkbb_window_summary_file):
 			head_count = head_count + 1
 			continue
 		window_name = data[0] + ':' + data[1] + ':' + data[2]
+
+		# Check if window_file_name was created
+		window_file_name = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_repro_MENARCHE_AGE_standardized_data.pkl'
+		if os.path.isfile(window_file_name) == False:
+			continue
 		arr.append(window_name)
 	f.close()
 	return np.asarray(arr)
@@ -380,12 +385,11 @@ np.random.seed(1)
 tissue_names = get_tissue_names(tissue_name_file)
 
 # Get array of names of windows
-window_names = get_window_names(ukkbb_window_summary_file)
+window_names = get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir)
 #window_names = np.random.choice(window_names,300,replace=False)
 
 # Load in LDSC-style data
 X,chi_sq,snp_weights = load_in_ldsc_style_data(preprocessed_tgfm_data_dir, trait_name, window_names, window_chi_sq_lb=0.0, window_chi_sq_ub=300.0)
-
 
 # Run LDSC-style regression (on full data)
 intercept, h2, gene_h2 = compute_genome_wide_heritability_estimates_lbfgs(X, chi_sq, snp_weights, learn_intercept=learn_intercept)
