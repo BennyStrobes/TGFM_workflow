@@ -90,6 +90,9 @@ gtex_susie_gene_models_dir=$output_root"gtex_susie_gene_models/"
 # Directory containing preprocessed TGFM data
 preprocessed_tgfm_data_dir=$output_root"preprocessed_tgfm_data/"
 
+# Directory containing number of genes and variants
+num_genes_and_variants_dir=$output_root"num_genes_and_variants/"
+
 # Directory containing TGFM heritability estimates
 tgfm_heritability_results_dir=$output_root"tgfm_heritability_results/"
 
@@ -198,8 +201,12 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 done
 fi
 
-
-
+########################################
+# Get number of genes and numbr of variants used in analysis
+########################################
+if false; then
+python3 get_number_of_genes_and_number_of_variants_used.py $ukkbb_window_summary_file $gtex_susie_gene_models_dir $gtex_pseudotissue_file $num_genes_and_variants_dir
+fi
 
 
 ########################################
@@ -217,11 +224,6 @@ fi
 
 
 
-if false; then
-source ~/.bash_profile
-module load R/3.5.1
-Rscript visualize_tgfm_heritability_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $tgfm_heritability_results_dir $visualize_tgfm_h2_dir
-fi
 
 
 
@@ -277,6 +279,19 @@ for trait_name in "${trait_names[@]}"; do
 	sbatch rss_likelihood_svi_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_svi_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
 done
 fi
+
+
+
+
+
+
+
+
+if false; then
+source ~/.bash_profile
+module load R/3.5.1
+fi
+Rscript visualize_tgfm_heritability_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $num_genes_and_variants_dir $tgfm_heritability_results_dir $visualize_tgfm_h2_dir
 
 
 
