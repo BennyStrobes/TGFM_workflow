@@ -277,9 +277,14 @@ susie_alpha=data.frame(susie_ss$alpha)
 susie_V =susie_ss$V
 susie_converged=susie_ss$converged
 susie_cs=susie_ss$sets$cs_index
+if (is.null(susie_cs)) {
+	component_bool=FALSE
+} else {
+	component_bool=TRUE
+}
 
 
 # Save results to output
-save(variant_names, variant_bim, combined_heritabilities, combined_heritabilities_p, meta_sample_size, susie_mu, susie_mu2,susie_alpha, susie_V, susie_converged, susie_cs, file = paste( FINAL_OUT , ".wgt.RDat" , sep='' ) )
+save(variant_names, variant_bim, combined_heritabilities, combined_heritabilities_p, meta_sample_size, susie_mu, susie_mu2,susie_alpha, susie_V, susie_converged, component_bool, susie_cs, file = paste( FINAL_OUT , ".wgt.RDat" , sep='' ) )
 
 

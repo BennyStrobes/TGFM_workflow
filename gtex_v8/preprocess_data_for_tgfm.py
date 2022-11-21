@@ -530,12 +530,14 @@ def extract_rss_likelihood_data_for_single_trait(study_pickle_output_file, gwas_
 	data_obj['standardized_gwas_beta_se'] = beta_se_scaled
 	
 	# Generate S matrix
-	s_squared_vec = np.square(gwas_beta_se) + (np.square(gwas_beta)/gwas_sample_size)
+	#s_squared_vec = np.square(gwas_beta_se) + (np.square(gwas_beta)/gwas_sample_size)
+	s_squared_vec = np.square(beta_se_scaled) + (np.square(beta_scaled)/gwas_sample_size)
 	s_vec = np.sqrt(s_squared_vec)
 	S_mat = np.diag(s_vec)
 	S_inv_mat = np.diag(1.0/s_vec)
 	S_inv_2_mat = np.diag(1.0/np.square(s_vec))
 	# Compute (S^-1)R(S^-1) taking advantage of fact that S^-1 is a diagonal matrix
+	pdb.set_trace()
 	D_mat = np.multiply(np.multiply(np.diag(S_inv_mat)[:, None], twas_data_obj['reference_ld']), np.diag(S_inv_mat))
 	# Compute (S)R(S^-1) taking advantage of fact that S and S^-1 is a diagonal matrix
 	#srs_inv_mat = np.multiply(np.multiply(np.diag(S_mat)[:, None], twas_data_obj['reference_ld']), np.diag(S_inv_mat))
@@ -712,12 +714,8 @@ for window_iter in range(num_windows):
 	g.close()
 
 
-	# Extract RSS-likelihood formatted data
-	rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
-	standardize=False
-	#extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
 
-	# Extract RSS-likelihood formatted data (standardized eQTLs) (NEVER RUN)
+	# Extract RSS-likelihood formatted data (standardized eQTLs)
 	rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
 	standardize=True
 	extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
@@ -729,6 +727,12 @@ for window_iter in range(num_windows):
 	extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, window_unstandardized_ld_score_annotation_file, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, pseudotissues)
 
 	'''
+	# Extract RSS-likelihood formatted data
+	rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
+	standardize=False
+	extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
+
+
 	# Extract ld score annotation with 1kg LD file
 	tgfm_trait_agnostic_obj['reference_ld'] = kg_LD
 	window_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file_1kg_ld.txt'

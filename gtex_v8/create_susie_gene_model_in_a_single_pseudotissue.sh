@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-30:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-38:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
 
@@ -38,6 +38,7 @@ mkdir $tissue_gtex_fusion_weights_dir
 
 # Window size around tss
 cis_window_size="500000"
+
 
 
 

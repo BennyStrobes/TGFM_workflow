@@ -11,9 +11,8 @@ gtex_processed_expression_dir="$3"
 gtex_pseudotissue_gene_model_input_dir="$4"
 num_jobs="$5"
 
-if false; then
 source ~/.bash_profile
-fi
+
 
 
 python3 create_pseudotissue_gene_model_input_summary_file.py $pseudotissue_name $composit_tissue_string $gtex_processed_expression_dir $gtex_pseudotissue_gene_model_input_dir $num_jobs

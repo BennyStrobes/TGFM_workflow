@@ -147,6 +147,7 @@ sed 1d $gtex_tissue_file | while read tissue_name sample_size pseudotissue_name;
 done
 fi
 
+
 ########################################
 # Create pseudotissue gene model input summary file
 ########################################
@@ -154,7 +155,7 @@ num_jobs="10"
 if false; then
 sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample_repeat composit_tissue_string; do
 	echo $pseudotissue_name
-	sh create_pseudotissue_gene_model_input_summary_file.sh $pseudotissue_name $composit_tissue_string $gtex_processed_expression_dir $gtex_pseudotissue_gene_model_input_dir $num_jobs
+	sbatch create_pseudotissue_gene_model_input_summary_file.sh $pseudotissue_name $composit_tissue_string $gtex_processed_expression_dir $gtex_pseudotissue_gene_model_input_dir $num_jobs
 done
 fi
 
@@ -173,6 +174,8 @@ done
 fi
 
 
+
+
 ########################################
 # Organize GTEx gene model results (create pos file)
 ########################################
@@ -181,10 +184,7 @@ sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample
 	sbatch organize_susie_gene_model_results_in_a_single_pseudotissue.sh $pseudotissue_name $gtex_pseudotissue_gene_model_input_dir $gtex_susie_gene_models_dir
 done
 fi
-pseudotissue_name="Adipose_Subcutaneous"
-if false; then
-sh organize_susie_gene_model_results_in_a_single_pseudotissue.sh $pseudotissue_name $gtex_pseudotissue_gene_model_input_dir $gtex_susie_gene_models_dir
-fi
+
 
 
 
@@ -200,6 +200,9 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 	sbatch preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs
 done
 fi
+
+job_number="0"
+sh preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs
 
 ########################################
 # Get number of genes and numbr of variants used in analysis
@@ -291,8 +294,9 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
+if false; then
 Rscript visualize_tgfm_heritability_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $num_genes_and_variants_dir $tgfm_heritability_results_dir $visualize_tgfm_h2_dir
-
+fi
 
 
 
