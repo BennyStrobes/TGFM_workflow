@@ -17,6 +17,7 @@ gtex_pseudotissue_file="$3"
 preprocessed_tgfm_data_dir="$4"
 standardize_expression_boolean="$5"
 output_root="$6"
+gene_type="$7"
 
 
-python3 rss_likelihood_parallel_genome_wide_heritability_estimates_for_a_trait.py $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $output_root
+python3 rss_likelihood_parallel_genome_wide_heritability_estimates_for_a_trait.py $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $output_root $gene_type

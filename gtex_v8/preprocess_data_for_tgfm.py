@@ -34,10 +34,10 @@ def get_dictionary_list_of_hapmap3_snpids(hapmap3_snpid_file):
 	f.close()
 	return dicti
 
-def create_tissue_to_gene_model_df(pseudotissues, gtex_susie_gene_models_dir):
+def create_tissue_to_gene_model_df(pseudotissues, gtex_susie_gene_models_dir, gene_type):
 	mapping = {}
 	for pseudotissue in pseudotissues:
-		gene_model_summary_file = gtex_susie_gene_models_dir + pseudotissue + '/' + pseudotissue + '_cis_heritable_gene_pos_file.txt'
+		gene_model_summary_file = gtex_susie_gene_models_dir + pseudotissue + '/' + pseudotissue + '_' + gene_type + '_pos_file.txt'
 		raw_table = np.loadtxt(gene_model_summary_file, dtype=str, delimiter='\t')[1:]
 		mapping[pseudotissue] = raw_table
 	return mapping
@@ -482,6 +482,8 @@ def extract_rss_likelihood_trait_agnostic_data(twas_data_obj, window_name, share
 	rss_trait_agnostic_data['reference_ld'] = np.copy(twas_data_obj['reference_ld'])
 	# Gene expression LD
 	rss_trait_agnostic_data['ge_ld'] = ge_ld
+	# gene eqtl pmces in np form
+	rss_trait_agnostic_data['gene_eqtl_pmces_np'] = np.asarray(rss_trait_agnostic_data['gene_eqtl_pmces'])
 
 	# Write pickle file
 	g = open(shared_pickle_output_file, "wb")
@@ -537,7 +539,6 @@ def extract_rss_likelihood_data_for_single_trait(study_pickle_output_file, gwas_
 	S_inv_mat = np.diag(1.0/s_vec)
 	S_inv_2_mat = np.diag(1.0/np.square(s_vec))
 	# Compute (S^-1)R(S^-1) taking advantage of fact that S^-1 is a diagonal matrix
-	pdb.set_trace()
 	D_mat = np.multiply(np.multiply(np.diag(S_inv_mat)[:, None], twas_data_obj['reference_ld']), np.diag(S_inv_mat))
 	# Compute (S)R(S^-1) taking advantage of fact that S and S^-1 is a diagonal matrix
 	#srs_inv_mat = np.multiply(np.multiply(np.diag(S_mat)[:, None], twas_data_obj['reference_ld']), np.diag(S_inv_mat))
@@ -547,23 +548,44 @@ def extract_rss_likelihood_data_for_single_trait(study_pickle_output_file, gwas_
 	data_obj['s_inv_2_diag'] = np.diag(S_inv_2_mat)
 	data_obj['D_diag'] = np.diag(D_mat)
 
+	# Precompute gene-gene interaction terms (where gene-gene interaction terms are used in variational updates)
+	# Note that diagonal elements are currently wrong as they do not account for probability distribution governing susie eqtl effect sizes
+	# Next section (precomputing a_terms will fix this issue)
+	if rss_likelihood_trait_agnostic_data['G'] > 0:
+		precomputed_gene_gene_terms = -np.dot(np.dot(rss_likelihood_trait_agnostic_data['gene_eqtl_pmces_np'], D_mat),np.transpose(rss_likelihood_trait_agnostic_data['gene_eqtl_pmces_np']))
+	else:
+		precomputed_gene_gene_terms = np.zeros((rss_likelihood_trait_agnostic_data['G'], rss_likelihood_trait_agnostic_data['G']))
+
 	# Precompute gene's a terms (where a term is a term in variational updates)
 	precomputed_a_terms = np.zeros(rss_likelihood_trait_agnostic_data['G'])
-	precomputed_gene_gene_terms = np.zeros((rss_likelihood_trait_agnostic_data['G'], rss_likelihood_trait_agnostic_data['G']))
 	for g_index in range(rss_likelihood_trait_agnostic_data['G']):
+		precomputed_a_terms[g_index] = (precomputed_gene_gene_terms[g_index,g_index]/2.0) 
+		precomputed_a_terms[g_index] = precomputed_a_terms[g_index] - (np.sum(np.sum((np.square(twas_data_obj['susie_mu'][g_index]) + np.square(twas_data_obj['susie_mu_sd'][g_index]))*twas_data_obj['susie_alpha'][g_index],axis=0)*np.diag(D_mat))/2.0)
+		eqtl_component_pmces = twas_data_obj['susie_mu'][g_index]*twas_data_obj['susie_alpha'][g_index]
+		precomputed_a_terms[g_index] = precomputed_a_terms[g_index] + np.sum(np.diag(np.dot(np.dot(eqtl_component_pmces,D_mat), np.transpose(eqtl_component_pmces))))/2.0
+		precomputed_gene_gene_terms[g_index, g_index] = 2.0*precomputed_a_terms[g_index]
+
+	'''
+	precomputed_a_terms2 = np.zeros(rss_likelihood_trait_agnostic_data['G'])
+	precomputed_gene_gene_terms2 = np.zeros((rss_likelihood_trait_agnostic_data['G'], rss_likelihood_trait_agnostic_data['G']))
+	for g_index in range(rss_likelihood_trait_agnostic_data['G']):
+		print(g_index)
 		num_susie_components = twas_data_obj['susie_mu'][g_index].shape[0]
 		for k_index in range(num_susie_components):
-			precomputed_a_terms[g_index] = precomputed_a_terms[g_index] - np.sum(.5*(np.square(twas_data_obj['susie_mu'][g_index][k_index,:]) + np.square(twas_data_obj['susie_mu_sd'][g_index][k_index,:]))*np.diag(D_mat)*twas_data_obj['susie_alpha'][g_index][k_index,:])
+			precomputed_a_terms2[g_index] = precomputed_a_terms2[g_index] - np.sum(.5*(np.square(twas_data_obj['susie_mu'][g_index][k_index,:]) + np.square(twas_data_obj['susie_mu_sd'][g_index][k_index,:]))*np.diag(D_mat)*twas_data_obj['susie_alpha'][g_index][k_index,:])
 			eqtl_component_pmces = (twas_data_obj['susie_mu'][g_index][k_index,:])*(twas_data_obj['susie_alpha'][g_index][k_index,:])
-			precomputed_a_terms[g_index] = precomputed_a_terms[g_index] + .5*np.dot(np.dot(eqtl_component_pmces,D_mat), eqtl_component_pmces)
-		precomputed_a_terms[g_index] = precomputed_a_terms[g_index] - .5*np.dot(np.dot(rss_likelihood_trait_agnostic_data['gene_eqtl_pmces'][g_index],D_mat), rss_likelihood_trait_agnostic_data['gene_eqtl_pmces'][g_index])
-				
+			precomputed_a_terms2[g_index] = precomputed_a_terms2[g_index] + .5*np.dot(np.dot(eqtl_component_pmces,D_mat), eqtl_component_pmces)
+		precomputed_a_terms2[g_index] = precomputed_a_terms2[g_index] - .5*np.dot(np.dot(rss_likelihood_trait_agnostic_data['gene_eqtl_pmces'][g_index],D_mat), rss_likelihood_trait_agnostic_data['gene_eqtl_pmces'][g_index])
+			
+
 		# Cross terms
-		precomputed_gene_gene_terms[g_index, g_index] = 2.0*precomputed_a_terms[g_index]
+		precomputed_gene_gene_terms2[g_index, g_index] = 2.0*precomputed_a_terms2[g_index]
 		for g_prime_index in range((g_index+1), rss_likelihood_trait_agnostic_data['G']):
 			temp_val = -np.dot(np.dot(rss_likelihood_trait_agnostic_data['gene_eqtl_pmces'][g_prime_index],D_mat), rss_likelihood_trait_agnostic_data['gene_eqtl_pmces'][g_index])
-			precomputed_gene_gene_terms[g_index, g_prime_index] = temp_val
-			precomputed_gene_gene_terms[g_prime_index, g_index] = temp_val
+			precomputed_gene_gene_terms2[g_index, g_prime_index] = temp_val
+			precomputed_gene_gene_terms2[g_prime_index, g_index] = temp_val
+	'''
+
 	# Add to data obj
 	data_obj['precomputed_a_terms'] = precomputed_a_terms
 	data_obj['precomputed_gene_gene_terms'] = precomputed_gene_gene_terms
@@ -593,7 +615,6 @@ def extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agno
 
 	# Now loop through traits and save data object containing trait specific rss likelihood data
 	for study_index, study_name in enumerate(study_names):
-		print(study_name)
 		# Output file to save study-specific info
 		if standardize == False:
 			study_pickle_output_file = rss_likelihood_data_output_root + study_name + '_data.pkl'
@@ -631,6 +652,10 @@ gtex_susie_gene_models_dir = sys.argv[4]
 preprocessed_tgfm_data_dir = sys.argv[5] # Output dir
 job_number = int(sys.argv[6])  # For parallelization purposes
 num_jobs = int(sys.argv[7])  # For parallelization purposes
+gene_type = sys.argv[8]
+
+# Append gene type to output root
+preprocessed_tgfm_data_dir = preprocessed_tgfm_data_dir + gene_type + '_'
 
 # Load in UKBB Genome wide windows file
 ukbb_windows = np.loadtxt(ukkbb_window_summary_file, dtype=str,delimiter='\t')[1:,:]
@@ -641,7 +666,7 @@ ukbb_windows_parr = np.array_split(ukbb_windows, num_jobs)[job_number]
 pseudotissues = get_pseudotissue_names(gtex_pseudotissue_file)
 
 # Create dictionary from pseudotissue to array of gene models for that tissue
-tissue_to_gene_model_df = create_tissue_to_gene_model_df(pseudotissues, gtex_susie_gene_models_dir)
+tissue_to_gene_model_df = create_tissue_to_gene_model_df(pseudotissues, gtex_susie_gene_models_dir, gene_type)
 
 # Get dictionary list of hapmap3 snpids
 hapmap3_snps = get_dictionary_list_of_hapmap3_snpids(hapmap3_snpid_file)
@@ -706,7 +731,6 @@ for window_iter in range(num_windows):
 	# Organize TGFM trait agnostic input for single window
 	tgfm_trait_agnostic_obj = organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, window_variant_names, LD, pseudotissues, tissue_to_gene_model_df)
 
-
 	# Save TGFM trait agnostic input data
 	pkl_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_trait_agnostic_data_obj.pkl'
 	g = open(pkl_file, "wb")
@@ -714,12 +738,10 @@ for window_iter in range(num_windows):
 	g.close()
 
 
-
 	# Extract RSS-likelihood formatted data (standardized eQTLs)
 	rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
 	standardize=True
 	extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
-
 
 	# Extract ld score annotation file
 	window_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file.txt'

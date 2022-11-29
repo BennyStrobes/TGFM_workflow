@@ -11,6 +11,43 @@ figure_theme <- function() {
 	return(theme(plot.title = element_text(face="plain",size=11), text = element_text(size=11),axis.text=element_text(size=11), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"), legend.text = element_text(size=11), legend.title = element_text(size=11)))
 }
 
+make_rss_variance_proportion_heatmap <- function(df, ordered_trait_names) {
+	variance_proportion_arr <- c()
+	tissue_names_arr <- c()
+	trait_names_arr <- c()
+
+	print(head(df))
+
+	for (trait_iter in 1:length(ordered_trait_names)) {
+		trait_name <- ordered_trait_names[trait_iter]
+		df_sub = df[as.character(df$trait) == trait_name,]
+		sub_tissue_arr = as.character(df_sub$tissue)
+		sub_variance_prop = df_sub$per_gene_h2/sum(df_sub$per_gene_h2)
+
+		variance_proportion_arr <- c(variance_proportion_arr, sub_variance_prop)
+		tissue_names_arr <- c(tissue_names_arr, sub_tissue_arr)
+		trait_names_arr <- c(trait_names_arr, rep(trait_name, length(sub_variance_prop)))
+	}
+
+
+
+	# PUt in inorganized data frame
+	df2 <- data.frame(trait=as.character(trait_names_arr), tissue=as.character(tissue_names_arr), variance_proportion=variance_proportion_arr)
+	df2$trait = factor(df2$trait, levels=ordered_trait_names)
+
+	#df2$tissue = str_replace_all(as.character(df$tissue), "-", "_")
+	#df2$tissue <- recode(df2$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+	#df2$trait <- recode(df2$trait, biochemistry_Cholesterol="Cholesterol", blood_EOSINOPHIL_COUNT="Blood eosinophil count", blood_RBC_DISTRIB_WIDTH="Blood RBC width", blood_RED_COUNT="Blood red count", blood_WHITE_COUNT="Blood white count", body_WHRadjBMIz="WHR-adj BMI", bp_DIASTOLICadjMEDz="Diastolic BP", cov_EDU_COLLEGE="College Education", disease_ALLERGY_ECZEMA_DIAGNOSED="Eczema", blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT="Reticulocyte count", blood_MEAN_CORPUSCULAR_HEMOGLOBIN="Corposcular hemoglobin", disease_HYPERTENSION_DIAGNOSED="Hypertension")
+	#df$trait <- factor(df$trait, levels=c("Eczema", "College Education", "Diastolic BP", "WHR-adj BMI", "Blood white count", "Blood red count", "Blood RBC width", "Blood eosinophil count", "Cholesterol"))
+	p <- ggplot(df2, aes(x = tissue, y = trait, fill = variance_proportion)) +
+  		geom_tile() +
+  		theme(text = element_text(size=10), panel.background = element_blank(), axis.text.x = element_text(angle = 90, vjust=.5)) + 
+  		theme(legend.position="bottom") +
+  		scale_fill_gradient(low="grey",high="blue") +
+  		labs(fill="Proportion of expression-mediated\ntrait heritability",x="Tissue", y="GWAS trait",title="")
+  	return(p)
+}
+
 
 make_variance_proportion_heatmap <- function(tgfm_h2_results_dir, trait_names, tissue_names) {
 	variance_proportion_arr <- c()
@@ -191,7 +228,7 @@ extract_ldsc_per_gene_h2_plus_non_mediated_df <- function(tgfm_h2_results_dir, t
 		trait_name <- trait_names[trait_iter]
 
 		# Load in jacknife data for this trait
-		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_learn_intercept_jacknifed_mean_estimates.txt")
+		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_cis_heritable_gene_learn_intercept_jacknifed_mean_estimates.txt")
 		jacknife_df <- read.table(jacknife_file, header=TRUE)
 
 		tissue_name_raw <- "Genotype"
@@ -249,7 +286,7 @@ extract_ldsc_per_gene_h2_df <- function(tgfm_h2_results_dir, trait_names, tissue
 		trait_name <- trait_names[trait_iter]
 
 		# Load in jacknife data for this trait
-		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_learn_intercept_jacknifed_mean_estimates.txt")
+		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_cis_heritable_gene_learn_intercept_jacknifed_mean_estimates.txt")
 		jacknife_df <- read.table(jacknife_file, header=TRUE)
 
 		for (tissue_iter in 1:length(tissue_names)) {
@@ -278,6 +315,99 @@ extract_ldsc_per_gene_h2_df <- function(tgfm_h2_results_dir, trait_names, tissue
 
 }
 
+
+extract_ldsc_fraction_of_h2_med_expression_df <- function(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw, num_ele_arr) {
+	# Initialize arrays to save data
+	trait_names_arr <- c()
+	fraction_med_arr <- c()
+	fraction_med_se_arr <- c()
+
+	n_var = num_ele_arr[1]
+	n_genes_per_tiss = num_ele_arr[2:length(num_ele_arr)]
+
+
+	for (trait_iter in 1:length(trait_names)) {
+
+		trait_name <- trait_names[trait_iter]
+
+		# Load in jacknife data for this trait
+		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_cis_heritable_gene_learn_intercept_jacknifed_mean_estimates.txt")
+		jacknife_df <- read.table(jacknife_file, header=TRUE)
+
+		tissue_name_raw <- "Genotype"
+		genotype_df <- jacknife_df[as.character(jacknife_df$Class_name)==tissue_name_raw,]
+		genotype_h2 <- genotype_df$h2*n_var
+
+		total_tiss_h2 = rep(0.0, length(genotype_h2))
+
+
+
+		for (tissue_iter in 1:length(tissue_names)) {
+			tissue_name <- tissue_names[tissue_iter]
+			tissue_name_raw <- tissue_names_raw[tissue_iter]
+			tissue_df <- jacknife_df[as.character(jacknife_df$Class_name)==tissue_name_raw,]
+			tissue_h2 <- tissue_df$h2*n_genes_per_tiss[tissue_iter]
+			total_tiss_h2 = total_tiss_h2 + tissue_h2
+		}
+		fraction_h2_arr = total_tiss_h2/(total_tiss_h2+genotype_h2)
+
+		fraction_mean = mean(fraction_h2_arr)
+		diff_squared = (fraction_h2_arr - fraction_mean)**2
+		num_jacknife_samples= length(fraction_h2_arr)
+		jacknife_var = sum(diff_squared)*(num_jacknife_samples-1.0)/(num_jacknife_samples)
+		jacknife_se = sqrt(jacknife_var)
+
+		trait_names_arr <- c(trait_names_arr, trait_name)
+		fraction_med_arr <- c(fraction_med_arr, fraction_mean)
+		fraction_med_se_arr <- c(fraction_med_se_arr, jacknife_se)
+
+	}
+
+	# Put all into compact df
+	df <- data.frame(trait=trait_names_arr, fraction_h2_med=fraction_med_arr, fraction_h2_med_se=fraction_med_se_arr)
+
+	return(df)
+
+}
+
+
+extract_rss_fraction_of_h2_med_expression_df <- function(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw, num_ele_arr) {
+	# Initialize arrays to save data
+	trait_names_arr <- c()
+	fraction_med_arr <- c()
+
+	n_var = num_ele_arr[1]
+	n_genes_per_tiss = num_ele_arr[2:length(num_ele_arr)]
+
+
+	for (trait_iter in 1:length(trait_names)) {
+
+		trait_name <- trait_names[trait_iter]
+
+		non_med_rss_file <- paste0(tgfm_h2_results_dir, "tgfm_rss_likelihood_parallel_style_heritability_", trait_name, "_cis_heritable_gene_standardize_expr_True__robust_pleiotropic_prior_precision_temp.txt")
+		non_med_rss_df <- read.table(non_med_rss_file, header=TRUE)
+
+		geno_h2_mean = non_med_rss_df$gamma_beta_b/non_med_rss_df$gamma_beta_a
+		geno_h2 = geno_h2_mean*n_var
+
+		rss_file <- paste0(tgfm_h2_results_dir, "tgfm_rss_likelihood_parallel_style_heritability_", trait_name, "_cis_heritable_gene_standardize_expr_True_robust_tissue_specific_prior_precision_temp.txt")
+		rss_df <- read.table(rss_file, header=TRUE)
+
+		gene_h2 <- rss_df$gamma_alpha_b/rss_df$gamma_alpha_a
+		#print(gene_h2)
+		total_gene_h2 <- sum(gene_h2*n_genes_per_tiss)
+
+		trait_names_arr <- c(trait_names_arr, trait_name)
+		fraction_med_arr <- c(fraction_med_arr, total_gene_h2/(total_gene_h2+geno_h2))
+
+	}
+
+	df <- data.frame(trait=trait_names_arr, fraction_h2_med=fraction_med_arr)
+
+
+	return(df)
+}
+
 extract_rss_per_gene_h2_plus_non_med_df <- function(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw) {
 	# Initialize arrays to save data
 	trait_names_arr <- c()
@@ -289,7 +419,7 @@ extract_rss_per_gene_h2_plus_non_med_df <- function(tgfm_h2_results_dir, trait_n
 	for (trait_iter in 1:length(trait_names)) {
 		trait_name <- trait_names[trait_iter]
 
-		non_med_rss_file <- paste0(tgfm_h2_results_dir, "tgfm_rss_likelihood_parallel_style_heritability_", trait_name, "_standardize_expr_True__robust_pleiotropic_prior_precision_temp.txt")
+		non_med_rss_file <- paste0(tgfm_h2_results_dir, "tgfm_rss_likelihood_parallel_style_heritability_", trait_name, "_cis_heritable_gene_standardize_expr_True__robust_pleiotropic_prior_precision_temp.txt")
 		non_med_rss_df <- read.table(non_med_rss_file, header=TRUE)
 
 		h2_mean = non_med_rss_df$gamma_beta_b/non_med_rss_df$gamma_beta_a
@@ -305,7 +435,7 @@ extract_rss_per_gene_h2_plus_non_med_df <- function(tgfm_h2_results_dir, trait_n
 
 
 		# Load in jacknife data for this trait
-		rss_file <- paste0(tgfm_h2_results_dir, "tgfm_rss_likelihood_parallel_style_heritability_", trait_name, "_standardize_expr_True_robust_tissue_specific_prior_precision_temp.txt")
+		rss_file <- paste0(tgfm_h2_results_dir, "tgfm_rss_likelihood_parallel_style_heritability_", trait_name, "_cis_heritable_gene_standardize_expr_True_robust_tissue_specific_prior_precision_temp.txt")
 		rss_df <- read.table(rss_file, header=TRUE)
 
 		for (tissue_iter in 1:length(tissue_names)) {
@@ -345,7 +475,7 @@ extract_rss_per_gene_h2_df <- function(tgfm_h2_results_dir, trait_names, tissue_
 		trait_name <- trait_names[trait_iter]
 
 		# Load in jacknife data for this trait
-		rss_file <- paste0(tgfm_h2_results_dir, "tgfm_rss_likelihood_parallel_style_heritability_", trait_name, "_standardize_expr_True_robust_tissue_specific_prior_precision_temp.txt")
+		rss_file <- paste0(tgfm_h2_results_dir, "tgfm_rss_likelihood_parallel_style_heritability_", trait_name, "_cis_heritable_gene_standardize_expr_True_robust_tissue_specific_prior_precision_temp.txt")
 		rss_df <- read.table(rss_file, header=TRUE)
 
 		for (tissue_iter in 1:length(tissue_names)) {
@@ -449,6 +579,20 @@ get_numer_of_variants <- function(num_genes_and_variants_dir) {
 	return(num_var)
 }
 
+make_fraction_med_per_trait_barplot <- function(df) {
+	ordered_trait_names <- as.character(df$trait)
+	ord <- order(df$fraction_h2_med)
+
+	df$trait = factor(df$trait, levels=ordered_trait_names[ord])
+
+	p<-ggplot(data=df, aes(x=fraction_h2_med, y=trait)) +
+  		geom_bar(stat="identity") +
+  		figure_theme()
+
+  	return(p)
+
+}
+
 
 ######################
 # Command line args
@@ -467,8 +611,36 @@ num_genes_per_tissue <- get_number_of_genes_per_tissue(num_genes_and_variants_di
 num_variants <- get_numer_of_variants(num_genes_and_variants_dir)
 
 
+trait_names_df <- read.table(trait_names_file, header=TRUE,sep="\t")
 # Get list of trait names
-trait_names <- as.character(c("biochemistry_Cholesterol", "blood_WHITE_COUNT", "body_BMIz", "body_WHRadjBMIz", "bp_DIASTOLICadjMEDz"))
+trait_names_df <- read.table(trait_names_file, header=TRUE,sep="\t")
+trait_names <- as.character(trait_names_df$study_name)
+trait_names <- trait_names[1:33]
+print(trait_names)
+#trait_names <- as.character(c("biochemistry_Cholesterol", "blood_WHITE_COUNT", "body_BMIz", "body_WHRadjBMIz", "bp_DIASTOLICadjMEDz"))
+
+
+# Extract fraction of trait mediated heritability data
+rss_fraction_h2_med_expr_df <- extract_rss_fraction_of_h2_med_expression_df(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw, c(num_variants,num_genes_per_tissue))
+ldsc_fraction_h2_med_expr_df <- extract_ldsc_fraction_of_h2_med_expression_df(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw, c(num_variants,num_genes_per_tissue))
+
+
+ordered_trait_names_gt = as.character(rss_fraction_h2_med_expr_df$trait)[rss_fraction_h2_med_expr_df$fraction_h2_med > .05]
+
+rss_per_gene_h2_df <- extract_rss_per_gene_h2_df(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw)
+output_file <- paste0(viz_dir, "rss_fraction_h2_med_per_tissue_heatmap.pdf")
+#heatmap <- make_rss_variance_proportion_heatmap(rss_per_gene_h2_df, ordered_trait_names_gt)
+#ggsave(heatmap, file=output_file, width=7.2, height=7.0, units="in")
+
+ldsc_per_gene_h2_df <- extract_ldsc_per_gene_h2_df(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw)
+output_file <- paste0(viz_dir, "ldsc_fraction_h2_med_per_tissue_heatmap.pdf")
+heatmap <- make_rss_variance_proportion_heatmap(ldsc_per_gene_h2_df, ordered_trait_names_gt)
+ggsave(heatmap, file=output_file, width=7.2, height=7.0, units="in")
+
+
+output_file <- paste0(viz_dir, "fraction_mediated_per_trait.pdf")
+fraction_med_per_trait_barplot = make_fraction_med_per_trait_barplot(rss_fraction_h2_med_expr_df)
+ggsave(fraction_med_per_trait_barplot, file=output_file, width=7.2, height=7.0, units="in")
 
 
 # Extract data

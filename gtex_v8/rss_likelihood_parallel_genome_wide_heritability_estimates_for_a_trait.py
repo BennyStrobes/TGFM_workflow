@@ -27,7 +27,7 @@ def get_tissue_names(tissue_name_file):
 
 
 
-def get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir, standardize_expression_boolean):
+def get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir, standardize_expression_boolean, gene_type):
 	f = open(ukkbb_window_summary_file)
 	arr = []
 	head_count = 0
@@ -42,9 +42,9 @@ def get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir, stan
 		# Check if window_file_name was created
 		temp_trait_name = 'repro_MENARCHE_AGE'
 		if standardize_expression_boolean == "False":
-			window_file_name = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_' + temp_trait_name + '_data.pkl'
+			window_file_name = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_rss_likelihood_' + temp_trait_name + '_data.pkl'
 		elif standardize_expression_boolean == "True":
-			window_file_name = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_' + temp_trait_name + '_standardized_data.pkl'
+			window_file_name = preprocessed_tgfm_data_dir + gene_type + '_' +  window_name + '_rss_likelihood_' + temp_trait_name + '_standardized_data.pkl'
 
 		if os.path.isfile(window_file_name) == False:
 			continue
@@ -53,7 +53,7 @@ def get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir, stan
 	f.close()
 	return np.asarray(arr)
 
-def extract_window_pickle_file_names(trait_name, preprocessed_tgfm_data_dir, window_names, standardize_expression_boolean):
+def extract_window_pickle_file_names(trait_name, preprocessed_tgfm_data_dir, window_names, standardize_expression_boolean, gene_type):
 	file_names_arr = []
 	shared_file_names_arr = []
 	count = 0
@@ -63,12 +63,12 @@ def extract_window_pickle_file_names(trait_name, preprocessed_tgfm_data_dir, win
 		if np.mod(count, 100) == 0:
 			print(count)
 		if standardize_expression_boolean == "False":
-			window_file = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_' + trait_name + '_data.pkl'
-			shared_window_file = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_shared_data.pkl'
+			window_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_rss_likelihood_' + trait_name + '_data.pkl'
+			shared_window_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_rss_likelihood_shared_data.pkl'
 
 		elif standardize_expression_boolean == "True":
-			window_file = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_' + trait_name + '_standardized_data.pkl'
-			shared_window_file = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_shared_standardized_data.pkl'
+			window_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_rss_likelihood_' + trait_name + '_standardized_data.pkl'
+			shared_window_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_rss_likelihood_shared_standardized_data.pkl'
 		# Make sure file exists
 		if os.path.isfile(window_file) == False:
 			continue
@@ -291,16 +291,16 @@ def infer_rss_likelihood_genome_wide_heritabilities(ordered_tissue_names, twas_p
 		np.savetxt(temp_beta_output_file, gamma_beta_output_mat, fmt="%s", delimiter='\t')
 
 
-def extract_top_n_windows(window_names, trait_name, preprocessed_tgfm_data_dir, standardize_expression_boolean, num_top):
+def extract_top_n_windows(window_names, trait_name, preprocessed_tgfm_data_dir, standardize_expression_boolean, num_top, gene_type):
 	# Keep track of maximum z score per window
 	window_max_z_score_arr = []
 	# Loop through windows
 	for window_name in window_names:
 
 		if standardize_expression_boolean == "False":
-			window_file = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_' + trait_name + '_data.pkl'
+			window_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_rss_likelihood_' + trait_name + '_data.pkl'
 		elif standardize_expression_boolean == "True":
-			window_file = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_' + trait_name + '_standardized_data.pkl'
+			window_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_rss_likelihood_' + trait_name + '_standardized_data.pkl'
 		# Make sure file exists
 		if os.path.isfile(window_file) == False:
 			print('assumption eroror')
@@ -339,6 +339,7 @@ tissue_name_file = sys.argv[3]
 preprocessed_tgfm_data_dir = sys.argv[4]
 standardize_expression_boolean = sys.argv[5]
 output_root = sys.argv[6]
+gene_type = sys.argv[7]
 
 
 
@@ -346,11 +347,11 @@ output_root = sys.argv[6]
 ordered_tissue_names = get_tissue_names(tissue_name_file)
 
 # Get array of names of windows
-window_names = get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir, standardize_expression_boolean)
-window_names = extract_top_n_windows(window_names, trait_name, preprocessed_tgfm_data_dir, standardize_expression_boolean, 500)
+window_names = get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir, standardize_expression_boolean, gene_type)
+window_names = extract_top_n_windows(window_names, trait_name, preprocessed_tgfm_data_dir, standardize_expression_boolean, 500, gene_type)
 
 # Extract window pickle file names
-window_names, window_pickle_file_names, shared_window_pickle_file_names = extract_window_pickle_file_names(trait_name, preprocessed_tgfm_data_dir, window_names, standardize_expression_boolean)
+window_names, window_pickle_file_names, shared_window_pickle_file_names = extract_window_pickle_file_names(trait_name, preprocessed_tgfm_data_dir, window_names, standardize_expression_boolean, gene_type)
 
 # Temporary output files used to save intermediate results
 temp_alpha_output_file = output_root + 'robust_tissue_specific_prior_precision_temp.txt'

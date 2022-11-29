@@ -14,6 +14,7 @@ tissue_name_file="$3"
 preprocessed_tgfm_data_dir="$4"
 learn_intercept="$5"
 output_stem="$6"
+gene_type="$7"
 
 date
 
@@ -23,6 +24,6 @@ source /n/groups/price/ben/environments/tensor_flow_cpu/bin/activate
 
 echo $trait_name
 
-python3 ldsc_style_genome_wide_heritability_estimates_for_a_trait.py $trait_name $ukkbb_window_summary_file $tissue_name_file $preprocessed_tgfm_data_dir $learn_intercept $output_stem
+python3 ldsc_style_genome_wide_heritability_estimates_for_a_trait.py $trait_name $ukkbb_window_summary_file $tissue_name_file $preprocessed_tgfm_data_dir $learn_intercept $output_stem $gene_type
 
 date

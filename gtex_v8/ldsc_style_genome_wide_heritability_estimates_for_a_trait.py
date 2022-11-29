@@ -25,7 +25,7 @@ def get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir):
 		window_name = data[0] + ':' + data[1] + ':' + data[2]
 
 		# Check if window_file_name was created
-		window_file_name = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_repro_MENARCHE_AGE_standardized_data.pkl'
+		window_file_name = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_rss_likelihood_repro_MENARCHE_AGE_standardized_data.pkl'
 		if os.path.isfile(window_file_name) == False:
 			continue
 		arr.append(window_name)
@@ -42,10 +42,10 @@ def load_in_ldsc_style_data(preprocessed_tgfm_data_dir, trait_name, window_names
 	# Loop through windows
 	for window_name in window_names:
 		# Input files for this window
-		ldscore_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file.txt'
+		ldscore_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_tgfm_ldscore_annotation_file.txt'
 		#ldscore_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file.txt'
 
-		chi_sq_file = preprocessed_tgfm_data_dir + window_name + '_' + trait_name + '_tgfm_ldscore_chi_squared_stats.txt'
+		chi_sq_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_' + trait_name + '_tgfm_ldscore_chi_squared_stats.txt'
 
 		# Ignore windows where files don't exist (will need to be changed)
 		if os.path.isfile(ldscore_file) == False or os.path.isfile(chi_sq_file) == False:
@@ -376,6 +376,7 @@ tissue_name_file = sys.argv[3]
 preprocessed_tgfm_data_dir = sys.argv[4]
 learn_intercept = sys.argv[5]
 output_stem = sys.argv[6]
+gene_type = sys.argv[7]
 
 num_jacknife_windows = 200
 
