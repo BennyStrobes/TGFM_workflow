@@ -32,7 +32,7 @@ def get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir):
 	f.close()
 	return np.asarray(arr)
 
-def load_in_ldsc_style_data(preprocessed_tgfm_data_dir, trait_name, window_names, window_chi_sq_lb=-1, window_chi_sq_ub=100000000000000000.0):
+def load_in_ldsc_style_data(preprocessed_tgfm_data_dir, trait_name, window_names, gene_model_suffix, window_chi_sq_lb=-1, window_chi_sq_ub=100000000000000000.0):
 	# Initialize output
 	X = []
 	y = []
@@ -42,7 +42,7 @@ def load_in_ldsc_style_data(preprocessed_tgfm_data_dir, trait_name, window_names
 	# Loop through windows
 	for window_name in window_names:
 		# Input files for this window
-		ldscore_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_tgfm_ldscore_annotation_file.txt'
+		ldscore_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_tgfm_ldscore_annotation_file' + gene_model_suffix + '.txt'
 		#ldscore_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file.txt'
 
 		chi_sq_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_' + trait_name + '_tgfm_ldscore_chi_squared_stats.txt'
@@ -370,6 +370,108 @@ def identify_outlier_window_indices_based_on_genomic_jacknife_md(jacknifed_file,
 	return outlier_indices
 
 
+def extract_top_n_windows(preprocessed_tgfm_data_dir, trait_name, window_names, num_top):
+	# Keep track of maximum z score per window
+	window_max_z_score_arr = []
+	# Loop through windows
+	for window_name in window_names:
+
+		chi_sq_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_' + trait_name + '_tgfm_ldscore_chi_squared_stats.txt'
+
+
+
+		# Extract info from input files
+		chi_sq_raw = np.loadtxt(chi_sq_file,dtype=str,delimiter='\t')
+
+		# Get window z scores
+		window_z_scores = np.sqrt(chi_sq_raw[1:,1].astype(float))
+
+		# keep track of abs max z score
+		window_max_z_score_arr.append(np.max(np.abs(window_z_scores)))
+	window_max_z_score_arr = np.asarray(window_max_z_score_arr)
+
+	# z score thresh
+	z_score_thresh = -np.sort(-window_max_z_score_arr)[num_top]
+
+	filtered_window_names = []
+	for window_iter, window_name in enumerate(window_names):
+		if window_max_z_score_arr[window_iter] > z_score_thresh:
+			filtered_window_names.append(window_name)
+	filtered_window_names = np.asarray(filtered_window_names)
+
+	
+	return filtered_window_names
+
+def compute_jacknifed_covariance_matrix(jacknifed_taus):
+	jacknife_mean = np.mean(jacknifed_taus,axis=0)
+	diff = jacknifed_taus - jacknife_mean
+	num_jacknife_samples = jacknifed_taus.shape[0]
+
+	jacknifed_cov = np.dot(np.transpose(diff),diff)*(num_jacknife_samples-1.0)/num_jacknife_samples
+
+	return jacknifed_cov, jacknife_mean
+
+
+def load_in_existing_multivariate_non_neg_tau_sldsc_results(file_name):
+	# First get number of jacknifed windows
+	global_arr = []
+	mini_arr = []
+	cur_window = 0
+	head_count = 0
+	f = open(file_name)
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		if cur_window != int(data[1]):
+			cur_window = cur_window + 1
+			global_arr.append(np.asarray(mini_arr))
+			mini_arr = []
+		mini_arr.append(float(data[2]))
+	f.close()
+
+	head_count = 0
+	anno_names = []
+	f = open(file_name)
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		if data[1] == '0':
+			anno_names.append(data[0])
+	f.close()
+
+	anno_names = np.asarray(anno_names)
+
+	global_arr.append(np.asarray(mini_arr))
+
+	#sdev_data = np.loadtxt(anno_sdev_output_file,dtype=str, delimiter='\t')
+	#sdevs = sdev_data[1:,1].astype(float)
+
+	# Get jacknifed taus
+	jacknifed_taus = np.asarray(global_arr)
+
+	# Get jacknifed covariance matrix
+	jacknifed_covariance, jacknifed_mean = compute_jacknifed_covariance_matrix(jacknifed_taus)
+
+	jacknifed_mean_se = np.sqrt(np.diag(jacknifed_covariance))
+
+
+	return jacknifed_mean, jacknifed_mean_se, jacknifed_covariance, anno_names
+
+def remove_testis_from_tissue_names(tissue_names):
+	new_tissue_names = []
+	for t_index, tissue_name in enumerate(tissue_names):
+		if tissue_name == 'Testis':
+			testis_index = t_index
+			continue
+		new_tissue_names.append(tissue_name)
+	return testis_index, new_tissue_names
+
 trait_name = sys.argv[1]
 ukkbb_window_summary_file = sys.argv[2]
 tissue_name_file = sys.argv[3]
@@ -377,6 +479,9 @@ preprocessed_tgfm_data_dir = sys.argv[4]
 learn_intercept = sys.argv[5]
 output_stem = sys.argv[6]
 gene_type = sys.argv[7]
+top_windows = sys.argv[8]
+gene_model_suffix = sys.argv[9]
+remove_testis = sys.argv[10]
 
 num_jacknife_windows = 200
 
@@ -385,15 +490,28 @@ np.random.seed(1)
 # Get names of tissues
 tissue_names = get_tissue_names(tissue_name_file)
 
+if gene_model_suffix == '_':
+	gene_model_suffix = ''
+
+if remove_testis == 'True':
+	testis_index, tissue_names = remove_testis_from_tissue_names(tissue_names)
+
+
 # Get array of names of windows
 window_names = get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir)
-#window_names = np.random.choice(window_names,300,replace=False)
+if top_windows == 'True':
+	window_names = extract_top_n_windows(preprocessed_tgfm_data_dir, trait_name, window_names, 500)
+
 
 # Load in LDSC-style data
-X,chi_sq,snp_weights = load_in_ldsc_style_data(preprocessed_tgfm_data_dir, trait_name, window_names, window_chi_sq_lb=0.0, window_chi_sq_ub=300.0)
+X,chi_sq,snp_weights = load_in_ldsc_style_data(preprocessed_tgfm_data_dir, trait_name, window_names, gene_model_suffix, window_chi_sq_lb=0.0, window_chi_sq_ub=300.0)
+
+if remove_testis == 'True':
+	X = np.delete(X, (testis_index+1), 1)
 
 # Run LDSC-style regression (on full data)
 intercept, h2, gene_h2 = compute_genome_wide_heritability_estimates_lbfgs(X, chi_sq, snp_weights, learn_intercept=learn_intercept)
+
 
 # Print to output
 t = open(output_stem + 'mean_estimates.txt','w')
@@ -437,8 +555,39 @@ for jacknife_window_iter in range(num_jacknife_windows):
 t.close()
 
 
-# Re-run regression with jacknife windows removed
+# Print organized output file
+jacknifed_file = output_stem + 'jacknifed_mean_estimates.txt'
+jacknifed_mean, jacknifed_mean_se, jacknifed_covariance, anno_names = load_in_existing_multivariate_non_neg_tau_sldsc_results(jacknifed_file)
+tau_z = jacknifed_mean/jacknifed_mean_se
+# Open output handle and print to output
+organized_output_file = output_stem + 'results_organized.txt'
+t = open(organized_output_file,'w')
+t.write('Annotation_name\ttau\ttau_se\ttau_z_score\n')
+for anno_iter, anno_name in enumerate(anno_names):
+	t.write(anno_name + '\t' + str(jacknifed_mean[anno_iter]) + '\t' + str(jacknifed_mean_se[anno_iter]) + '\t' + str(tau_z[anno_iter]) + '\n')
+t.close()
 
+# Print tau covariance 
+jacknifed_cov_file = output_stem + 'jacknifed_covariance.txt'
+np.savetxt(jacknifed_cov_file, jacknifed_covariance, fmt="%s", delimiter='\t')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+# Re-run regression with jacknife windows removed
 jacknifed_file = output_stem + 'jacknifed_mean_estimates.txt'
 outlier_window_indices = identify_outlier_window_indices_based_on_genomic_jacknife_md(jacknifed_file, tissue_names, num_jacknife_windows, jacknife_windows)
 
@@ -457,3 +606,4 @@ t.write('Genotype\t' + str(non_outlier_h2[0]) + '\n')
 for tiss_index, tissue_name in enumerate(tissue_names):
 	t.write(tissue_name + '\t' + str(non_outlier_gene_h2[tiss_index]) + '\n')
 t.close()
+'''

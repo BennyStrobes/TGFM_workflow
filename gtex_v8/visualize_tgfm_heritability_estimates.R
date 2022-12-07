@@ -98,7 +98,7 @@ make_z_score_heatmap <- function(tgfm_h2_results_dir, trait_names, tissue_names)
 	for (trait_iter in 1:length(trait_names)) {
 		trait_name <- trait_names[trait_iter]
 		# File name for trait
-		variance_file = paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_learn_intercept_mean_estimates.txt")
+		variance_file = paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_cis_heritable_gene_learn_intercept_top_window_False_mean_estimates.txt")
 		# load in df
 		variance_df <- read.table(variance_file, header=TRUE)
 		# filter to genes
@@ -107,7 +107,7 @@ make_z_score_heatmap <- function(tgfm_h2_results_dir, trait_names, tissue_names)
 		trait_tissue_names <- as.character(variance_df$Class_name)
 		trait_var = variance_df$h2
 		
-		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_learn_intercept_jacknifed_mean_estimates.txt")
+		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_cis_heritable_gene_learn_intercept_top_window_False_jacknifed_mean_estimates.txt")
 		jacknife_df <- read.table(jacknife_file, header=TRUE)
 		z_score_vec = rep(0.0, length(trait_var))
 		if (max(trait_var) > 1e-6) {
@@ -228,7 +228,7 @@ extract_ldsc_per_gene_h2_plus_non_mediated_df <- function(tgfm_h2_results_dir, t
 		trait_name <- trait_names[trait_iter]
 
 		# Load in jacknife data for this trait
-		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_cis_heritable_gene_learn_intercept_jacknifed_mean_estimates.txt")
+		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_cis_heritable_gene_learn_intercept_top_window_False_jacknifed_mean_estimates.txt")
 		jacknife_df <- read.table(jacknife_file, header=TRUE)
 
 		tissue_name_raw <- "Genotype"
@@ -286,7 +286,7 @@ extract_ldsc_per_gene_h2_df <- function(tgfm_h2_results_dir, trait_names, tissue
 		trait_name <- trait_names[trait_iter]
 
 		# Load in jacknife data for this trait
-		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_cis_heritable_gene_learn_intercept_jacknifed_mean_estimates.txt")
+		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_cis_heritable_gene_learn_intercept_top_window_False_jacknifed_mean_estimates.txt")
 		jacknife_df <- read.table(jacknife_file, header=TRUE)
 
 		for (tissue_iter in 1:length(tissue_names)) {
@@ -315,12 +315,83 @@ extract_ldsc_per_gene_h2_df <- function(tgfm_h2_results_dir, trait_names, tissue
 
 }
 
+extract_ldsc_fraction_of_h2_med_expression_df2<- function(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw, num_ele_arr) {
+
+
+	# Initialize arrays to save data
+	trait_names_arr <- c()
+	fraction_med_arr <- c()
+	fraction_med_se_arr <- c()
+	total_h2_arr <- c()
+	total_h2_arr_se <- c()
+
+	n_var = num_ele_arr[1]
+	n_genes_per_tiss = num_ele_arr[2:length(num_ele_arr)]
+
+
+	for (trait_iter in 1:length(trait_names)) {
+
+		trait_name <- trait_names[trait_iter]
+
+		# Load in jacknife data for this trait
+		jacknife_file <- paste0(tgfm_h2_results_dir, "tgfm_ldsc_style_heritability_", trait_name, "_cis_heritable_gene_learn_intercept_top_window_True_jacknifed_mean_estimates.txt")
+		jacknife_df <- read.table(jacknife_file, header=TRUE)
+
+		tissue_name_raw <- "Genotype"
+		genotype_df <- jacknife_df[as.character(jacknife_df$Class_name)==tissue_name_raw,]
+		genotype_h2 <- genotype_df$h2*n_var
+
+		total_tiss_h2 = rep(0.0, length(genotype_h2))
+
+
+
+		for (tissue_iter in 1:length(tissue_names)) {
+			tissue_name <- tissue_names[tissue_iter]
+			tissue_name_raw <- tissue_names_raw[tissue_iter]
+			tissue_df <- jacknife_df[as.character(jacknife_df$Class_name)==tissue_name_raw,]
+			tissue_h2 <- tissue_df$h2*n_genes_per_tiss[tissue_iter]
+			total_tiss_h2 = total_tiss_h2 + tissue_h2
+		}
+		fraction_h2_arr = total_tiss_h2/(total_tiss_h2+genotype_h2)
+		fraction_mean = mean(fraction_h2_arr)
+		diff_squared = (fraction_h2_arr - fraction_mean)**2
+		num_jacknife_samples= length(fraction_h2_arr)
+		jacknife_var = sum(diff_squared)*(num_jacknife_samples-1.0)/(num_jacknife_samples)
+		jacknife_se = sqrt(jacknife_var)
+
+		trait_names_arr <- c(trait_names_arr, trait_name)
+		fraction_med_arr <- c(fraction_med_arr, fraction_mean)
+		fraction_med_se_arr <- c(fraction_med_se_arr, jacknife_se)
+
+
+		fraction_h2_arr = (total_tiss_h2+genotype_h2)
+		fraction_mean = mean(fraction_h2_arr)
+		diff_squared = (fraction_h2_arr - fraction_mean)**2
+		num_jacknife_samples= length(fraction_h2_arr)
+		jacknife_var = sum(diff_squared)*(num_jacknife_samples-1.0)/(num_jacknife_samples)
+		jacknife_se = sqrt(jacknife_var)
+		total_h2_arr <- c(total_h2_arr, fraction_mean)
+		total_h2_arr_se <- c(total_h2_arr_se, jacknife_se)	
+
+	}
+
+	# Put all into compact df
+	df <- data.frame(trait=trait_names_arr, fraction_h2_med=fraction_med_arr, fraction_h2_med_se=fraction_med_se_arr, total_h2=total_h2_arr, total_h2_se=total_h2_arr_se)
+
+	return(df)
+
+
+
+}
+
 
 extract_ldsc_fraction_of_h2_med_expression_df <- function(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw, num_ele_arr) {
 	# Initialize arrays to save data
 	trait_names_arr <- c()
 	fraction_med_arr <- c()
 	fraction_med_se_arr <- c()
+	total_h2_arr <- c()
+	total_h2_arr_se <- c()
 
 	n_var = num_ele_arr[1]
 	n_genes_per_tiss = num_ele_arr[2:length(num_ele_arr)]
@@ -350,7 +421,6 @@ extract_ldsc_fraction_of_h2_med_expression_df <- function(tgfm_h2_results_dir, t
 			total_tiss_h2 = total_tiss_h2 + tissue_h2
 		}
 		fraction_h2_arr = total_tiss_h2/(total_tiss_h2+genotype_h2)
-
 		fraction_mean = mean(fraction_h2_arr)
 		diff_squared = (fraction_h2_arr - fraction_mean)**2
 		num_jacknife_samples= length(fraction_h2_arr)
@@ -361,10 +431,20 @@ extract_ldsc_fraction_of_h2_med_expression_df <- function(tgfm_h2_results_dir, t
 		fraction_med_arr <- c(fraction_med_arr, fraction_mean)
 		fraction_med_se_arr <- c(fraction_med_se_arr, jacknife_se)
 
+
+		fraction_h2_arr = (total_tiss_h2+genotype_h2)
+		fraction_mean = mean(fraction_h2_arr)
+		diff_squared = (fraction_h2_arr - fraction_mean)**2
+		num_jacknife_samples= length(fraction_h2_arr)
+		jacknife_var = sum(diff_squared)*(num_jacknife_samples-1.0)/(num_jacknife_samples)
+		jacknife_se = sqrt(jacknife_var)
+		total_h2_arr <- c(total_h2_arr, fraction_mean)
+		total_h2_arr_se <- c(total_h2_arr_se, jacknife_se)	
+
 	}
 
 	# Put all into compact df
-	df <- data.frame(trait=trait_names_arr, fraction_h2_med=fraction_med_arr, fraction_h2_med_se=fraction_med_se_arr)
+	df <- data.frame(trait=trait_names_arr, fraction_h2_med=fraction_med_arr, fraction_h2_med_se=fraction_med_se_arr, total_h2=total_h2_arr, total_h2_se=total_h2_arr_se)
 
 	return(df)
 
@@ -375,6 +455,7 @@ extract_rss_fraction_of_h2_med_expression_df <- function(tgfm_h2_results_dir, tr
 	# Initialize arrays to save data
 	trait_names_arr <- c()
 	fraction_med_arr <- c()
+	total_h2_arr <- c()
 
 	n_var = num_ele_arr[1]
 	n_genes_per_tiss = num_ele_arr[2:length(num_ele_arr)]
@@ -400,11 +481,128 @@ extract_rss_fraction_of_h2_med_expression_df <- function(tgfm_h2_results_dir, tr
 		trait_names_arr <- c(trait_names_arr, trait_name)
 		fraction_med_arr <- c(fraction_med_arr, total_gene_h2/(total_gene_h2+geno_h2))
 
+		total_h2_arr <- c(total_h2_arr, (total_gene_h2+geno_h2))
+
 	}
 
-	df <- data.frame(trait=trait_names_arr, fraction_h2_med=fraction_med_arr)
+	df <- data.frame(trait=trait_names_arr, fraction_h2_med=fraction_med_arr, total_h2=total_h2_arr)
+	return(df)
+}
+
+extract_standard_sldsc_non_eqtl_cpp_removed_fraction_of_h2_med_expression_df <- function(standard_sldsc_results_dir, sldsc_anno_dir, trait_names, tissue_names, tissue_names_raw, suffix) {
+	# Initialize arrays to save data
+	trait_names_arr <- c()
+	fraction_med_arr <- c()
+	total_h2_arr <- c()
 
 
+	for (chrom_num in 1:22) {
+		file_name <- paste0(sldsc_anno_dir, "baselineld_non_eqtl_cpp_removed.", chrom_num, ".", suffix)
+		data = read.table(file_name, header=FALSE)
+		if (chrom_num==1) {
+			nvar = data[1,]
+		} else {
+			nvar = nvar + data[1,]
+		}
+	}
+
+	for (trait_iter in 1:length(trait_names)) {
+
+		trait_name <- trait_names[trait_iter]
+
+		trait_file <- paste0(standard_sldsc_results_dir, "UKB_460K.", trait_name, "_sldsc_res_baselineld_non_eqtl_cpp_removed_.results")
+		trait_df <- read.table(trait_file, header=TRUE, sep="\t")
+		tau = trait_df$Coefficient
+		per_anno_h2 = tau*nvar
+		expr = per_anno_h2[73]
+		expr = as.numeric(expr[1])[1]
+
+		tot = sum(per_anno_h2)[1]
+
+
+
+		total_h2_arr <- c(total_h2_arr, tot)
+		fraction_med_arr <- c(fraction_med_arr, expr/(tot))
+		trait_names_arr <- c(trait_names_arr, trait_name)
+	}	
+	df <- data.frame(trait=trait_names_arr, fraction_h2_med=fraction_med_arr, total_h2=total_h2_arr)
+	return(df)
+}
+
+
+extract_standard_sldsc_all_anno_fraction_of_h2_med_expression_df <- function(standard_sldsc_results_dir, sldsc_anno_dir, trait_names, tissue_names, tissue_names_raw, suffix) {
+	# Initialize arrays to save data
+	trait_names_arr <- c()
+	fraction_med_arr <- c()
+	total_h2_arr <- c()
+
+
+	for (chrom_num in 1:22) {
+		file_name <- paste0(sldsc_anno_dir, "baselineLD.", chrom_num, ".", suffix)
+		data = read.table(file_name, header=FALSE)
+		if (chrom_num==1) {
+			nvar = data[1,]
+		} else {
+			nvar = nvar + data[1,]
+		}
+	}
+
+	for (trait_iter in 1:length(trait_names)) {
+
+		trait_name <- trait_names[trait_iter]
+
+		trait_file <- paste0(standard_sldsc_results_dir, "UKB_460K.", trait_name, "_sldsc_res_.results")
+		trait_df <- read.table(trait_file, header=TRUE, sep="\t")
+		tau = trait_df$Coefficient
+		per_anno_h2 = tau*nvar
+		expr = per_anno_h2[73]
+		expr = as.numeric(expr[1])[1]
+
+		tot = sum(per_anno_h2)[1]
+
+
+
+		total_h2_arr <- c(total_h2_arr, tot)
+		fraction_med_arr <- c(fraction_med_arr, expr/(tot))
+		trait_names_arr <- c(trait_names_arr, trait_name)
+	}	
+	df <- data.frame(trait=trait_names_arr, fraction_h2_med=fraction_med_arr, total_h2=total_h2_arr)
+	return(df)
+}
+
+
+extract_standard_sldsc_fraction_of_h2_med_expression_df <- function(standard_sldsc_results_dir, standard_sldsc_processed_data_dir, trait_names, tissue_names, tissue_names_raw, suffix) {
+	# Initialize arrays to save data
+	trait_names_arr <- c()
+	fraction_med_arr <- c()
+	total_h2_arr <- c()
+
+	nvar1 = 0
+	nvar2 = 0
+	for (chrom_num in 1:22) {
+		file_name <- paste0(standard_sldsc_processed_data_dir, "baseline_intercept_only.", chrom_num, ".", suffix)
+		data = read.table(file_name, header=FALSE)
+		nvar1 = nvar1 + data$V1[1]
+		nvar2 = nvar2 + data$V2[1]
+	}
+
+	for (trait_iter in 1:length(trait_names)) {
+
+		trait_name <- trait_names[trait_iter]
+
+		trait_file <- paste0(standard_sldsc_results_dir, "UKB_460K.", trait_name, "_sldsc_res_intercept_only_.results")
+		trait_df <- read.table(trait_file, header=TRUE, sep="\t")
+		tau = trait_df$Coefficient
+		tau_se = trait_df$Coefficient_std_error
+
+		geno = tau[1]*nvar1
+		expr = tau[2]*nvar2
+
+		total_h2_arr <- c(total_h2_arr, geno+expr)
+		fraction_med_arr <- c(fraction_med_arr, expr/(geno+expr))
+		trait_names_arr <- c(trait_names_arr, trait_name)
+	}	
+	df <- data.frame(trait=trait_names_arr, fraction_h2_med=fraction_med_arr, total_h2=total_h2_arr)
 	return(df)
 }
 
@@ -579,17 +777,49 @@ get_numer_of_variants <- function(num_genes_and_variants_dir) {
 	return(num_var)
 }
 
+make_fraction_med_per_trait_barplot_with_standard_errors <- function(df) {
+	ordered_trait_names <- as.character(df$trait)
+	ord <- order(df$fraction_h2_med)
+
+	df$trait = factor(df$trait, levels=ordered_trait_names[ord])
+
+	df$lb = df$fraction_h2_med - 1.96*df$fraction_h2_med_se
+	df$ub = df$fraction_h2_med + 1.96*df$fraction_h2_med_se
+
+
+	p<-ggplot(data=df, aes(x=fraction_h2_med, y=trait)) +
+  		geom_bar(stat="identity") +
+  		geom_errorbar(aes(xmin=lb, xmax=ub), width=.2, position=position_dodge(.9))  +
+  		figure_theme()
+
+  	return(p)
+}
+
+
 make_fraction_med_per_trait_barplot <- function(df) {
 	ordered_trait_names <- as.character(df$trait)
 	ord <- order(df$fraction_h2_med)
 
 	df$trait = factor(df$trait, levels=ordered_trait_names[ord])
 
+
+
 	p<-ggplot(data=df, aes(x=fraction_h2_med, y=trait)) +
   		geom_bar(stat="identity") +
   		figure_theme()
 
   	return(p)
+}
+
+scatterplot_of_h2_estimates <- function(x_val, y_val, x_axis_title, y_axis_title) {
+	df <- data.frame(x_val=x_val, y_val=y_val)
+
+	# Basic scatter plot
+	p <- ggplot(df, aes(x=x_val, y=y_val)) + geom_point() +
+	figure_theme() +
+	labs(x=x_axis_title, y=y_axis_title) +
+	geom_abline() 
+	return(p)
 
 }
 
@@ -601,7 +831,10 @@ tissue_names_file = args[1]
 trait_names_file = args[2]
 num_genes_and_variants_dir = args[3]
 tgfm_h2_results_dir = args[4]
-viz_dir = args[5]
+standard_sldsc_results_dir = args[5]
+standard_sldsc_processed_data_dir = args[6]
+ldsc_baseline_ld_hg19_annotation_dir = args[7]
+viz_dir = args[8]
 
 # Load in gtex tissues
 tissue_df <- read.table(tissue_names_file,header=TRUE)
@@ -615,27 +848,118 @@ trait_names_df <- read.table(trait_names_file, header=TRUE,sep="\t")
 # Get list of trait names
 trait_names_df <- read.table(trait_names_file, header=TRUE,sep="\t")
 trait_names <- as.character(trait_names_df$study_name)
-trait_names <- trait_names[1:33]
-print(trait_names)
-#trait_names <- as.character(c("biochemistry_Cholesterol", "blood_WHITE_COUNT", "body_BMIz", "body_WHRadjBMIz", "bp_DIASTOLICadjMEDz"))
+
+if (FALSE) {
+# Extract fraction of trait mediated heritability data based on standard sldsc
+standard_sldsc_5_50_fraction_h2_med_expr_df = extract_standard_sldsc_fraction_of_h2_med_expression_df(standard_sldsc_results_dir, standard_sldsc_processed_data_dir, trait_names, tissue_names, tissue_names_raw, "l2.M_5_50")
+standard_sldsc_all_fraction_h2_med_expr_df = extract_standard_sldsc_fraction_of_h2_med_expression_df(standard_sldsc_results_dir, standard_sldsc_processed_data_dir, trait_names, tissue_names, tissue_names_raw, "l2.M")
+standard_sldsc_all_anno_5_50_fraction_h2_med_expr_df = extract_standard_sldsc_all_anno_fraction_of_h2_med_expression_df(standard_sldsc_results_dir, ldsc_baseline_ld_hg19_annotation_dir, trait_names, tissue_names, tissue_names_raw, "l2.M_5_50")
+standard_sldsc_non_eqtl_cpp_removed_5_50_fraction_h2_med_expr_df = extract_standard_sldsc_non_eqtl_cpp_removed_fraction_of_h2_med_expression_df(standard_sldsc_results_dir, standard_sldsc_processed_data_dir, trait_names, tissue_names, tissue_names_raw, "l2.M_5_50")
 
 
 # Extract fraction of trait mediated heritability data
 rss_fraction_h2_med_expr_df <- extract_rss_fraction_of_h2_med_expression_df(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw, c(num_variants,num_genes_per_tissue))
 ldsc_fraction_h2_med_expr_df <- extract_ldsc_fraction_of_h2_med_expression_df(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw, c(num_variants,num_genes_per_tissue))
+ldsc_fraction_h2_med_expr_top_genes_df <- extract_ldsc_fraction_of_h2_med_expression_df2(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw, c(num_variants,num_genes_per_tissue))
 
 
-ordered_trait_names_gt = as.character(rss_fraction_h2_med_expr_df$trait)[rss_fraction_h2_med_expr_df$fraction_h2_med > .05]
+# Fraction mediated bar plot
+output_file <- paste0(viz_dir, "standard_sldsc_anno_non_eqtl_cpp_removed_5_50_fraction_mediated_per_trait.pdf")
+fraction_med_per_trait_barplot = make_fraction_med_per_trait_barplot(standard_sldsc_non_eqtl_cpp_removed_5_50_fraction_h2_med_expr_df)
+ggsave(fraction_med_per_trait_barplot, file=output_file, width=7.2, height=7.0, units="in")
+
+
+# Fraction mediated
+output_file <- paste0(viz_dir, "standard_sldsc_5_50_vs_tgfm_sldsc_fraction_mediated_scatter.pdf")
+scatter <- scatterplot_of_h2_estimates(standard_sldsc_5_50_fraction_h2_med_expr_df$fraction_h2_med, ldsc_fraction_h2_med_expr_df$fraction_h2_med, "Standard S-LDSC (5-50)\nh2_expr/(h2_expr+h2_geno)", "TGFM-LDSC\nh2_expr/(h2_expr+h2_geno)")
+ggsave(scatter, file=output_file, width=7.2, height=4.0, units="in")
+
+output_file <- paste0(viz_dir, "standard_sldsc_all_vs_tgfm_sldsc_fraction_mediated_scatter.pdf")
+scatter <- scatterplot_of_h2_estimates(standard_sldsc_all_fraction_h2_med_expr_df$fraction_h2_med, ldsc_fraction_h2_med_expr_df$fraction_h2_med, "Standard S-LDSC\nh2_expr/(h2_expr+h2_geno)", "TGFM-LDSC\nh2_expr/(h2_expr+h2_geno)")
+ggsave(scatter, file=output_file, width=7.2, height=4.0, units="in")
+
+output_file <- paste0(viz_dir, "tgfm_rss_vs_tgfm_sldsc_fraction_mediated_scatter.pdf")
+scatter <- scatterplot_of_h2_estimates(rss_fraction_h2_med_expr_df$fraction_h2_med, ldsc_fraction_h2_med_expr_df$fraction_h2_med, "TGFM-RSS\nh2_expr/(h2_expr+h2_geno)", "TGFM-LDSC\nh2_expr/(h2_expr+h2_geno)")
+ggsave(scatter, file=output_file, width=7.2, height=4.0, units="in")
+
+output_file <- paste0(viz_dir, "tgfm_sldsc_top_window_vs_tgfm_sldsc_fraction_mediated_scatter.pdf")
+scatter <- scatterplot_of_h2_estimates(ldsc_fraction_h2_med_expr_top_genes_df$fraction_h2_med, ldsc_fraction_h2_med_expr_df$fraction_h2_med, "TGFM-LDSC (Top window)\nh2_expr/(h2_expr+h2_geno)", "TGFM-LDSC\nh2_expr/(h2_expr+h2_geno)")
+ggsave(scatter, file=output_file, width=7.2, height=4.0, units="in")
+
+output_file <- paste0(viz_dir, "tgfm_sldsc_top_window_vs_tgfm_rss_fraction_mediated_scatter.pdf")
+scatter <- scatterplot_of_h2_estimates(ldsc_fraction_h2_med_expr_top_genes_df$fraction_h2_med, rss_fraction_h2_med_expr_df$fraction_h2_med, "TGFM-LDSC (Top window)\nh2_expr/(h2_expr+h2_geno)", "TGFM-RSS\nh2_expr/(h2_expr+h2_geno)")
+ggsave(scatter, file=output_file, width=7.2, height=4.0, units="in")
+
+# Total h2
+output_file <- paste0(viz_dir, "standard_sldsc_5_50_vs_tgfm_sldsc_total_h2_scatter.pdf")
+scatter <- scatterplot_of_h2_estimates(standard_sldsc_5_50_fraction_h2_med_expr_df$total_h2, ldsc_fraction_h2_med_expr_df$total_h2, "Standard S-LDSC (5-50)\n(h2_expr+h2_geno)", "TGFM-LDSC\n(h2_expr+h2_geno)")
+ggsave(scatter, file=output_file, width=7.2, height=4.0, units="in")
+
+output_file <- paste0(viz_dir, "standard_sldsc_all_vs_tgfm_sldsc_total_h2_scatter.pdf")
+scatter <- scatterplot_of_h2_estimates(standard_sldsc_all_fraction_h2_med_expr_df$total_h2, ldsc_fraction_h2_med_expr_df$total_h2, "Standard S-LDSC\n(h2_expr+h2_geno)", "TGFM-LDSC\n(h2_expr+h2_geno)")
+ggsave(scatter, file=output_file, width=7.2, height=4.0, units="in")
+
+output_file <- paste0(viz_dir, "tgfm_rss_vs_tgfm_sldsc_total_h2_scatter.pdf")
+scatter <- scatterplot_of_h2_estimates(rss_fraction_h2_med_expr_df$total_h2, ldsc_fraction_h2_med_expr_df$total_h2, "TGFM-RSS\n(h2_expr+h2_geno)", "TGFM-LDSC\n(h2_expr+h2_geno)")
+ggsave(scatter, file=output_file, width=7.2, height=4.0, units="in")
+
+output_file <- paste0(viz_dir, "tgfm_sldsc_top_window_vs_tgfm_sldsc_total_h2_scatter.pdf")
+scatter <- scatterplot_of_h2_estimates(ldsc_fraction_h2_med_expr_top_genes_df$total_h2, ldsc_fraction_h2_med_expr_df$total_h2, "TGFM-SLDSC (Top window)\n(h2_expr+h2_geno)", "TGFM-LDSC\n(h2_expr+h2_geno)")
+ggsave(scatter, file=output_file, width=7.2, height=4.0, units="in")
+
+output_file <- paste0(viz_dir, "tgfm_sldsc_top_window_vs_tgfm_rss_total_h2_scatter.pdf")
+scatter <- scatterplot_of_h2_estimates(ldsc_fraction_h2_med_expr_top_genes_df$total_h2, rss_fraction_h2_med_expr_df$total_h2, "TGFM-SLDSC (Top window)\n(h2_expr+h2_geno)", "TGFM-RSS\n(h2_expr+h2_geno)")
+ggsave(scatter, file=output_file, width=7.2, height=4.0, units="in")
+
+# Fraction mediated vs total h2
+output_file <- paste0(viz_dir, "tgfm_sldsc_total_h2_vs_tgfm_sldsc_fraction_mediated_scatter.pdf")
+scatter <- scatterplot_of_h2_estimates(ldsc_fraction_h2_med_expr_df$total_h2, ldsc_fraction_h2_med_expr_df$fraction_h2_med, "TGFM-LDSC\n(h2_expr+h2_geno)", "TGFM-LDSC\nh2_expr/(h2_expr+h2_geno)")
+ggsave(scatter, file=output_file, width=7.2, height=4.0, units="in")
+
+
+# Fraction mediated bar plot
+output_file <- paste0(viz_dir, "tgfm_sldsc_fraction_mediated_per_trait.pdf")
+fraction_med_per_trait_barplot = make_fraction_med_per_trait_barplot_with_standard_errors(ldsc_fraction_h2_med_expr_df)
+ggsave(fraction_med_per_trait_barplot, file=output_file, width=7.2, height=7.0, units="in")
+
+
+
+# Fraction mediated bar plot
+output_file <- paste0(viz_dir, "standard_sldsc_5_50_fraction_mediated_per_trait.pdf")
+fraction_med_per_trait_barplot = make_fraction_med_per_trait_barplot(standard_sldsc_5_50_fraction_h2_med_expr_df)
+ggsave(fraction_med_per_trait_barplot, file=output_file, width=7.2, height=7.0, units="in")
+
+# Fraction mediated bar plot
+output_file <- paste0(viz_dir, "standard_sldsc_all_anno_5_50_fraction_mediated_per_trait.pdf")
+fraction_med_per_trait_barplot = make_fraction_med_per_trait_barplot(standard_sldsc_all_anno_5_50_fraction_h2_med_expr_df)
+ggsave(fraction_med_per_trait_barplot, file=output_file, width=7.2, height=7.0, units="in")
+
+}
+
+
+
+
+#ordered_trait_names_gt = as.character(rss_fraction_h2_med_expr_df$trait)[rss_fraction_h2_med_expr_df$fraction_h2_med > .05]
+ordered_trait_names_gt = trait_names
 
 rss_per_gene_h2_df <- extract_rss_per_gene_h2_df(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw)
 output_file <- paste0(viz_dir, "rss_fraction_h2_med_per_tissue_heatmap.pdf")
-#heatmap <- make_rss_variance_proportion_heatmap(rss_per_gene_h2_df, ordered_trait_names_gt)
-#ggsave(heatmap, file=output_file, width=7.2, height=7.0, units="in")
+heatmap <- make_rss_variance_proportion_heatmap(rss_per_gene_h2_df, ordered_trait_names_gt)
+ggsave(heatmap, file=output_file, width=7.2, height=7.0, units="in")
 
 ldsc_per_gene_h2_df <- extract_ldsc_per_gene_h2_df(tgfm_h2_results_dir, trait_names, tissue_names, tissue_names_raw)
 output_file <- paste0(viz_dir, "ldsc_fraction_h2_med_per_tissue_heatmap.pdf")
 heatmap <- make_rss_variance_proportion_heatmap(ldsc_per_gene_h2_df, ordered_trait_names_gt)
 ggsave(heatmap, file=output_file, width=7.2, height=7.0, units="in")
+
+
+
+# Make heatmap showing z-scores of per gene trait heritabilities across tissues
+output_file <- paste0(viz_dir , "tissue_z_score_heatmap_all_traits.pdf")
+heatmap <- make_z_score_heatmap(tgfm_h2_results_dir, trait_names, tissue_names_raw)
+ggsave(heatmap, file=output_file, width=13.2, height=7.0, units="in")
+
+if (FALSE) {
 
 
 output_file <- paste0(viz_dir, "fraction_mediated_per_trait.pdf")
@@ -679,6 +1003,7 @@ for (trait_iter in 1:length(trait_names)) {
 	ggsave(rss_ldsc_per_gene_h2_mean_se, file=output_file, width=7.2, height=4.0, units="in")
 }
 
+}
 
 if (FALSE) {
 #############

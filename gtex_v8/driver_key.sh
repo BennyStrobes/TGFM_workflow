@@ -53,6 +53,12 @@ gtex_tissue_colors_file="/n/groups/price/ben/causal_eqtl_gwas/gtex_v8_causal_eqt
 ukbb_in_sample_ld_dir="/n/scratch3/users/j/jz286/imp_geno.gdreg_ld/"
 ukbb_in_sample_genotype_dir="/n/scratch3/users/j/jz286/imp_geno/"
 
+# LDSC baseline LD Dir
+ldsc_baseline_ld_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/baselineLD_v2.2/"
+
+# Ldscore regression code
+ldsc_code_dir="/n/groups/price/ben/tools/ldsc/"
+
 
 
 
@@ -90,14 +96,30 @@ gtex_susie_gene_models_dir=$output_root"gtex_susie_gene_models/"
 # Directory containing preprocessed TGFM data
 preprocessed_tgfm_data_dir=$output_root"preprocessed_tgfm_data/"
 
+# Directory containing preprocessed TGFM-SLDSC data
+preprocessed_tgfm_sldsc_data_dir=$output_root"preprocessed_tgfm_sldsc_data/"
+
 # Directory containing number of genes and variants
 num_genes_and_variants_dir=$output_root"num_genes_and_variants/"
 
 # Directory containing TGFM heritability estimates
 tgfm_heritability_results_dir=$output_root"tgfm_heritability_results/"
 
+# Directory containing sparse-LDSC heritability estimates
+sparse_ldsc_heritability_results_dir=$output_root"sparse_ldsc_heritability_results/"
+
 # Directory containing visualizations of TGFM h2 estimates
 visualize_tgfm_h2_dir=$output_root"visualize_tgfm_heritability_estimates/"
+
+# Directory containing standard sldsc processed data
+standard_sldsc_processed_data_dir=$output_root"standard_sldsc_processed_data/"
+
+# Directory containing standard sldsc results
+standard_sldsc_results_dir=$output_root"standard_sldsc_results/"
+
+# Sparse heritability visualization dir
+visualize_sparse_h2_dir=$output_root"visualize_sparse_h2/"
+
 
 ##################
 # Analysis
@@ -186,6 +208,13 @@ done
 fi
 
 
+########################################
+# Preprocess data for TGFM-S-LDSC
+########################################
+gene_type="cis_heritable_gene"
+chrom_num="21"
+ukkbb_window_summary_file=$ukbb_preprocessed_for_genome_wide_susie_dir"genome_wide_susie_windows_and_processed_data.txt"
+sh preprocess_data_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_snpid_file $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $ukkbb_window_summary_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $chrom_num $gene_type
 
 
 ########################################
@@ -204,7 +233,6 @@ done
 fi
 
 
-
 ########################################
 # Get number of genes and numbr of variants used in analysis
 ########################################
@@ -219,16 +247,40 @@ fi
 learn_intercept="fixed_intercept"
 learn_intercept="learn_intercept"
 gene_type="cis_heritable_gene"
-
+top_windows="False"
+gene_model_suffix="_"
+remove_testis="True"
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
-	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $learn_intercept $tgfm_heritability_results_dir"tgfm_ldsc_style_heritability_"$trait_name"_"$gene_type"_"$learn_intercept"_" $gene_type
+	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $learn_intercept $tgfm_heritability_results_dir"tgfm_ldsc_style_heritability_"$trait_name"_"$gene_type"_"$learn_intercept"_top_window_"$top_windows$gene_model_suffix"_remove_testis_"$remove_testis"_" $gene_type $top_windows $gene_model_suffix $remove_testis
+done
+fi
+
+gene_model_suffix="_point_est_gene_model"
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $learn_intercept $tgfm_heritability_results_dir"tgfm_ldsc_style_heritability_"$trait_name"_"$gene_type"_"$learn_intercept"_top_window_"$top_windows$gene_model_suffix"_" $gene_type $top_windows $gene_model_suffix
 done
 fi
 
 
+gene_model_suffix="_component_only_gene_model"
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $learn_intercept $tgfm_heritability_results_dir"tgfm_ldsc_style_heritability_"$trait_name"_"$gene_type"_"$learn_intercept"_top_window_"$top_windows$gene_model_suffix"_" $gene_type $top_windows $gene_model_suffix
+done
+fi
 
 
+########################################
+# Sparse LDSC-style genome-wide heritability estimates
+########################################
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+	echo $trait_name
+	sh sparse_ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $tgfm_heritability_results_dir $learn_intercept $sparse_ldsc_heritability_results_dir"sparse_ldsc_heritability_"$trait_name"_"$gene_type"_"$learn_intercept"_" $gene_type
+done
+fi
 
 
 
@@ -287,7 +339,35 @@ fi
 
 
 
+########################################
+# Run standard ldsc
+########################################
+# Summary statistic directory
+sumstat_dir="/n/groups/price/ldsc/sumstats_formatted_2021/"
 
+# Ldscore regression code
+ldsc_code_dir="/n/groups/price/ldsc/ldsc/"
+
+# Ldsc weights
+ldsc_weights_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/weights/"
+
+# LDSC baselineLD annotations (hg19)
+ldsc_baseline_ld_hg19_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/baselineLD_v2.2/"
+
+# LDSC 1KG genotype files (hg19)
+ldsc_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/plink_files/"
+
+if false; then
+sh preprocess_data_for_standard_sldsc.sh $ldsc_baseline_ld_hg19_annotation_dir $standard_sldsc_processed_data_dir
+fi
+
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+	trait_name_full="UKB_460K."${trait_name}
+	echo $trait_name_full
+	sbatch run_ldsc.sh $trait_name_full $sumstat_dir $ldsc_code_dir $ldsc_baseline_ld_hg19_annotation_dir $ldsc_weights_dir $ldsc_genotype_dir $standard_sldsc_processed_data_dir $standard_sldsc_results_dir 
+done
+fi
 
 
 
@@ -295,11 +375,13 @@ fi
 if false; then
 source ~/.bash_profile
 module load R/3.5.1
+
+Rscript visualize_tgfm_heritability_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $num_genes_and_variants_dir $tgfm_heritability_results_dir $standard_sldsc_results_dir $standard_sldsc_processed_data_dir $ldsc_baseline_ld_hg19_annotation_dir $visualize_tgfm_h2_dir
 fi
 
-Rscript visualize_tgfm_heritability_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $num_genes_and_variants_dir $tgfm_heritability_results_dir $visualize_tgfm_h2_dir
-
-
+if false; then
+Rscript visualize_sparse_tgfm_heritability_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $num_genes_and_variants_dir $tgfm_heritability_results_dir $sparse_ldsc_heritability_results_dir $visualize_sparse_h2_dir
+fi
 
 
 

@@ -122,6 +122,7 @@ def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chro
 	global_susie_mu_data = []
 	global_susie_alpha_data = []
 	global_susie_mu_sd_data = []
+	global_components = []
 
 	# Loop through gene-tissue pairs
 	for gene_tissue_index, gene_tissue_name in enumerate(gene_tissue_pairs):
@@ -130,6 +131,13 @@ def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chro
 
 		# Load gene-tissue model from gene-tissue weight file
 		gene_tissue_model = pyreadr.read_r(gene_tissue_weight_file)
+
+		component_bool = np.asarray(gene_tissue_model['component_bool'])[0,0]
+		if component_bool == False:
+			global_components.append(np.asarray([]))
+		else:
+			gene_components = np.asarray(gene_tissue_model['susie_cs'])[:,0] - 1
+			global_components.append(gene_components)
 
 		# Create mapping from gene coordinates to global coordinates
 		gene_variants = np.asarray(gene_tissue_model['variant_names'])[:,0]
@@ -147,13 +155,12 @@ def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chro
 		global_susie_mu = create_global_susie_w_flips(gene_local_to_global_mapping, gene_flips, np.asarray(gene_tissue_model['susie_mu']), num_global_variants)
 		global_susie_mu_data.append(global_susie_mu)
 
-	global_dictionary = {'genes': gene_tissue_pairs,'tss':gene_tss_arr, 'variants': global_variant_arr, 'reference_ld':LD, 'susie_mu':global_susie_mu_data, 'susie_alpha': global_susie_alpha_data, 'susie_mu_sd': global_susie_mu_sd_data}
-
+	global_dictionary = {'genes': gene_tissue_pairs,'tss':gene_tss_arr, 'valid_susie_components':global_components, 'variants': global_variant_arr, 'reference_ld':LD, 'susie_mu':global_susie_mu_data, 'susie_alpha': global_susie_alpha_data, 'susie_mu_sd': global_susie_mu_sd_data}
 	return global_dictionary
 
 def extract_regression_snp_indices(window_variant_names, hapmap3_snps, window_start, window_end):
 	middle_start = window_start + 1000000.0
-	middle_end = window_end + 2000000.0
+	middle_end = window_start + 2000000.0
 	regression_snp_indices = []
 	hapmap3_snp_indices = []
 
@@ -390,6 +397,70 @@ def extract_ld_annotations_for_this_region(ld, susie_mu, susie_mu_sd, susie_alph
 	return filtered_ld_scores, np.transpose(np.asarray(tissue_eqtl_ld_scores)), np.transpose(np.asarray(standardized_tissue_eqtl_ld_scores)), regression_weights
 
 
+def extract_ld_annotations_for_this_region_point_estimate_gene_models(ld, susie_mu, susie_alpha, ordered_tissue_names, region_tissue_names, variant_indices, hapmap3_snp_indices):
+	# LD scores
+	ld_scores = np.sum(np.square(ld),axis=0)
+	# Number of variants
+	num_var = len(ld_scores)
+
+	# Create eqtl weighted scores for each gene, independently
+	per_gene_eqtl_weighted_ld_scores_arr = []
+	per_gene_variance = []
+	for gene_iter, region_tissue_name in enumerate(region_tissue_names):
+
+		# Component level eqtl effect sizes for this gene		
+		gene_component_effect_sizes = (susie_mu[gene_iter])*susie_alpha[gene_iter]
+
+		# eQTL effect sizes for this gene
+		gene_eqtl_effect_sizes = np.sum(gene_component_effect_sizes,axis=0)
+
+		# Compute squared eqtl effect sizes for this gene
+		#gene_squared_eqtl_effect_sizes = np.sum((np.square(susie_mu[gene_iter]) + np.square(susie_mu_sd[gene_iter]))*susie_alpha[gene_iter],axis=0) + gene_eqtl_effect_sizes*gene_eqtl_effect_sizes - np.sum(gene_component_effect_sizes*gene_component_effect_sizes,axis=0)
+		gene_squared_eqtl_effect_sizes = np.square(gene_eqtl_effect_sizes)
+
+		# E[beta_k*beta_j]
+		#cross_terms = np.dot(np.reshape(gene_eqtl_effect_sizes, (num_var,1)), np.reshape(gene_eqtl_effect_sizes, (1,num_var))) - np.dot(np.transpose(gene_component_effect_sizes), gene_component_effect_sizes)
+		cross_terms = np.dot(np.reshape(gene_eqtl_effect_sizes, (num_var,1)), np.reshape(gene_eqtl_effect_sizes, (1,num_var)))
+
+		#gene_variance = compute_gene_variance(susie_mu[gene_iter], susie_mu_sd[gene_iter], susie_alpha[gene_iter], ld)
+		gene_variance = np.dot(np.dot(gene_eqtl_effect_sizes, ld), gene_eqtl_effect_sizes)
+		per_gene_variance.append(gene_variance)
+
+		gene_eqtl_weighted_ld_scores = np.sum((np.square(ld)*gene_squared_eqtl_effect_sizes),axis=1)
+
+		# Temp
+		cross_terms = cross_terms - np.diag(np.diag(cross_terms))
+		cross_effects = np.sum(np.dot(cross_terms, ld[:, variant_indices])*ld[:,variant_indices],axis=0)
+
+		per_gene_eqtl_weighted_ld_scores_arr.append(gene_eqtl_weighted_ld_scores[variant_indices] + cross_effects)
+
+
+	filtered_ld_scores = ld_scores[variant_indices]
+
+	tissue_eqtl_ld_scores = []
+	standardized_tissue_eqtl_ld_scores = []
+
+
+	for tissue_name in ordered_tissue_names:
+		eqtl_ld_score = np.zeros(len(filtered_ld_scores))
+		standardized_eqtl_ld_score = np.zeros(len(filtered_ld_scores))
+		# Get gene indices corresponding to the tissue
+		if len(region_tissue_names) > 0:
+			gene_indices = np.where(region_tissue_names==tissue_name)[0]
+			for gene_index in gene_indices:
+				eqtl_ld_score = eqtl_ld_score + per_gene_eqtl_weighted_ld_scores_arr[gene_index]
+				standardized_eqtl_ld_score = standardized_eqtl_ld_score + per_gene_eqtl_weighted_ld_scores_arr[gene_index]/per_gene_variance[gene_index]
+
+		tissue_eqtl_ld_scores.append(eqtl_ld_score)
+		standardized_tissue_eqtl_ld_scores.append(standardized_eqtl_ld_score)
+
+	regression_weights = np.sum(np.square(ld)[variant_indices,:][:,hapmap3_snp_indices],axis=1)
+
+	return filtered_ld_scores, np.transpose(np.asarray(tissue_eqtl_ld_scores)), np.transpose(np.asarray(standardized_tissue_eqtl_ld_scores)), regression_weights
+
+
+
+
 def extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, window_unstandardized_ld_score_annotation_file, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, ordered_tissue_names):
 	t = open(window_ld_score_annotation_file,'w')
 	t.write('variant_name\tregression_weight\tld_score')
@@ -407,8 +478,6 @@ def extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, windo
 	region_tissue_names = get_tissue_names_from_gene_tissue_names_arr(tgfm_trait_agnostic_obj['genes'])
 
 	ld_scores, eqtl_ld_scores, standardized_eqtl_ld_scores, regression_weights = extract_ld_annotations_for_this_region(tgfm_trait_agnostic_obj['reference_ld'], tgfm_trait_agnostic_obj['susie_mu'], tgfm_trait_agnostic_obj['susie_mu_sd'], tgfm_trait_agnostic_obj['susie_alpha'], ordered_tissue_names, region_tissue_names, regression_snp_indices, hapmap3_snp_indices)	
-	#ld_scores2, eqtl_ld_scores2, standardized_eqtl_ld_scores2, regression_weights2 = extract_ld_annotations_for_this_region_v2(tgfm_trait_agnostic_obj['reference_ld'], tgfm_trait_agnostic_obj['susie_mu'], tgfm_trait_agnostic_obj['susie_mu_sd'], tgfm_trait_agnostic_obj['susie_alpha'], ordered_tissue_names, region_tissue_names, regression_snp_indices, hapmap3_snp_indices)	
-
 
 	for variant_index, variant_id in enumerate(tgfm_trait_agnostic_obj['variants'][regression_snp_indices]):
 		t.write(variant_id + '\t' + str(regression_weights[variant_index]) + '\t' + str(ld_scores[variant_index]) + '\t' + '\t'.join(standardized_eqtl_ld_scores[variant_index,:].astype(str)) + '\n')
@@ -416,6 +485,91 @@ def extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, windo
 	
 	t.close()
 	t2.close()
+
+
+def extract_tgfm_ld_score_annotation_file_point_estimate_gene_model(window_ld_score_annotation_file, window_unstandardized_ld_score_annotation_file, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, ordered_tissue_names):
+	t = open(window_ld_score_annotation_file,'w')
+	t.write('variant_name\tregression_weight\tld_score')
+	for tissue_name in ordered_tissue_names:
+		t.write('\t' + tissue_name + '_eqtl_ld_score')
+	t.write('\n')
+
+	t2 = open(window_unstandardized_ld_score_annotation_file,'w')
+	t2.write('variant_name\tregression_weight\tld_score')
+	for tissue_name in ordered_tissue_names:
+		t2.write('\t' + tissue_name + '_eqtl_ld_score')
+	t2.write('\n')
+
+
+	region_tissue_names = get_tissue_names_from_gene_tissue_names_arr(tgfm_trait_agnostic_obj['genes'])
+
+	ld_scores, eqtl_ld_scores, standardized_eqtl_ld_scores, regression_weights = extract_ld_annotations_for_this_region_point_estimate_gene_models(tgfm_trait_agnostic_obj['reference_ld'], tgfm_trait_agnostic_obj['susie_mu'], tgfm_trait_agnostic_obj['susie_alpha'], ordered_tissue_names, region_tissue_names, regression_snp_indices, hapmap3_snp_indices)
+
+	for variant_index, variant_id in enumerate(tgfm_trait_agnostic_obj['variants'][regression_snp_indices]):
+		t.write(variant_id + '\t' + str(regression_weights[variant_index]) + '\t' + str(ld_scores[variant_index]) + '\t' + '\t'.join(standardized_eqtl_ld_scores[variant_index,:].astype(str)) + '\n')
+		t2.write(variant_id + '\t' + str(regression_weights[variant_index]) + '\t' + str(ld_scores[variant_index]) + '\t' + '\t'.join(eqtl_ld_scores[variant_index,:].astype(str)) + '\n')
+	
+	t.close()
+	t2.close()
+
+
+def extract_indices_of_genes_with_components(global_components):
+	indices = []
+	for ii, temp_arr in enumerate(global_components):
+		if len(temp_arr) > 0:
+			indices.append(ii)
+	return np.asarray(indices)
+
+def filter_list_to_indices(listy, indices):
+	new_listy = []
+	for index in indices:
+		new_listy.append(listy[index])
+	return new_listy
+
+def filter_array_list_to_indices(listy, row_indices, indices):
+	new_listy = []
+	for index in indices:
+		new_listy.append(listy[index][row_indices[index],:])
+	return new_listy
+
+
+def extract_tgfm_ld_score_annotation_file_component_only_gene_model(window_ld_score_annotation_file, window_unstandardized_ld_score_annotation_file, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, ordered_tissue_names):
+	t = open(window_ld_score_annotation_file,'w')
+	t.write('variant_name\tregression_weight\tld_score')
+	for tissue_name in ordered_tissue_names:
+		t.write('\t' + tissue_name + '_eqtl_ld_score')
+	t.write('\n')
+
+	t2 = open(window_unstandardized_ld_score_annotation_file,'w')
+	t2.write('variant_name\tregression_weight\tld_score')
+	for tissue_name in ordered_tissue_names:
+		t2.write('\t' + tissue_name + '_eqtl_ld_score')
+	t2.write('\n')
+
+	indices_of_genes_with_components = extract_indices_of_genes_with_components(tgfm_trait_agnostic_obj['valid_susie_components'])
+
+	if len(indices_of_genes_with_components) > 0:
+		region_tissue_names = get_tissue_names_from_gene_tissue_names_arr(tgfm_trait_agnostic_obj['genes'][indices_of_genes_with_components])
+	else:
+		region_tissue_names = np.asarray([])
+
+	# Filter gene models to just predicted expression in a component
+	filtered_susie_mu = filter_array_list_to_indices(tgfm_trait_agnostic_obj['susie_mu'], tgfm_trait_agnostic_obj['valid_susie_components'], indices_of_genes_with_components)
+	filtered_susie_mu_sd = filter_array_list_to_indices(tgfm_trait_agnostic_obj['susie_mu_sd'], tgfm_trait_agnostic_obj['valid_susie_components'], indices_of_genes_with_components)
+	filtered_susie_alpha = filter_array_list_to_indices(tgfm_trait_agnostic_obj['susie_alpha'], tgfm_trait_agnostic_obj['valid_susie_components'], indices_of_genes_with_components)
+
+	# Compute LD-scores
+	ld_scores, eqtl_ld_scores, standardized_eqtl_ld_scores, regression_weights = extract_ld_annotations_for_this_region(tgfm_trait_agnostic_obj['reference_ld'], filtered_susie_mu, filtered_susie_mu_sd, filtered_susie_alpha, ordered_tissue_names, region_tissue_names, regression_snp_indices, hapmap3_snp_indices)	
+
+	for variant_index, variant_id in enumerate(tgfm_trait_agnostic_obj['variants'][regression_snp_indices]):
+		t.write(variant_id + '\t' + str(regression_weights[variant_index]) + '\t' + str(ld_scores[variant_index]) + '\t' + '\t'.join(standardized_eqtl_ld_scores[variant_index,:].astype(str)) + '\n')
+		t2.write(variant_id + '\t' + str(regression_weights[variant_index]) + '\t' + str(ld_scores[variant_index]) + '\t' + '\t'.join(eqtl_ld_scores[variant_index,:].astype(str)) + '\n')
+	
+	t.close()
+	t2.close()
+
+
+
 
 
 def print_study_chi_sq_vec(study_chi_sq_window_file, chi_sq_vec, window_variant_names, regression_snp_indices, study_sample_size):
@@ -709,7 +863,6 @@ for window_iter in range(num_windows):
 
 	# GET HAPMAP3 SNPS and middle snps
 	regression_snp_indices, hapmap3_snp_indices = extract_regression_snp_indices(window_variant_names, all_regression_snps, window_start, window_end)
-	#regression_snp_indices, hapmap3_snp_indices2 = extract_regression_snp_indices(window_variant_names, hapmap3_snps, window_start, window_end)
 
 	if len(regression_snp_indices) == 0:
 		continue
@@ -741,12 +894,26 @@ for window_iter in range(num_windows):
 	# Extract RSS-likelihood formatted data (standardized eQTLs)
 	rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
 	standardize=True
-	extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
+	#extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
 
 	# Extract ld score annotation file
 	window_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file.txt'
 	window_unstandardized_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file.txt'
-	extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, window_unstandardized_ld_score_annotation_file, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, pseudotissues)
+	#extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, window_unstandardized_ld_score_annotation_file, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, pseudotissues)
+
+	# Extract ld score annotation file component only gene models
+	window_ld_score_annotation_file_component_only_gene_model = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file_component_only_gene_model.txt'
+	window_unstandardized_ld_score_annotation_file_component_only_gene_model = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file_component_only_gene_model.txt'
+	extract_tgfm_ld_score_annotation_file_component_only_gene_model(window_ld_score_annotation_file_component_only_gene_model, window_unstandardized_ld_score_annotation_file_component_only_gene_model, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, pseudotissues)
+
+	# Extract ld score annotation file component only gene models
+	window_ld_score_annotation_file_point_est_gene_model = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file_point_est_gene_model.txt'
+	window_unstandardized_ld_score_annotation_file_point_est_gene_model = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file_point_est_gene_model.txt'
+	extract_tgfm_ld_score_annotation_file_point_estimate_gene_model(window_ld_score_annotation_file_point_est_gene_model, window_unstandardized_ld_score_annotation_file_point_est_gene_model, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, pseudotissues)
+
+
+
+
 
 	'''
 	# Extract RSS-likelihood formatted data
