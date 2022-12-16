@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 20                               # Request one core
-#SBATCH -t 0-60:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-75:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=30G                         # Memory total in MiB (for all cores)
 

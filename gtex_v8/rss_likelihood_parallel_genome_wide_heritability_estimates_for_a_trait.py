@@ -348,14 +348,17 @@ ordered_tissue_names = get_tissue_names(tissue_name_file)
 
 # Get array of names of windows
 window_names = get_window_names(ukkbb_window_summary_file, preprocessed_tgfm_data_dir, standardize_expression_boolean, gene_type)
-window_names = extract_top_n_windows(window_names, trait_name, preprocessed_tgfm_data_dir, standardize_expression_boolean, 500, gene_type)
+window_names = np.random.choice(window_names, size=500, replace=False)
+#window_names = extract_top_n_windows(window_names, trait_name, preprocessed_tgfm_data_dir, standardize_expression_boolean, 500, gene_type)
+#pdb.set_trace()
+
 
 # Extract window pickle file names
 window_names, window_pickle_file_names, shared_window_pickle_file_names = extract_window_pickle_file_names(trait_name, preprocessed_tgfm_data_dir, window_names, standardize_expression_boolean, gene_type)
 
 # Temporary output files used to save intermediate results
-temp_alpha_output_file = output_root + 'robust_tissue_specific_prior_precision_temp.txt'
-temp_beta_output_file =output_root + '_robust_pleiotropic_prior_precision_temp.txt'
+temp_alpha_output_file = output_root + 'robust_tissue_specific_prior_precision_random_windows_temp.txt'
+temp_beta_output_file =output_root + '_robust_pleiotropic_prior_precision_random_windows_temp.txt'
 
 # Run iterative variational algorithm to get heritability estimates
 expected_gamma_alpha, gamma_alpha_a, gamma_alpha_b, gamma_beta_a, gamma_beta_b = infer_rss_likelihood_genome_wide_heritabilities(ordered_tissue_names, window_pickle_file_names, shared_window_pickle_file_names, temp_alpha_output_file, temp_beta_output_file)

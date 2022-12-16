@@ -55,10 +55,16 @@ ukbb_in_sample_genotype_dir="/n/scratch3/users/j/jz286/imp_geno/"
 
 # LDSC baseline LD Dir
 ldsc_baseline_ld_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/baselineLD_v2.2/"
+ldsc_baseline_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/baseline_v1.2/"
 
 # Ldscore regression code
 ldsc_code_dir="/n/groups/price/ben/tools/ldsc/"
 
+# Summary statistics
+full_sumstat_dir="/n/groups/price/ldsc/sumstats_formatted_2021/"
+
+# hg38 sldsc weights
+sldsc_h38_weights_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/weights/"
 
 
 
@@ -119,6 +125,10 @@ standard_sldsc_results_dir=$output_root"standard_sldsc_results/"
 
 # Sparse heritability visualization dir
 visualize_sparse_h2_dir=$output_root"visualize_sparse_h2/"
+
+tgfm_sldsc_results_dir=$output_root"tgfm_sldsc_results/"
+
+visualize_tgfm_sldsc_dir=$output_root"visualize_tgfm_sldsc/"
 
 
 ##################
@@ -212,10 +222,37 @@ fi
 # Preprocess data for TGFM-S-LDSC
 ########################################
 gene_type="cis_heritable_gene"
-chrom_num="21"
-ukkbb_window_summary_file=$ukbb_preprocessed_for_genome_wide_susie_dir"genome_wide_susie_windows_and_processed_data.txt"
-sh preprocess_data_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_snpid_file $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $ukkbb_window_summary_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $chrom_num $gene_type
+if false; then
+sbatch preprocess_data_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $gene_type
+fi
 
+if false; then
+sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample_repeat composit_tissue_string; do
+	chromosome_group="odd"
+	sbatch preprocess_gene_ld_scores_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $pseudotissue_name $chromosome_group $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $gene_type
+
+	chromosome_group="even"
+	sbatch preprocess_gene_ld_scores_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $pseudotissue_name $chromosome_group $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $gene_type
+done
+fi
+
+if false; then
+for chrom_num in $(seq 1 22); do 
+	sbatch create_variant_ld_scores_for_tgfm_sldsc.sh $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $chrom_num $preprocessed_tgfm_sldsc_data_dir
+done
+fi
+
+
+if false; then
+sbatch organize_gene_ld_scores_for_tgfm_sldsc.sh $gtex_pseudotissue_file $preprocessed_tgfm_sldsc_data_dir $gene_type $gtex_susie_gene_models_dir
+fi
+
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+	echo $trait_name
+	sbatch run_tgfm_sldsc.sh $preprocessed_tgfm_sldsc_data_dir $full_sumstat_dir $ldsc_code_dir $sldsc_h38_weights_dir $ref_1kg_genotype_dir $tgfm_sldsc_results_dir $trait_name
+done
+fi
 
 ########################################
 # Preprocess data for TGFM
@@ -295,6 +332,7 @@ sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_min
 done
 fi
 
+
 gene_type="cis_heritable_gene"
 trait_name="blood_WHITE_COUNT"
 if false; then
@@ -370,6 +408,13 @@ done
 fi
 
 
+
+
+if false; then
+source ~/.bash_profile
+module load R/3.5.1
+fi
+Rscript visualize_tgfm_sldsc_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $preprocessed_tgfm_sldsc_data_dir $tgfm_sldsc_results_dir $visualize_tgfm_sldsc_dir $tgfm_heritability_results_dir
 
 
 if false; then
