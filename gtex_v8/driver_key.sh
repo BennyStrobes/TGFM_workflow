@@ -206,8 +206,6 @@ done
 fi
 
 
-
-
 ########################################
 # Organize GTEx gene model results (create pos file)
 ########################################
@@ -230,23 +228,18 @@ if false; then
 sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample_repeat composit_tissue_string; do
 	chromosome_group="odd"
 	sbatch preprocess_gene_ld_scores_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $pseudotissue_name $chromosome_group $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $gene_type
-
 	chromosome_group="even"
 	sbatch preprocess_gene_ld_scores_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $pseudotissue_name $chromosome_group $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $gene_type
 done
 fi
 
 if false; then
-for chrom_num in $(seq 1 22); do 
-	sbatch create_variant_ld_scores_for_tgfm_sldsc.sh $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $chrom_num $preprocessed_tgfm_sldsc_data_dir
-done
-fi
-
-
-if false; then
 sbatch organize_gene_ld_scores_for_tgfm_sldsc.sh $gtex_pseudotissue_file $preprocessed_tgfm_sldsc_data_dir $gene_type $gtex_susie_gene_models_dir
 fi
 
+########################################
+# Run TGFM-S-LDSC
+########################################
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
 	echo $trait_name
@@ -269,6 +262,9 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 done
 fi
 
+job_number="0"
+sh preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type
+
 
 ########################################
 # Get number of genes and numbr of variants used in analysis
@@ -278,102 +274,6 @@ python3 get_number_of_genes_and_number_of_variants_used.py $ukkbb_window_summary
 fi
 
 
-########################################
-# LDSC-style genome-wide heritability estimates
-########################################
-learn_intercept="fixed_intercept"
-learn_intercept="learn_intercept"
-gene_type="cis_heritable_gene"
-top_windows="False"
-gene_model_suffix="_"
-remove_testis="True"
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
-	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $learn_intercept $tgfm_heritability_results_dir"tgfm_ldsc_style_heritability_"$trait_name"_"$gene_type"_"$learn_intercept"_top_window_"$top_windows$gene_model_suffix"_remove_testis_"$remove_testis"_" $gene_type $top_windows $gene_model_suffix $remove_testis
-done
-fi
-
-gene_model_suffix="_point_est_gene_model"
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
-	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $learn_intercept $tgfm_heritability_results_dir"tgfm_ldsc_style_heritability_"$trait_name"_"$gene_type"_"$learn_intercept"_top_window_"$top_windows$gene_model_suffix"_" $gene_type $top_windows $gene_model_suffix
-done
-fi
-
-
-gene_model_suffix="_component_only_gene_model"
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
-	sbatch ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $learn_intercept $tgfm_heritability_results_dir"tgfm_ldsc_style_heritability_"$trait_name"_"$gene_type"_"$learn_intercept"_top_window_"$top_windows$gene_model_suffix"_" $gene_type $top_windows $gene_model_suffix
-done
-fi
-
-
-########################################
-# Sparse LDSC-style genome-wide heritability estimates
-########################################
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
-	echo $trait_name
-	sh sparse_ldsc_style_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $tgfm_heritability_results_dir $learn_intercept $sparse_ldsc_heritability_results_dir"sparse_ldsc_heritability_"$trait_name"_"$gene_type"_"$learn_intercept"_" $gene_type
-done
-fi
-
-
-
-########################################
-# RSS likelihood heritability estimates
-########################################
-gene_type="cis_heritable_gene"
-standardize_expression_boolean="True"
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_minus_wbc.txt" | while read trait_name study_file sample_size h2; do
-	sbatch rss_likelihood_parallel_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_parallel_style_heritability_"$trait_name"_"$gene_type"_standardize_expr_"$standardize_expression_boolean"_" $gene_type
-done
-fi
-
-
-gene_type="cis_heritable_gene"
-trait_name="blood_WHITE_COUNT"
-if false; then
-sbatch rss_likelihood_parallel_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_parallel_style_heritability_"$trait_name"_"$gene_type"_standardize_expr_"$standardize_expression_boolean"_" $gene_type
-fi
-
-
-########################################
-# RSS likelihood heritability estimates
-########################################
-standardize_expression_boolean="False"
-trait_name="blood_WHITE_COUNT"
-if false; then
-sbatch rss_likelihood_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
-fi
-
-#trait_names=( "biochemistry_Cholesterol" "blood_WHITE_COUNT" "body_WHRadjBMIz" "bp_DIASTOLICadjMEDz" "body_BMIz" "blood_RED_COUNT")
-trait_names=( "biochemistry_Cholesterol" "body_WHRadjBMIz" "bp_DIASTOLICadjMEDz" "body_BMIz" "blood_RED_COUNT")
-if false; then
-for trait_name in "${trait_names[@]}"; do
-	sbatch rss_likelihood_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
-done
-fi
-
-
-########################################
-# RSS likelihood SVI heritability estimates
-########################################
-standardize_expression_boolean="False"
-trait_name="blood_WHITE_COUNT"
-if false; then
-sbatch rss_likelihood_svi_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_svi_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
-fi
-
-#trait_names=( "biochemistry_Cholesterol" "blood_WHITE_COUNT" "body_WHRadjBMIz" "bp_DIASTOLICadjMEDz" "body_BMIz" "blood_RED_COUNT")
-trait_names=( "biochemistry_Cholesterol" "body_WHRadjBMIz" "bp_DIASTOLICadjMEDz" "body_BMIz" "blood_RED_COUNT")
-if false; then
-for trait_name in "${trait_names[@]}"; do
-	sbatch rss_likelihood_svi_genome_wide_heritability_estimates_for_a_trait.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $standardize_expression_boolean $tgfm_heritability_results_dir"tgfm_rss_likelihood_svi_style_heritability_"$trait_name"_standardize_expr_"$standardize_expression_boolean"_"
-done
-fi
 
 
 

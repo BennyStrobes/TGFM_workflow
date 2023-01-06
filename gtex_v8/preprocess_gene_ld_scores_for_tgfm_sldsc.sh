@@ -51,11 +51,3 @@ for chrom_num in $(seq 1 $(($num_chrom))); do
 done
 
 
-
-if false; then
-chrom_num="10"
-
-variant_level_ld_score_file=${preprocessed_tgfm_sldsc_data_dir}baselineLD_no_qtl.${chrom_num}.l2.ldscore.gz
-gene_level_sldsc_output_root=${preprocessed_tgfm_sldsc_data_dir}tissue_eqtl.${chrom_num}.
-python3 create_gene_level_ld_scores.py $variant_level_ld_score_file ${ref_1kg_genotype_dir}1000G.EUR.hg38.${chrom_num} $pseudotissue_name $gtex_susie_gene_models_dir $chrom_num $gene_type $gene_level_sldsc_output_root
-fi

@@ -208,7 +208,7 @@ gtex_susie_gene_models_dir = sys.argv[4]
 pseudotissue_names = get_pseudotissue_names(gtex_pseudotissue_file)
 
 # Get number of genes per chromosome per tissue
-#n_genes_per_chromosome_per_tissue = get_n_genes_per_chromosome_per_tissue(pseudotissue_names, gtex_susie_gene_models_dir)
+n_genes_per_chromosome_per_tissue = get_n_genes_per_chromosome_per_tissue(pseudotissue_names, gtex_susie_gene_models_dir)
 
 # Various iterations to run over
 variant_models = ['baselineLD_no_qtl', 'baseline_no_qtl']
@@ -216,20 +216,15 @@ variant_models = ['baselineLD_no_qtl', 'baseline_no_qtl']
 # Gene modedls
 gene_model_suffixes = ['gene_ld_scores', 'gene_adj_ld_scores', 'pmces_gene_ld_scores', 'pmces_gene_adj_ld_scores']
 
-'''
 for chrom_num in range(1,23):
 	print(chrom_num)
 	make_ld_score_input_shell(chrom_num,  n_genes_per_chromosome_per_tissue[(chrom_num-1),:], pseudotissue_names, variant_models, gene_model_suffixes, preprocessed_tgfm_sldsc_data_dir)
-'''
-
 generate_annotation_sdev_files_shell(variant_models, gene_model_suffixes, preprocessed_tgfm_sldsc_data_dir)
 
 
 # Make version without genomic annotaitons (call it genotype intercept)
 reference_variant_model = 'baselineLD_no_qtl'
-'''
 for chrom_num in range(1,23):
 	make_ld_score_input_shell_for_genotype_intercept(chrom_num,  n_genes_per_chromosome_per_tissue[(chrom_num-1),:], pseudotissue_names, reference_variant_model, gene_model_suffixes, preprocessed_tgfm_sldsc_data_dir)
-'''
 generate_annotation_sdev_file_for_genotype_intercept_shell(reference_variant_model, gene_model_suffixes, preprocessed_tgfm_sldsc_data_dir)
 
