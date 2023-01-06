@@ -413,9 +413,8 @@ fi
 if false; then
 source ~/.bash_profile
 module load R/3.5.1
-fi
 Rscript visualize_tgfm_sldsc_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $preprocessed_tgfm_sldsc_data_dir $tgfm_sldsc_results_dir $visualize_tgfm_sldsc_dir $tgfm_heritability_results_dir
-
+fi
 
 if false; then
 source ~/.bash_profile

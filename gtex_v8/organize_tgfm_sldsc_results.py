@@ -171,8 +171,6 @@ print_organized_summary_file(sldsc_output_root + 'organized_sparse_nonneg_ard_no
 
 
 
-
-
 sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED(max_iter=20000, L=10, nonneg=True, nonneg_int=eqtl_start_index)
 sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=np.asarray([]))
 
