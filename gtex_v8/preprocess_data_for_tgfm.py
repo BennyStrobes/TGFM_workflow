@@ -7,6 +7,7 @@ import sys
 import pdb
 import pickle
 import time
+import gzip
 
 
 
@@ -107,7 +108,17 @@ def create_global_susie_w_flips(gene_local_to_global_mapping, gene_flips, local_
 	global_susie_data = create_global_susie_no_flips(gene_local_to_global_mapping, local_susie_data, num_global_variants)
 	return global_susie_data
 
-def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, global_variant_arr, LD, pseudotissues, tissue_to_gene_model_df):
+def extract_annotation_mat_for_window_variants(short_variant_to_annotation_vector, global_variant_arr):
+	annotation_arr = []
+	for full_variant in global_variant_arr:
+		variant_info = full_variant.split('_')
+		short_variant_name = variant_info[0] + ':' + variant_info[1]
+		annotation_vec = short_variant_to_annotation_vector[short_variant_name]
+		annotation_arr.append(annotation_vec)
+	annotation_arr = np.asarray(annotation_arr)
+	return annotation_arr
+
+def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, global_variant_arr, LD, pseudotissues, tissue_to_gene_model_df, short_variant_to_annotation_vector):
 	# Get list of gene_tissue pairs and weight files for this window
 	gene_tissue_pairs, gene_tissue_pair_weight_files, gene_tss_arr = get_list_of_gene_tissue_pairs_and_weight_files_for_window(window_chrom_num, window_start, window_end, pseudotissues, tissue_to_gene_model_df)
 
@@ -155,7 +166,12 @@ def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chro
 		global_susie_mu = create_global_susie_w_flips(gene_local_to_global_mapping, gene_flips, np.asarray(gene_tissue_model['susie_mu']), num_global_variants)
 		global_susie_mu_data.append(global_susie_mu)
 
-	global_dictionary = {'genes': gene_tissue_pairs,'tss':gene_tss_arr, 'valid_susie_components':global_components, 'variants': global_variant_arr, 'reference_ld':LD, 'susie_mu':global_susie_mu_data, 'susie_alpha': global_susie_alpha_data, 'susie_mu_sd': global_susie_mu_sd_data}
+	# Extract annotation mat for these variants
+	annotation_mat = extract_annotation_mat_for_window_variants(short_variant_to_annotation_vector, global_variant_arr)
+
+	# Save to global object
+	global_dictionary = {'genes': gene_tissue_pairs,'tss':gene_tss_arr, 'valid_susie_components':global_components, 'variants': global_variant_arr, 'reference_ld':LD, 'susie_mu':global_susie_mu_data, 'susie_alpha': global_susie_alpha_data, 'susie_mu_sd': global_susie_mu_sd_data, 'annotation': annotation_mat}
+
 	return global_dictionary
 
 def extract_regression_snp_indices(window_variant_names, hapmap3_snps, window_start, window_end):
@@ -799,6 +815,34 @@ def get_dictionary_list_of_all_regression_snps(hapmap3_snps, ukbb_windows):
 			all_regression_snps[regression_snp_alt] = 1
 	return all_regression_snps
 
+def get_chromosome_names_used_in_this_analysis(ukbb_windows_parr):
+	num_windows = ukbb_windows_parr.shape[0]
+	chrom_nums = []
+	for window_iter in range(num_windows):
+		chrom_num = ukbb_windows_parr[window_iter,0]
+		chrom_nums.append(chrom_num)
+	return np.sort(np.unique(np.asarray(chrom_nums)))
+
+def create_mapping_from_short_variant_name_to_annotation_vec(used_chrom_arr, annotation_dir):
+	dicti_mapping = {}
+	for chrom_string in used_chrom_arr:
+		chrom_annot_file = annotation_dir + 'baselineLD_no_qtl.' + chrom_string + '.annot'
+		f = open(chrom_annot_file)
+		head_count = 0
+		for line in f:
+			line = line.rstrip()
+			data = line.split('\t')
+			if head_count == 0:
+				head_count = head_count + 1
+				continue
+			short_variant_name = 'chr' + data[0] + ':' + data[1]
+			if short_variant_name in dicti_mapping:
+				print('assumption error')
+			annotation_vec = np.asarray(data[4:]).astype(float)
+			dicti_mapping[short_variant_name] = annotation_vec
+	return dicti_mapping
+
+
 ukkbb_window_summary_file = sys.argv[1]
 hapmap3_snpid_file = sys.argv[2]
 gtex_pseudotissue_file = sys.argv[3]
@@ -807,6 +851,7 @@ preprocessed_tgfm_data_dir = sys.argv[5] # Output dir
 job_number = int(sys.argv[6])  # For parallelization purposes
 num_jobs = int(sys.argv[7])  # For parallelization purposes
 gene_type = sys.argv[8]
+annotation_dir = sys.argv[9]
 
 # Append gene type to output root
 preprocessed_tgfm_data_dir = preprocessed_tgfm_data_dir + gene_type + '_'
@@ -815,6 +860,8 @@ preprocessed_tgfm_data_dir = preprocessed_tgfm_data_dir + gene_type + '_'
 ukbb_windows = np.loadtxt(ukkbb_window_summary_file, dtype=str,delimiter='\t')[1:,:]
 # Subset to just windows in this parallel run
 ukbb_windows_parr = np.array_split(ukbb_windows, num_jobs)[job_number]
+
+print(ukbb_windows_parr.shape)
 
 # Get array of pseudotissue names
 pseudotissues = get_pseudotissue_names(gtex_pseudotissue_file)
@@ -825,7 +872,12 @@ tissue_to_gene_model_df = create_tissue_to_gene_model_df(pseudotissues, gtex_sus
 # Get dictionary list of hapmap3 snpids
 hapmap3_snps = get_dictionary_list_of_hapmap3_snpids(hapmap3_snpid_file)
 # This is all hapmap3 snps that fall in the middle of a window that is tested
-all_regression_snps = get_dictionary_list_of_all_regression_snps(hapmap3_snps, ukbb_windows)
+#all_regression_snps = get_dictionary_list_of_all_regression_snps(hapmap3_snps, ukbb_windows)
+
+# Get chromosome nums in this parallel window
+used_chrom_arr = get_chromosome_names_used_in_this_analysis(ukbb_windows_parr)
+print(used_chrom_arr)
+short_variant_name_to_annotation_vec = create_mapping_from_short_variant_name_to_annotation_vec(used_chrom_arr, annotation_dir)
 
 start_time = time.time()
 # Loop through windows
@@ -855,17 +907,11 @@ for window_iter in range(num_windows):
 	LD = np.loadtxt(window_variant_in_sample_ld_file)
 
 	# Load in ukbb ld
-	kg_geno = np.loadtxt(window_1kg_genotype_file)
-	kg_LD = np.corrcoef(np.transpose(kg_geno))
+	#kg_geno = np.loadtxt(window_1kg_genotype_file)
+	#kg_LD = np.corrcoef(np.transpose(kg_geno))
 
 	# Load variant names
 	window_variant_names = np.loadtxt(window_variant_id_file, dtype=str)
-
-	# GET HAPMAP3 SNPS and middle snps
-	regression_snp_indices, hapmap3_snp_indices = extract_regression_snp_indices(window_variant_names, all_regression_snps, window_start, window_end)
-
-	if len(regression_snp_indices) == 0:
-		continue
 
 	# study names
 	study_names = np.loadtxt(window_study_name_file, dtype=str)
@@ -875,14 +921,8 @@ for window_iter in range(num_windows):
 	gwas_beta = np.loadtxt(window_gwas_beta_file)
 	gwas_beta_se = np.loadtxt(window_gwas_beta_se_file)
 
-	# Save chi-squared stats of regression snps for each study
-	for study_index, study_name in enumerate(study_names):
-		study_chi_sq_window_file = preprocessed_tgfm_data_dir + window_name + '_' + study_name + '_tgfm_ldscore_chi_squared_stats.txt'
-		chi_sq_vec = np.square(gwas_beta[study_index,:]/gwas_beta_se[study_index,:])
-		print_study_chi_sq_vec(study_chi_sq_window_file, chi_sq_vec, window_variant_names, regression_snp_indices, study_sample_sizes[study_index])
-
 	# Organize TGFM trait agnostic input for single window
-	tgfm_trait_agnostic_obj = organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, window_variant_names, LD, pseudotissues, tissue_to_gene_model_df)
+	tgfm_trait_agnostic_obj = organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, window_variant_names, LD, pseudotissues, tissue_to_gene_model_df, short_variant_name_to_annotation_vec)
 
 	# Save TGFM trait agnostic input data
 	pkl_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_trait_agnostic_data_obj.pkl'
@@ -894,8 +934,15 @@ for window_iter in range(num_windows):
 	# Extract RSS-likelihood formatted data (standardized eQTLs)
 	rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
 	standardize=True
-	#extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
+	extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
 
+
+
+
+
+
+
+	'''
 	# Extract ld score annotation file
 	window_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file.txt'
 	window_unstandardized_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file.txt'
@@ -914,8 +961,6 @@ for window_iter in range(num_windows):
 
 
 
-
-	'''
 	# Extract RSS-likelihood formatted data
 	rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
 	standardize=False

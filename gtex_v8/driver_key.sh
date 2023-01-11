@@ -114,6 +114,9 @@ tgfm_heritability_results_dir=$output_root"tgfm_heritability_results/"
 # Directory containing sparse-LDSC heritability estimates
 sparse_ldsc_heritability_results_dir=$output_root"sparse_ldsc_heritability_results/"
 
+# Directory containing TGFM results
+tgfm_results_dir=$output_root"tgfm_results/"
+
 # Directory containing visualizations of TGFM h2 estimates
 visualize_tgfm_h2_dir=$output_root"visualize_tgfm_heritability_estimates/"
 
@@ -157,7 +160,6 @@ fi
 if false; then
 sh preprocess_data_for_genome_wide_ukbb_susie_analysis.sh $ukbb_sumstats_hg38_dir $gtex_genotype_dir $ref_1kg_genotype_dir $ukbb_preprocessed_for_genome_wide_susie_dir $ukbb_sumstats_hg19_dir $ukbb_in_sample_ld_dir $ukbb_in_sample_genotype_dir
 fi
-
 
 
 ########################################
@@ -247,6 +249,7 @@ sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt
 done
 fi
 
+
 ########################################
 # Preprocess data for TGFM
 ########################################
@@ -258,13 +261,14 @@ gene_type="cis_heritable_gene"
 ukkbb_window_summary_file=$ukbb_preprocessed_for_genome_wide_susie_dir"genome_wide_susie_windows_and_processed_data.txt"
 if false; then
 for job_number in $(seq 0 $(($num_jobs-1))); do 
-	sbatch preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type
+	sbatch preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type $preprocessed_tgfm_sldsc_data_dir
 done
 fi
 
+if false; then
 job_number="0"
-sh preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type
-
+sh preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type $preprocessed_tgfm_sldsc_data_dir
+fi
 
 ########################################
 # Get number of genes and numbr of variants used in analysis
@@ -273,8 +277,22 @@ if false; then
 python3 get_number_of_genes_and_number_of_variants_used.py $ukkbb_window_summary_file $gtex_susie_gene_models_dir $gtex_pseudotissue_file $num_genes_and_variants_dir
 fi
 
+########################################
+# Run TGFM
+########################################
+gene_type="cis_heritable_genes"
+num_jobs="5"
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated_minus_vol.txt" | while read trait_name study_file samp_size h2; do
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	sbatch run_tgfm.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $tgfm_sldsc_results_dir $samp_size $gene_type $tgfm_results_dir $job_number $num_jobs
+done
+done
+fi
 
 
+# Organize TGFM results across parallel runs
+sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs
 
 
 ########################################

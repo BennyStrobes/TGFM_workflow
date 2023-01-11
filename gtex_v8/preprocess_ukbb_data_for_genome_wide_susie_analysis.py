@@ -151,7 +151,20 @@ def fill_in_window_dictionary_for_single_trait(trait_name, trait_file, chrom_num
 		used_variants[line_variant_id] =1
 		used_variants[line_variant_id_alt] = 1
 
-
+		'''
+		if rs_id.startswith('rs') == False:
+			print('non rsid variant')
+			continue
+		beta = float(data[10])
+		std_err = float(data[11])
+		stringer = trait_name + ',' + line_variant_id + ',' + str(beta) + ',' + str(std_err) + ',' + rs_id
+		window_string = window_names_chromosome[variant_pos]
+		windows = window_string.split(',')
+		for window in windows:
+			if window == 'NULL':  # This is necessary because we threw out some long range LD windows
+				continue
+			window_dictionary[window].append(stringer)
+		'''
 		# Variant id in gtex variants
 		if line_variant_id in gtex_variants:
 			if line_variant_id_alt in gtex_variants:
@@ -488,6 +501,16 @@ def extract_ld_mat_from_in_sample_ld(sample_ld_variant_indices, ukbb_in_sample_l
 	return ld_mat
 
 
+def get_ukbb_variants_on_this_chromosome(bim_file):
+	variants = {}
+	f = open(bim_file)
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		snp_id = 'chr' + data[0] + '_' + data[3] + '_' + data[4] + '_' + data[5] + '_b38'
+		variants[snp_id] = 1
+	f.close()
+	return variants
 
 #######################
 # Command line args
@@ -527,7 +550,7 @@ for trait_index, trait_name in enumerate(trait_names):
 # First extract list of gtex variants in UKBB [we will be using gtex variant orientation]
 # Also note that these gtex variants are also found in UKBB
 gtex_variants = get_gtex_variants_on_this_chromosome(gtex_genotype_dir + 'Whole_Blood_GTEx_v8_genotype_EUR_' + chrom_num + '.bim')  #note: whole blood is randomly choosen but really doesn't matter b/c all tissues have the same variants
-
+ukbb_variants = get_ukbb_variants_on_this_chromosome(ref_1kg_genotype_dir + '1000G.EUR.hg38.' + str(chrom_num) + '.bim')
 
 # Get names of windows on this chromosome (in data structure where of array of length chromosome)
 window_names_chromosome, window_dictionary = get_window_names_on_this_chromosome(genome_wide_window_file, chrom_num)
@@ -535,7 +558,7 @@ window_names_chromosome, window_dictionary = get_window_names_on_this_chromosome
 
 
 # Fill in the dictionary with each elent in list is a string corresponding to info on a cis snp
-window_dictionary = fill_in_window_dictionary(trait_names, trait_files, chrom_num, window_names_chromosome, gtex_variants, window_dictionary)
+window_dictionary = fill_in_window_dictionary(trait_names, trait_files, chrom_num, window_names_chromosome, ukbb_variants, window_dictionary)
 
 
 

@@ -1,14 +1,16 @@
 import sys
-sys.path.remove('/n/app/python/3.7.4-ext/lib/python3.7/site-packages')
-import numpy as np 
-import pandas as pd
+sys.path.remove('/n/app/python/3.6.0/lib/python3.6/site-packages')
 import os
 import pdb
-from sklearn.linear_model import LinearRegression
-from sparse_sldsc_from_multivariate_summary_statistics import SPARSE_SLDSC
-from sparse_sldsc_from_multivariate_summary_statistics_with_some_fixed_effects import SPARSE_SLDSC_SOME_FIXED
-from sparse_sldsc_from_multivariate_summary_statistics_fixed_genotype import SPARSE_SLDSC_FIXED_TERM
-from sparse_sldsc_from_multivariate_summary_statistics_ard_with_some_fixed_effects import SPARSE_SLDSC_ARD_SOME_FIXED
+import numpy as np
+import pickle
+import time
+import scipy.sparse
+import scipy.optimize
+import tensorflow as tf
+import tensorflow_recommenders as tfrs
+
+
 
 
 def get_anno_names(example_anno_file):
@@ -107,10 +109,53 @@ def print_organized_h2_mediated(output_file_name, h2_med, h2_med_se):
 	t.write(str(h2_med) + '\t' + str(h2_med_se) + '\n')
 	t.close()
 
+def initialize_linear_model(n_anno):
+	# Initialize Neural network model
+	model = tf.keras.models.Sequential()
+	model.add(tf.keras.layers.Dense(units=1, activation='linear', input_dim=n_anno, dtype=tf.float64))
+	return model
+
+def multivariate_normal_loss(jacknifed_tau_mean, jacknifed_tau_precision, pred_tau, reg_weight):
+	diff = pred_tau - jacknifed_tau_mean
+	log_like = -.5*tf.tensordot(tf.tensordot(diff, jacknifed_tau_precision,axes=1), diff, axes=1)
+	loss_value = -log_like
+	loss_value = loss_value + tf.math.reduce_sum(tf.math.square(pred_tau)*reg_weight)
+	return loss_value
+
+def sparse_regression_tf(jacknifed_tau_mean, jacknifed_tau_covariance, n_tissue_anno, max_epochs=1000, learning_rate=0.001, reg_weight=1e13):
+	n_anno = len(jacknifed_tau_mean)
+	# Initialize mapping from annotations to per snp heritability
+	#sparse_linear_model = initialize_linear_model(n_genomic_anno)
+	pred_tau = tf.Variable(initial_value=np.zeros(n_anno),trainable=True, name='coef', dtype=tf.float64)
+
+	# Initialize optimizer
+	optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+
+
+	jacknifed_tau_mean = tf.convert_to_tensor(jacknifed_tau_mean, dtype=tf.float64)
+	jacknifed_tau_covariance = tf.convert_to_tensor(jacknifed_tau_covariance, dtype=tf.float64)
+	jacknifed_tau_precision = tf.linalg.inv(jacknifed_tau_covariance)
+	
+	# Lopp through windows
+	for epoch_iter in range(max_epochs):
+
+		# Use tf.gradient tape to compute gradients
+		with tf.GradientTape() as tape:
+			#pred_tau = sparse_linear_model(tf.convert_to_tensor(np.ones((1,n_genomic_anno)),dtype=tf.float64), training=True)
+			loss_value = multivariate_normal_loss(jacknifed_tau_mean, jacknifed_tau_precision, pred_tau, reg_weight)
+			# Define trainable variables
+			trainable_variables = [pred_tau]
+			# Compute and apply gradients
+			grads = tape.gradient(loss_value, trainable_variables)
+			optimizer.apply_gradients(zip(grads, trainable_variables))
+	pdb.set_trace()
+
+
 sldsc_output_root = sys.argv[1]
 anno_stem = sys.argv[2]
 
 
+sldsc_output_root + '_tf'
 # Extract relevent info from log file
 sldsc_log_file = sldsc_output_root + '.log'
 example_anno_file = anno_stem + '.21.l2.ldscore'
@@ -156,24 +201,6 @@ h2_5_50_med, h2_5_50_med_se = extract_expression_mediated_h2(jacknifed_taus, eqt
 print_organized_h2_mediated(sldsc_output_root + 'h2_med.txt', h2_med, h2_med_se)
 print_organized_h2_mediated(sldsc_output_root + 'h2_5_50_med.txt', h2_5_50_med, h2_5_50_med_se)
 
-sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED(max_iter=40000, L=10, nonneg=False, nonneg_int=eqtl_start_index)
-sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=non_eqtl_annotations)
-model_beta_mu = np.hstack((sparse_sldsc_obj.fixed_beta_mu, sparse_sldsc_obj.beta_mu))
-model_beta_var = np.hstack((sparse_sldsc_obj.fixed_beta_var, sparse_sldsc_obj.beta_var))
-print_organized_summary_file(sldsc_output_root + 'organized_sparse_ard_no_geno_regularization_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
 
-sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED(max_iter=20000, L=10, nonneg=True, nonneg_int=-1.0)
-sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=non_eqtl_annotations)
-model_beta_mu = np.hstack((sparse_sldsc_obj.fixed_beta_mu, sparse_sldsc_obj.beta_mu))
-model_beta_var = np.hstack((sparse_sldsc_obj.fixed_beta_var, sparse_sldsc_obj.beta_var))
-print_organized_summary_file(sldsc_output_root + 'organized_sparse_nonneg_ard_no_geno_regularization_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
+sparse_regression_tf(jacknifed_tau_mean, jacknifed_tau_covariance, 93)
 
-
-
-sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED(max_iter=20000, L=10, nonneg=True, nonneg_int=eqtl_start_index)
-sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=np.asarray([]))
-print_organized_summary_file(sldsc_output_root + 'organized_sparse_nonneg_ard_res.txt', anno_names, sparse_sldsc_obj.beta_mu/annotation_sdev, np.sqrt(sparse_sldsc_obj.beta_var)/annotation_sdev)
-
-sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED(max_iter=20000, L=10, nonneg=False)
-sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=np.asarray([]))
-print_organized_summary_file(sldsc_output_root + 'organized_sparse_ard_res.txt', anno_names, sparse_sldsc_obj.beta_mu/annotation_sdev, np.sqrt(sparse_sldsc_obj.beta_var)/annotation_sdev)

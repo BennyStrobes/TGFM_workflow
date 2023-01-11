@@ -56,8 +56,8 @@ class SPARSE_SLDSC_ARD_SOME_FIXED(object):
 			self.update_susie_effects(self.component_variances)
 
 
-			#if self.estimate_prior_variance and itera > 400:
-			if self.estimate_prior_variance:
+			if self.estimate_prior_variance and itera > 500:
+				#if self.estimate_prior_variance:
 				self.update_component_variances()
 
 			# Convergence stuff
@@ -134,12 +134,15 @@ class SPARSE_SLDSC_ARD_SOME_FIXED(object):
 
 		# Initialize variational distribution defining betas (the causal effects)
 		self.beta_mu = np.zeros((self.K))
-		self.beta_mu = tau[self.random_coefficients]
+		#self.beta_mu = tau[self.random_coefficients]
 		self.beta_var = np.ones((self.K))
 
 		# Intitialize variational distribution defining fixed genotypes
-		self.fixed_beta_mu = np.zeros(len(self.fixed_coefficients))
-		self.fixed_beta_mu = tau[self.fixed_coefficients]
+		if len(self.fixed_coefficients) == 0:
+			self.fixed_beta_mu = np.zeros(len(self.fixed_coefficients))
+		else:
+			#self.fixed_beta_mu = tau[self.fixed_coefficients]
+			self.fixed_beta_mu = np.zeros(len(self.fixed_coefficients))
 		self.fixed_beta_var = np.ones(len(self.fixed_coefficients))
 
 
