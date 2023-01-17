@@ -38,6 +38,28 @@ def load_in_gene_ld_scores(gene_ld_score_files):
 		arr.append(gene_ld_scores)
 	return np.transpose(np.asarray(arr))
 
+def print_weight_output_file(variant_ld_score_file, gene_weight_files, pseudotissue_names, weight_output_file):
+	gene_weights = load_in_gene_ld_scores(gene_weight_files)
+	gene_weights[np.isnan(gene_weights)] = 0.0
+	print(np.min(gene_weights))
+	agg_gene_weights = np.sum(gene_weights,axis=1)
+
+	f = gzip.open(variant_ld_score_file)
+	t = open(weight_output_file,'w')
+	head_count = 0
+	line_counter = 0
+	for line in f:
+		line = line.decode('utf-8').rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			t.write(data[0] + '\t' + data[1] + '\t' + data[2] + '\tgene_weight\n')
+			continue
+		t.write(data[0] + '\t' + data[1] + '\t' + data[2] + '\t' + str(agg_gene_weights[line_counter]) + '\n')
+		line_counter = line_counter + 1
+	f.close()
+	t.close()
+
 def merge_variant_and_gene_ld_score_files(variant_ld_score_file, gene_ld_score_files, pseudotissue_names, merged_ld_score_file):
 	gene_ld_scores = load_in_gene_ld_scores(gene_ld_score_files)
 	gene_ld_scores[np.isnan(gene_ld_scores)] = 0.0
@@ -101,6 +123,21 @@ def merge_m_files_for_genotype_intercept(variant_m_file, n_genes_per_pseudotissu
 	m_vec = np.loadtxt(variant_m_file)
 	t.write(str(m_vec[0]) + '\t' + '\t'.join(n_genes_per_pseudotissue.astype(str)) + '\n')
 	t.close()
+
+def make_gene_weight_input_file(chrom_num, pseudotissue_names, variant_model, gene_model_suffix, preprocessed_tgfm_sldsc_data_dir):
+	variant_ld_score_file = preprocessed_tgfm_sldsc_data_dir + variant_model + '.' + str(chrom_num) + '.l2.ldscore.gz'
+	gene_weight_files = []
+	for pseudotissue_name in pseudotissue_names:
+		filer = preprocessed_tgfm_sldsc_data_dir + 'tissue_eqtl.' + str(chrom_num) + '.' + pseudotissue_name + '_' + gene_model_suffix
+		gene_weight_files.append(filer)
+	gene_weight_files = np.asarray(gene_weight_files)
+	
+	# Create output root
+	weight_output_file = preprocessed_tgfm_sldsc_data_dir + gene_model_suffix + '.' + str(chrom_num) + '.gene_weights'
+
+	# Merge ld scores files
+	print_weight_output_file(variant_ld_score_file, gene_weight_files, pseudotissue_names, weight_output_file)
+
 
 def make_ld_score_input_shell(chrom_num,  n_genes_per_pseudotissue, pseudotissue_names, variant_models, gene_model_suffixes, preprocessed_tgfm_sldsc_data_dir):
 	for variant_model in variant_models:
@@ -210,12 +247,23 @@ pseudotissue_names = get_pseudotissue_names(gtex_pseudotissue_file)
 # Get number of genes per chromosome per tissue
 n_genes_per_chromosome_per_tissue = get_n_genes_per_chromosome_per_tissue(pseudotissue_names, gtex_susie_gene_models_dir)
 
+# Generate gene weights files
+variant_model = 'baselineLD_no_qtl'  # Simply using this to get rs-ids (could also use baseline or intercept)
+gene_model ='pmces_gene_weights'
+for chrom_num in range(1,23):
+	print(chrom_num)
+	make_gene_weight_input_file(chrom_num, pseudotissue_names, variant_model, gene_model, preprocessed_tgfm_sldsc_data_dir)
+
+
 # Various iterations to run over
+#variant_models = ['baselineLD_no_qtl']
 variant_models = ['baselineLD_no_qtl', 'baseline_no_qtl']
 
 # Gene modedls
+#gene_model_suffixes = ['pmces_gene_adj_ld_scores']
 gene_model_suffixes = ['gene_ld_scores', 'gene_adj_ld_scores', 'pmces_gene_ld_scores', 'pmces_gene_adj_ld_scores']
 
+'''
 for chrom_num in range(1,23):
 	print(chrom_num)
 	make_ld_score_input_shell(chrom_num,  n_genes_per_chromosome_per_tissue[(chrom_num-1),:], pseudotissue_names, variant_models, gene_model_suffixes, preprocessed_tgfm_sldsc_data_dir)
@@ -227,4 +275,4 @@ reference_variant_model = 'baselineLD_no_qtl'
 for chrom_num in range(1,23):
 	make_ld_score_input_shell_for_genotype_intercept(chrom_num,  n_genes_per_chromosome_per_tissue[(chrom_num-1),:], pseudotissue_names, reference_variant_model, gene_model_suffixes, preprocessed_tgfm_sldsc_data_dir)
 generate_annotation_sdev_file_for_genotype_intercept_shell(reference_variant_model, gene_model_suffixes, preprocessed_tgfm_sldsc_data_dir)
-
+'''

@@ -400,3 +400,4 @@ class TGFM(object):
 		expression_covariance = np.dot(np.dot(self.gene_eqtl_pmces, twas_data_obj['reference_ld']), np.transpose(self.gene_eqtl_pmces))
 		dd = np.diag(1.0/np.sqrt(np.diag(expression_covariance)))
 		self.ge_ld = np.dot(np.dot(dd, expression_covariance),dd)
+		

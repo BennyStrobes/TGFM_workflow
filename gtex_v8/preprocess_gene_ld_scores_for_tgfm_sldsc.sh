@@ -47,7 +47,5 @@ for chrom_num in $(seq 1 $(($num_chrom))); do
 			python3 create_gene_level_ld_scores.py $variant_level_ld_score_file ${ref_1kg_genotype_dir}1000G.EUR.hg38.${chrom_num} $pseudotissue_name $gtex_susie_gene_models_dir $chrom_num $gene_type $gene_level_sldsc_output_root
 		fi
 	fi
-
 done
-
 

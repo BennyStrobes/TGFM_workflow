@@ -276,6 +276,9 @@ make_z_score_heatmap <- function(df, ordered_trait_names, threshold=2.0) {
  	return(counter)
 }
 
+std_mean <- function(x) sd(x)/sqrt(length(x))
+
+
 
 ############
 # command line args

@@ -203,6 +203,26 @@ def extract_ld_annotations_for_this_gene_region_with_eqtl_point_estimate(ld, gen
 
 	return ld_scores, adj_ld_scores
 
+def extract_gene_regression_weights_for_this_gene_region_with_eqtl_point_estimate(ld, gene_eqtl_effect_sizes, variant_indices, n_ref_panel_samples):
+	gene_variance = np.dot(np.dot(gene_eqtl_effect_sizes, ld), gene_eqtl_effect_sizes)
+	standardized_gene_eqtl_effect_sizes = gene_eqtl_effect_sizes/np.sqrt(gene_variance)
+
+	standardized_gene_eqtl_effect_sizes_shaped = np.reshape(standardized_gene_eqtl_effect_sizes, (len(standardized_gene_eqtl_effect_sizes), 1))
+
+	beta_beta_t = np.dot(standardized_gene_eqtl_effect_sizes_shaped, np.transpose(standardized_gene_eqtl_effect_sizes_shaped))
+
+	eqtl_cov = np.dot(np.dot(ld[variant_indices,:], beta_beta_t), ld[:,variant_indices])
+
+	# Remove diagonal elements
+	np.fill_diagonal(eqtl_cov,0.0)
+
+	# Square and sum
+	np.sum(np.square(eqtl_cov), axis=0)
+
+	weights = np.sum(np.square(eqtl_cov), axis=1)
+
+	return weights
+
 def extract_ld_annotations_for_this_gene_region_with_sample_correlation(pmces, sample_geno, variant_indices, n_ref_panel_samples):
 	stand_sample_geno = np.copy(sample_geno)
 	for kk in range(stand_sample_geno.shape[1]):
@@ -220,7 +240,7 @@ def extract_ld_annotations_for_this_gene_region_with_sample_correlation(pmces, s
 
 
 
-def compute_gene_level_ld_scores_for_single_gene(gene_tissue_model, ref_genotype_obj, snpid_to_reference_index, regression_snp_id_to_regression_snp_position, global_gene_level_ld_scores, global_gene_level_adj_ld_scores, global_gene_level_pmces_ld_scores, global_gene_level_pmces_adj_ld_scores):
+def compute_gene_level_ld_scores_for_single_gene(gene_tissue_model, ref_genotype_obj, snpid_to_reference_index, regression_snp_id_to_regression_snp_position, global_gene_level_ld_scores, global_gene_level_adj_ld_scores, global_gene_level_pmces_ld_scores, global_gene_level_pmces_adj_ld_scores, global_gene_level_pmces_weights):
 	# First get gene model ub and lb snp name
 	gene_snpid_names = np.asarray(gene_tissue_model['variant_names'])[:,0]
 	gene_snp_positions = get_gene_model_snp_positions(gene_snpid_names)
@@ -259,7 +279,7 @@ def compute_gene_level_ld_scores_for_single_gene(gene_tissue_model, ref_genotype
 	# If no regression snps, can return here
 	if n_regression_snps_in_window == 0:
 		print('SKIP WINDOW')
-		return global_gene_level_ld_scores, global_gene_level_adj_ld_scores, global_gene_level_pmces_ld_scores, global_gene_level_pmces_adj_ld_scores
+		return global_gene_level_ld_scores, global_gene_level_adj_ld_scores, global_gene_level_pmces_ld_scores, global_gene_level_pmces_adj_ld_scores, global_gene_level_pmces_weights
 
 	# Create mapping from snp id to reference snp position in this window
 	window_snpid_to_reference_index = create_mapping_snpid_to_reference_index(G_window_snpids, G_window_alt_snpids)
@@ -273,19 +293,22 @@ def compute_gene_level_ld_scores_for_single_gene(gene_tissue_model, ref_genotype
 	# Extract LD scores using susie distribution of eqtl effect sizes
 	window_gene_ld_scores, window_adj_ld_scores = extract_ld_annotations_for_this_gene_region(G_window_ld, window_susie_mu, window_susie_mu_sd, window_susie_alpha, window_regression_snp_indices, n_ref_panel_samples)
 	# Extract LD scores using point estimate eqtl effect sizes
-	window_gene_ld_scores_pe, window_adj_ld_scores_pe = extract_ld_annotations_for_this_gene_region_with_eqtl_point_estimate(G_window_ld, np.sum(window_susie_mu*window_susie_alpha,axis=0), window_regression_snp_indices, n_ref_panel_samples, version='B')
+	gene_pmces = np.sum(window_susie_mu*window_susie_alpha,axis=0)
+	window_gene_ld_scores_pe, window_adj_ld_scores_pe = extract_ld_annotations_for_this_gene_region_with_eqtl_point_estimate(G_window_ld, gene_pmces, window_regression_snp_indices, n_ref_panel_samples, version='B')
 	# Extract LD scores by correlating predicted expression with observed genotype (Identical to the above)
 	#window_gene_ld_scores_corr, window_adj_ld_scores_corr = extract_ld_annotations_for_this_gene_region_with_sample_correlation(np.sum(window_susie_mu*window_susie_alpha,axis=0), G_window_geno,  window_regression_snp_indices, n_ref_panel_samples)
 
+	# Extract gene regression weights
+	window_gene_regression_weights_pe = extract_gene_regression_weights_for_this_gene_region_with_eqtl_point_estimate(G_window_ld, gene_pmces, window_regression_snp_indices, n_ref_panel_samples)
 
 	# Add updates to global array
 	global_gene_level_ld_scores[global_regression_snp_positions] = global_gene_level_ld_scores[global_regression_snp_positions] + window_gene_ld_scores
 	global_gene_level_adj_ld_scores[global_regression_snp_positions] = global_gene_level_adj_ld_scores[global_regression_snp_positions] + window_adj_ld_scores
 	global_gene_level_pmces_ld_scores[global_regression_snp_positions] = global_gene_level_pmces_ld_scores[global_regression_snp_positions] + window_gene_ld_scores_pe
 	global_gene_level_pmces_adj_ld_scores[global_regression_snp_positions] = global_gene_level_pmces_adj_ld_scores[global_regression_snp_positions] + window_adj_ld_scores_pe
+	global_gene_level_pmces_weights[global_regression_snp_positions] = global_gene_level_pmces_weights[global_regression_snp_positions] + window_gene_regression_weights_pe
 
-
-	return global_gene_level_ld_scores, global_gene_level_adj_ld_scores, global_gene_level_pmces_ld_scores, global_gene_level_pmces_adj_ld_scores
+	return global_gene_level_ld_scores, global_gene_level_adj_ld_scores, global_gene_level_pmces_ld_scores, global_gene_level_pmces_adj_ld_scores, global_gene_level_pmces_weights
 
 
 def load_in_regression_snp_ids(variant_level_ld_score_file, rsid_to_snpid, snpid_to_reference_index):
@@ -446,6 +469,7 @@ global_gene_level_ld_scores = np.zeros(n_regression_snps)
 global_gene_level_adj_ld_scores = np.zeros(n_regression_snps)
 global_gene_level_pmces_ld_scores = np.zeros(n_regression_snps)
 global_gene_level_pmces_adj_ld_scores = np.zeros(n_regression_snps)
+global_gene_level_pmces_weights = np.zeros(n_regression_snps)
 
 
 start_time = time.time()
@@ -457,8 +481,7 @@ for g_counter in range(n_genes):
 	# Load gene-tissue model from gene-tissue weight file
 	gene_tissue_model = pyreadr.read_r(rdat_gene_model_file)
 
-	global_gene_level_ld_scores, global_gene_level_adj_ld_scores, global_gene_level_pmces_ld_scores, global_gene_level_pmces_adj_ld_scores = compute_gene_level_ld_scores_for_single_gene(gene_tissue_model, genotype_obj, snpid_to_reference_index, regression_snp_id_to_regression_snp_position, global_gene_level_ld_scores, global_gene_level_adj_ld_scores, global_gene_level_pmces_ld_scores, global_gene_level_pmces_adj_ld_scores)
-
+	global_gene_level_ld_scores, global_gene_level_adj_ld_scores, global_gene_level_pmces_ld_scores, global_gene_level_pmces_adj_ld_scores, global_gene_level_pmces_weights = compute_gene_level_ld_scores_for_single_gene(gene_tissue_model, genotype_obj, snpid_to_reference_index, regression_snp_id_to_regression_snp_position, global_gene_level_ld_scores, global_gene_level_adj_ld_scores, global_gene_level_pmces_ld_scores, global_gene_level_pmces_adj_ld_scores, global_gene_level_pmces_weights)
 	end_time = time.time()
 	#print(end_time-start_time)
 	start_time = end_time
@@ -476,6 +499,8 @@ np.savetxt(output_file3, global_gene_level_pmces_ld_scores, fmt="%s")
 output_file4 = gene_level_sldsc_output_root + pseudotissue_name + '_pmces_gene_adj_ld_scores'
 np.savetxt(output_file4, global_gene_level_pmces_adj_ld_scores, fmt="%s")
 
+output_file5 = gene_level_sldsc_output_root + pseudotissue_name + '_pmces_gene_weights'
+np.savetxt(output_file5, global_gene_level_pmces_weights, fmt="%s")
 
 
 

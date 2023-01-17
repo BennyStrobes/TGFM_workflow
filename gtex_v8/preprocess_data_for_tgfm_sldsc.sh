@@ -19,6 +19,7 @@ gene_type="${9}"
 
 num_chrom="22"
 
+#for chrom_num in $(seq 1 $(($num_chrom))); do 
 for chrom_num in $(seq 1 $(($num_chrom))); do 
 	echo $chrom_num
 

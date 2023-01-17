@@ -133,6 +133,8 @@ tgfm_sldsc_results_dir=$output_root"tgfm_sldsc_results/"
 
 visualize_tgfm_sldsc_dir=$output_root"visualize_tgfm_sldsc/"
 
+visualize_tgfm_dir=$output_root"visualize_tgfm/"
+
 
 ##################
 # Analysis
@@ -236,7 +238,7 @@ done
 fi
 
 if false; then
-sbatch organize_gene_ld_scores_for_tgfm_sldsc.sh $gtex_pseudotissue_file $preprocessed_tgfm_sldsc_data_dir $gene_type $gtex_susie_gene_models_dir
+sh organize_gene_ld_scores_for_tgfm_sldsc.sh $gtex_pseudotissue_file $preprocessed_tgfm_sldsc_data_dir $gene_type $gtex_susie_gene_models_dir
 fi
 
 ########################################
@@ -281,18 +283,35 @@ fi
 # Run TGFM
 ########################################
 gene_type="cis_heritable_genes"
+independent_trait_names_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt"
 num_jobs="5"
 if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated_minus_vol.txt" | while read trait_name study_file samp_size h2; do
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt" | while read trait_name study_file samp_size h2; do
 for job_number in $(seq 0 $(($num_jobs-1))); do
 	sbatch run_tgfm.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $tgfm_sldsc_results_dir $samp_size $gene_type $tgfm_results_dir $job_number $num_jobs
 done
 done
 fi
 
-
 # Organize TGFM results across parallel runs
-sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs
+if false; then
+sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt"
+fi
+
+########################################
+# Visualize results
+########################################
+if false; then
+source ~/.bash_profile
+module load R/3.5.1
+fi
+if false; then
+Rscript visualize_tgfm_results.R $independent_trait_names_file $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_dir
+fi
+
+
+
+
 
 
 ########################################

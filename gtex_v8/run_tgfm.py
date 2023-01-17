@@ -91,6 +91,23 @@ def get_credible_set_genes(phi_comp, cs_thresh):
 	cs_genes = np.asarray(cs_genes)
 	return cs_genes
 
+def extract_valid_joint_susie_components_from_full_ld(alpha_phi, beta_phi, full_ld, ld_thresh):
+	num_components = alpha_phi.shape[0]
+	valid_components = []
+
+	num_genes = alpha_phi.shape[1]
+	num_variants = beta_phi.shape[1]
+
+	for component_num in range(num_components):
+		cs_predictors = get_credible_set_genes(np.hstack((alpha_phi[component_num,:], beta_phi[component_num,:])), .95)
+		cs_genes = cs_predictors[cs_predictors < num_genes]
+		cs_variants = cs_predictors[cs_predictors >= num_genes] - num_genes
+
+		# absolute ld among genes and variants in credible set
+		if np.min(np.abs(full_ld[cs_predictors,:][:, cs_predictors])) > ld_thresh:
+			valid_components.append(component_num)
+
+	return valid_components
 
 def extract_valid_joint_susie_components(alpha_phi, beta_phi, alpha_ld, beta_ld, ld_thresh):
 	num_components = alpha_phi.shape[0]
@@ -128,7 +145,7 @@ def extract_middle_genetic_elements(ordered_genes, middle_gene_indices, ordered_
 	dicti = {}
 	for gene_name in ordered_genes[middle_gene_indices]:
 		dicti[gene_name] = 1
-	for variant_name in ordered_variants[middle_variant_indices]:
+	for variant_name in ordered_variants[middle_variant_indices.astype(int)]:
 		dicti[variant_name] = 1
 	return dicti
 
@@ -149,6 +166,16 @@ def get_ukbb_windows(window_input_data):
 		window_name = data[0] + ':' + data[1] + ':' + data[2]
 		window_names.append(window_name)
 	return np.asarray(window_names)
+
+def extract_full_gene_variant_ld(standardized_eqtl_effects, variant_ld):
+	expression_covariance = np.dot(np.dot(standardized_eqtl_effects, variant_ld), np.transpose(standardized_eqtl_effects))
+	dd = np.diag(1.0/np.sqrt(np.diag(expression_covariance)))
+	ge_ld = np.dot(np.dot(dd, expression_covariance),dd)
+	gene_variant_ld = np.dot(standardized_eqtl_effects,variant_ld) # Ngenes X n_variants
+	top = np.hstack((ge_ld, gene_variant_ld))
+	bottom = np.hstack((np.transpose(gene_variant_ld), variant_ld))
+	full_ld = np.vstack((top,bottom))
+	return full_ld
 
 
 #########################
@@ -215,6 +242,7 @@ ukbb_windows_parr = np.array_split(ukbb_windows, num_jobs)[job_number]
 for window_name in ukbb_windows_parr:
 	print(window_name)
 
+
 	# Load in data for this window
 	# Trait agnostic data
 	trait_agnostic_data_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_tgfm_trait_agnostic_data_obj.pkl'
@@ -275,6 +303,7 @@ for window_name in ukbb_windows_parr:
 		tgfm_data['susie_mu_sd'][g_index] = tgfm_data['susie_mu_sd'][g_index]/np.sqrt(gene_variance)
 	'''
 	#per_gene_eqtl_pmces = extract_per_gene_eqtl_pmces_from_susie_eqtl_data(tgfm_data['susie_mu'], tgfm_data['susie_alpha'], len(trait_agnostic_data['genes']))
+
 	if len(tgfm_data['genes']) == 0:
 		continue
 
@@ -284,15 +313,21 @@ for window_name in ukbb_windows_parr:
 	for g_index in range(len(tgfm_data['genes'])):
 		tgfm_data['gene_eqtl_pmces'][g_index] = tgfm_data['gene_eqtl_pmces'][g_index]/np.sqrt(gene_variances[g_index])
 
+	# Extract full ld between genes, variants, and gene-variants
+	gene_variant_full_ld = extract_full_gene_variant_ld(np.asarray(tgfm_data['gene_eqtl_pmces']), tgfm_data['reference_ld'])
 
 	# RUN TGFM
 	#tgfm_obj = tgfm.TGFM(estimate_prior_variance=True, init_pi=gene_pi_init, variant_init_pi=non_med_variant_pi_init, convergence_thresh=1e-7, max_iter=500)
 	tgfm_obj = tgfm.TGFM(estimate_prior_variance=True, init_pi=gene_pi_init, variant_init_pi=non_med_variant_pi_init, convergence_thresh=1e-5, max_iter=500)
 	tgfm_obj.fit(twas_data_obj=tgfm_data)
 
+
 	# Re-organize TGFM results to summary format
 	# Extract components that pass purity filter
-	valid_tgfm_components = extract_valid_joint_susie_components(tgfm_obj.alpha_phi_no_weights, tgfm_obj.beta_phi_no_weights, tgfm_obj.ge_ld, tgfm_data['reference_ld'], .5)
+	#valid_tgfm_components_old = extract_valid_joint_susie_components(tgfm_obj.alpha_phi_no_weights, tgfm_obj.beta_phi_no_weights, tgfm_obj.ge_ld, tgfm_data['reference_ld'], .5)
+	#valid_tgfm_components = extract_valid_joint_susie_components_from_full_ld(tgfm_obj.alpha_phi_no_weights, tgfm_obj.beta_phi_no_weights, gene_variant_full_ld, .5)
+	valid_tgfm_components = extract_valid_joint_susie_components_from_full_ld(tgfm_obj.alpha_phi, tgfm_obj.beta_phi, gene_variant_full_ld, .5)
+
 	# Extract names of genetic elements
 	genetic_element_names = np.hstack((tgfm_data['genes'], tgfm_data['variants']))
 	# Extract dictionary list of genetic elements in the middel of this window
