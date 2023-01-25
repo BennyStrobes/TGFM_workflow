@@ -18,7 +18,6 @@ import pandas as pd
 from subprocess import call
 from itertools import product
 import time, sys, traceback, argparse
-import pdb
 
 
 try:
@@ -513,12 +512,6 @@ parser.add_argument('--w-ld', default=None, type=str,
     help='Filename prefix for file with LD Scores with sum r^2 taken over SNPs included '
     'in the regression. LDSC will automatically append .l2.ldscore/.l2.ldscore.gz.')
 parser.add_argument('--w-ld-chr', default=None, type=str,
-    help='Same as --w-ld, but will read files split into 22 chromosomes in the same '
-    'manner as --ref-ld-chr.')
-parser.add_argument('--w-gene-chr', default=None, type=str,
-    help='Same as --w-ld, but will read files split into 22 chromosomes in the same '
-    'manner as --ref-ld-chr.')
-parser.add_argument('--bootstrap_window_file', default=None, type=str,
     help='Same as --w-ld, but will read files split into 22 chromosomes in the same '
     'manner as --ref-ld-chr.')
 parser.add_argument('--overlap-annot', default=False, action='store_true',

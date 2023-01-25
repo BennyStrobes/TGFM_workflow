@@ -59,7 +59,7 @@ class SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(object):
 
 
 			#if self.estimate_prior_variance and itera > 10000:
-			if self.estimate_prior_variance:
+			if self.estimate_prior_variance and self.iter > 80000:
 				#if self.estimate_prior_variance:
 				self.update_component_variances()
 
@@ -80,7 +80,7 @@ class SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(object):
 
 	def update_susie_effects(self, component_variances):
 		# Include effects of alpha
-		'''
+
 		eqtl_indicator = np.zeros(len(self.residual))
 		eqtl_indicator[self.random_coefficients] = eqtl_indicator[self.random_coefficients] + 1.0
 		self.residual = self.residual + eqtl_indicator*self.alpha_mu
@@ -91,7 +91,6 @@ class SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(object):
 		# Remove effects alpha
 		self.residual = self.residual - eqtl_indicator*self.alpha_mu
 	
-		'''		
 		# Include previously removed effects of beta
 		self.residual = self.residual + self.beta_mu
 	
@@ -106,7 +105,7 @@ class SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(object):
 
 		#self.beta_cov = np.linalg.inv(np.diag(coef_prior_precisions) + self.tau_cov_inv)
 		self.beta_cov = np.linalg.solve(np.diag(coef_prior_precisions) + self.tau_cov_inv, np.eye(self.tau_cov_inv.shape[0]))
-		self.beta_mu = np.dot(np.dot(self.beta_cov, self.tau_cov_inv), self.tau)
+		self.beta_mu = np.dot(np.dot(self.beta_cov, self.tau_cov_inv), self.residual)
 
 
 		# Remove effects of beta
@@ -142,11 +141,10 @@ class SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(object):
 		'''
 
 	def update_component_variances(self):
-		'''
 		expected_a_terms_shared = ((np.square(self.alpha_mu) + self.alpha_var)/2.0) + 1e-30
 		expected_b_terms_shared = (1.0/2.0) + 1e-30
 		self.shared_eqtl_variance = expected_a_terms_shared/expected_b_terms_shared
-		'''
+
 		if len(self.fixed_coefficients) > 0 and self.learn_fixed_variance:
 			fixed_a_term = (np.sum((np.square(self.beta_mu) + np.diag(self.beta_cov))[self.fixed_coefficients])/2.0) + 1e-16
 			fixed_b_term = (len(self.fixed_coefficients)/2.0) + 1e-16
@@ -183,16 +181,16 @@ class SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(object):
 		self.component_variances = np.ones(self.K)*1e10
 
 		# Fixed effect variance
-		self.fixed_effect_variance = 1.0
+		self.fixed_effect_variance = 1e10
 		#self.fixed_effect_variance = np.max(np.square(tau[self.fixed_coefficients])+ (np.diag(tau_cov)[self.fixed_coefficients]))*10
 
 		# Initialize variational distribution defining betas (the causal effects)
 		#self.beta_mu = np.zeros((self.K))
-		self.beta_mu = tau
+		self.beta_mu = tau*0.0
 		#self.beta_var = np.ones((self.K))
 		self.beta_cov = tau_cov
 
-		self.update_component_variances()
+		#self.update_component_variances()
 		#pdb.set_trace()
 
 		# Initialize parameter vector to keep of past rounds variables (for convergence purposes)
@@ -207,9 +205,9 @@ class SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(object):
 		self.tau_cov_inv = np.linalg.solve(tau_cov, np.eye(tau_cov.shape[0]))
 		###########
 		###########
-		#self.alpha_mu = 0.0
-		#self.alpha_var = 1.0
-		#self.shared_eqtl_variance = 1.0
+		self.alpha_mu = 0.0
+		self.alpha_var = 1.0
+		self.shared_eqtl_variance = 1.0
 		###########
 		###########
 

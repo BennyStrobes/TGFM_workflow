@@ -63,7 +63,7 @@ def extract_non_eqtl_annotations(anno_names):
 	non_eqtl_indices = []
 	eqtl_indices = []
 	for ii, anno_name in enumerate(anno_names):
-		if anno_name.endswith('L2'):
+		if anno_name.endswith('L2') or anno_name.startswith('intercept'):
 			non_eqtl_indices.append(ii)
 		else:
 			eqtl_indices.append(ii)
@@ -146,15 +146,25 @@ jacknifed_taus_file = sldsc_output_root + '.part_delete'
 jacknifed_taus = np.loadtxt(jacknifed_taus_file)
 
 # Load in Jacknifed intercept data
-jacknifed_intercept_file = sldsc_output_root + '.delete'
-pdb.set_trace()
+jacknifed_intercept_file = sldsc_output_root + '.intercept_delete'
+jacknifed_intercept = np.loadtxt(jacknifed_intercept_file)
 
 # Compute standardized jacknifed mean tau and covarianc
+annotation_sdev = annotation_sdev*300000.0
+annotation_sdev = (annotation_sdev*0.0 + 1.0)*300000.0
 standardized_jacknifed_taus = jacknifed_taus*annotation_sdev
+
+######################
+# Add intercept
+standardized_jacknifed_taus = np.hstack((jacknifed_intercept.reshape(len(jacknifed_intercept),1), standardized_jacknifed_taus))
+annotation_sdev = np.hstack([np.asarray([1.0]), annotation_sdev])
+annotation_names = np.hstack([np.asarray(['intercept']), annotation_names])
+anno_names = np.hstack([np.asarray(['intercept']), anno_names])
+######################
+
+
+
 jacknifed_tau_covariance, jacknifed_tau_mean = compute_jacknifed_covariance_matrix(standardized_jacknifed_taus)
-
-
-
 
 jacknifed_tau_z = jacknifed_tau_mean/np.sqrt(np.diag(jacknifed_tau_covariance))
 
@@ -164,8 +174,8 @@ non_eqtl_annotations, eqtl_annotations = extract_non_eqtl_annotations(anno_names
 eqtl_start_index = np.min(eqtl_annotations)
 
 # Jacknife expression mediated h2
-h2_med, h2_med_se = extract_expression_mediated_h2(jacknifed_taus, eqtl_start_index, m_vec)
-h2_5_50_med, h2_5_50_med_se = extract_expression_mediated_h2(jacknifed_taus, eqtl_start_index, m_5_50_vec)
+h2_med, h2_med_se = extract_expression_mediated_h2(jacknifed_taus, eqtl_start_index-1, m_vec)
+h2_5_50_med, h2_5_50_med_se = extract_expression_mediated_h2(jacknifed_taus, eqtl_start_index-1, m_5_50_vec)
 
 print_organized_h2_mediated(sldsc_output_root + 'h2_med.txt', h2_med, h2_med_se)
 print_organized_h2_mediated(sldsc_output_root + 'h2_5_50_med.txt', h2_5_50_med, h2_5_50_med_se)
@@ -189,16 +199,17 @@ print_organized_h2_mediated(sldsc_output_root + 'h2_5_50_med.txt', h2_5_50_med, 
 for reg_param in [5e-1]:
 	print(reg_param)
 	non_eqtl_annotations_include_intercept = np.hstack([non_eqtl_annotations])
-	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(max_iter=10000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
+	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(max_iter=210000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
 	sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=non_eqtl_annotations_include_intercept)
 	model_beta_mu = sparse_sldsc_obj.beta_mu
 	model_beta_var = np.diag(sparse_sldsc_obj.beta_cov)
 	print_organized_summary_file(sldsc_output_root + 'organized_' + str(reg_param) + '_sparse_ard_eqtl_coefficients_mv_update_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
 
-	eqtl_coef = (model_beta_mu/annotation_sdev)[eqtl_annotations]
+	#eqtl_coef = (model_beta_mu/annotation_sdev)[eqtl_annotations]
+	eqtl_coef=(model_beta_mu[eqtl_annotations] + sparse_sldsc_obj.alpha_mu)/annotation_sdev[eqtl_annotations]
 	print(np.sort(eqtl_coef))
 	print(anno_names[eqtl_annotations][np.argsort(eqtl_coef)])
-
+	pdb.set_trace()
 
 	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(max_iter=20000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
 	sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=np.asarray([]))
