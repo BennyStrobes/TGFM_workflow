@@ -60,13 +60,18 @@ ldsc_baseline_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Pha
 # Ldscore regression code
 ldsc_code_dir="/n/groups/price/ben/tools/ldsc/"
 
+# Mod-ldscore regression code
+curr_dir=`pwd`
+mod_ldsc_code_dir=$curr_dir"/modified_sldsc/"
+
 # Summary statistics
 full_sumstat_dir="/n/groups/price/ldsc/sumstats_formatted_2021/"
 
 # hg38 sldsc weights
 sldsc_h38_weights_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/weights/"
 
-
+# Directory containing quasi-independent ld bllocks
+quasi_independent_dir="/n/groups/price/ben/quasi_independent_ld_blocks/"
 
 
 ##################
@@ -74,9 +79,14 @@ sldsc_h38_weights_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg3
 ##################
 # Output root directory
 output_root="/n/scratch3/users/b/bes710/causal_eqtl_gwas/gtex/"
+perm_output_root="/n/groups/price/ben/causal_eqtl_gwas/gtex_v8/"
 
 # Directory containing hg38 ukbb summary stats
 ukbb_sumstats_hg38_dir="/n/groups/price/ben/causal_eqtl_gwas/gtex_v8_causal_eqtl_gwas_38_tissues/ukbb_sumstats_hg38/"
+
+
+# Directory containing hg38 ukbb summary stats
+quasi_independent_ld_blocks_hg38_dir=$output_root"quasi_independent_ld_blocks_hg38/"
 
 # Directory containing misc. items
 misc_dir=$output_root"misc/"
@@ -97,7 +107,7 @@ gtex_processed_genotype_dir=$output_root"gtex_processed_genotype/"
 gtex_pseudotissue_gene_model_input_dir=$output_root"gtex_pseudotissue_gene_model_input/"
 
 # Directory containing GTEx Susie gene models
-gtex_susie_gene_models_dir=$output_root"gtex_susie_gene_models/"
+gtex_susie_gene_models_dir=$perm_output_root"gtex_susie_gene_models/"
 
 # Directory containing preprocessed TGFM data
 preprocessed_tgfm_data_dir=$output_root"preprocessed_tgfm_data/"
@@ -145,6 +155,13 @@ visualize_tgfm_dir=$output_root"visualize_tgfm/"
 ########################################
 if false; then
 sbatch liftover_ukbb_summary_statistics_from_hg19_to_hg38.sh $liftover_directory $ukbb_sumstats_hg19_dir $ukbb_sumstats_hg38_dir
+fi
+
+########################################
+# Liftover quasi-independent ld blocks to hg38
+########################################
+if false; then
+sh liftover_quasi_independent_ld_blocks_to_hg38.sh $liftover_directory $quasi_independent_dir $quasi_independent_ld_blocks_hg38_dir
 fi
 
 ########################################
@@ -219,15 +236,15 @@ sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample
 done
 fi
 
-
 ########################################
 # Preprocess data for TGFM-S-LDSC
 ########################################
-gene_type="cis_heritable_gene"
 if false; then
-sbatch preprocess_data_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $gene_type
+sbatch preprocess_data_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir
 fi
 
+# Cis heritable genes
+gene_type="cis_heritable_gene"
 if false; then
 sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample_repeat composit_tissue_string; do
 	chromosome_group="odd"
@@ -236,21 +253,36 @@ sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample
 	sbatch preprocess_gene_ld_scores_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $pseudotissue_name $chromosome_group $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $gene_type
 done
 fi
-
 if false; then
-sh organize_gene_ld_scores_for_tgfm_sldsc.sh $gtex_pseudotissue_file $preprocessed_tgfm_sldsc_data_dir $gene_type $gtex_susie_gene_models_dir
+sbatch organize_gene_ld_scores_for_tgfm_sldsc.sh $gtex_pseudotissue_file $preprocessed_tgfm_sldsc_data_dir $gene_type $gtex_susie_gene_models_dir
 fi
+
+
+# Only components of genes
+gene_type="component_gene"
+if false; then
+sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample_repeat composit_tissue_string; do
+	chromosome_group="odd"
+	sbatch preprocess_gene_ld_scores_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $pseudotissue_name $chromosome_group $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $gene_type
+	chromosome_group="even"
+	sbatch preprocess_gene_ld_scores_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $pseudotissue_name $chromosome_group $gtex_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $gene_type
+done
+fi
+if false; then
+sbatch organize_gene_ld_scores_for_tgfm_sldsc.sh $gtex_pseudotissue_file $preprocessed_tgfm_sldsc_data_dir $gene_type $gtex_susie_gene_models_dir
+fi
+
 
 ########################################
 # Run TGFM-S-LDSC
 ########################################
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
-	echo $trait_name
-	sbatch run_tgfm_sldsc.sh $preprocessed_tgfm_sldsc_data_dir $full_sumstat_dir $ldsc_code_dir $sldsc_h38_weights_dir $ref_1kg_genotype_dir $tgfm_sldsc_results_dir $trait_name
+	sbatch run_tgfm_sldsc.sh $preprocessed_tgfm_sldsc_data_dir $full_sumstat_dir $ldsc_code_dir $sldsc_h38_weights_dir $ref_1kg_genotype_dir $tgfm_sldsc_results_dir $trait_name $mod_ldsc_code_dir $quasi_independent_ld_blocks_hg38_dir
 done
 fi
-
+trait_name="blood_MEAN_PLATELET_VOL"
+sh run_tgfm_sldsc.sh $preprocessed_tgfm_sldsc_data_dir $full_sumstat_dir $ldsc_code_dir $sldsc_h38_weights_dir $ref_1kg_genotype_dir $tgfm_sldsc_results_dir $trait_name $mod_ldsc_code_dir $quasi_independent_ld_blocks_hg38_dir
 
 ########################################
 # Preprocess data for TGFM
@@ -305,6 +337,10 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
+if false; then
+Rscript visualize_tgfm_sldsc_results.R $independent_trait_names_file $tgfm_sldsc_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_sldsc_dir
+fi
+
 if false; then
 Rscript visualize_tgfm_results.R $independent_trait_names_file $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_dir
 fi

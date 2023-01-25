@@ -15,6 +15,7 @@ import jackknife as jk
 from irwls import IRWLS
 from scipy.stats import t as tdist
 from collections import namedtuple
+import pdb
 np.seterr(divide='raise', invalid='raise')
 
 s = lambda x: remove_brackets(str(np.matrix(x)))
@@ -139,7 +140,7 @@ def h2_obs_to_liab(h2_obs, P, K):
 
 class LD_Score_Regression(object):
 
-    def __init__(self, y, x, w, N, M, n_blocks, intercept=None, slow=False, step1_ii=None, old_weights=False):
+    def __init__(self, y, x, w, N, M, n_blocks, w_gene, window_seperators, intercept=None, slow=False, step1_ii=None, old_weights=False):
         for i in [y, x, w, M, N]:
             try:
                 if len(i.shape) != 2:
@@ -153,15 +154,15 @@ class LD_Score_Regression(object):
                 'N, weights and response (z1z2 or chisq) must have shape (n_snp, 1).')
         if M.shape != (1, self.n_annot):
             raise ValueError('M must have shape (1, n_annot).')
-
         M_tot = float(np.sum(M))
         x_tot = np.sum(x, axis=1).reshape((n_snp, 1))
         self.constrain_intercept = intercept is not None
         self.intercept = intercept
         self.n_blocks = n_blocks
         tot_agg = self.aggregate(y, x_tot, N, M_tot, intercept)
+        n_genes = 151236.0
         initial_w = self._update_weights(
-            x_tot, w, N, M_tot, tot_agg, intercept)
+            x_tot, w, N, M_tot, tot_agg, w_gene, n_genes, intercept)
         Nbar = np.mean(N)  # keep condition number low
         x = np.multiply(N, x) / Nbar
         if not self.constrain_intercept:
@@ -205,7 +206,7 @@ class LD_Score_Regression(object):
             initial_w = np.sqrt(initial_w)
             x = IRWLS._weight(x, initial_w)
             y = IRWLS._weight(yp, initial_w)
-            jknife = jk.LstsqJackknifeFast(x, y, n_blocks)
+            jknife = jk.LstsqJackknifeFast(x, y, n_blocks, separators=window_seperators)
         else:
             update_func = lambda a: self._update_func(
                 a, x_tot, w, N, M_tot, Nbar, intercept)
@@ -215,16 +216,13 @@ class LD_Score_Regression(object):
         self.coef, self.coef_cov, self.coef_se = self._coef(jknife, Nbar)
         self.cat, self.cat_cov, self.cat_se =\
             self._cat(jknife, M, Nbar, self.coef, self.coef_cov)
-
         self.tot, self.tot_cov, self.tot_se = self._tot(self.cat, self.cat_cov)
         self.prop, self.prop_cov, self.prop_se =\
             self._prop(jknife, M, Nbar, self.cat, self.tot)
-
         self.enrichment, self.M_prop = self._enrichment(
             M, M_tot, self.cat, self.tot)
         if not self.constrain_intercept:
             self.intercept, self.intercept_se = self._intercept(jknife)
-
         self.jknife = jknife
         self.tot_delete_values = self._delete_vals_tot(jknife, Nbar, M)
         self.part_delete_values = self._delete_vals_part(jknife, Nbar, M)
@@ -337,12 +335,12 @@ class Hsq(LD_Score_Regression):
 
     __null_intercept__ = 1
 
-    def __init__(self, y, x, w, N, M, n_blocks=200, intercept=None, slow=False, twostep=None, old_weights=False):
+    def __init__(self, y, x, w, N, M, n_blocks, w_gene_ld, window_seperators, intercept=None, slow=False, twostep=None, old_weights=False):
         step1_ii = None
         if twostep is not None:
             step1_ii = y < twostep
 
-        LD_Score_Regression.__init__(self, y, x, w, N, M, n_blocks, intercept=intercept,
+        LD_Score_Regression.__init__(self, y, x, w, N, M, n_blocks, w_gene_ld, window_seperators, intercept=intercept,
                                      slow=slow, step1_ii=step1_ii, old_weights=old_weights)
         self.mean_chisq, self.lambda_gc = self._summarize_chisq(y)
         if not self.constrain_intercept:
@@ -488,14 +486,14 @@ class Hsq(LD_Score_Regression):
 
         return remove_brackets('\n'.join(out))
 
-    def _update_weights(self, ld, w_ld, N, M, hsq, intercept, ii=None):
+    def _update_weights(self, ld, w_ld, N, M, hsq, w_gene, n_genes, intercept, ii=None):
         if intercept is None:
             intercept = self.__null_intercept__
 
-        return self.weights(ld, w_ld, N, M, hsq, intercept, ii)
+        return self.weights(ld, w_ld, N, M, hsq, w_gene, n_genes, intercept, ii)
 
     @classmethod
-    def weights(cls, ld, w_ld, N, M, hsq, intercept=None, ii=None):
+    def weights(cls, ld, w_ld, N, M, hsq, w_gene, n_genes, intercept=None, ii=None):
         '''
         Regression weights.
 
@@ -529,6 +527,9 @@ class Hsq(LD_Score_Regression):
         ld = np.fmax(ld, 1.0)
         w_ld = np.fmax(w_ld, 1.0)
         c = hsq * N / M
+        gene_c = hsq*.1*N/n_genes
+        #var_plus_cov = np.square(gene_c)*w_gene + np.square(intercept + np.multiply(c, ld))
+        #het_w = 1.0 / (2 * var_plus_cov)
         het_w = 1.0 / (2 * np.square(intercept + np.multiply(c, ld)))
         oc_w = 1.0 / w_ld
         w = np.multiply(het_w, oc_w)

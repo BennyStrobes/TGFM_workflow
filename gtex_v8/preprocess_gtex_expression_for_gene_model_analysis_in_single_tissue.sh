@@ -30,10 +30,10 @@ python3 preprocess_gtex_data_for_fusion_weights_analysis.py $tissue_name $xt_pc_
 
 
 
-
 tissue_gtex_genotype_data_dir=$gtex_processed_genotype_dir$tissue_name"/"
 mkdir $tissue_gtex_genotype_data_dir
 
 for chrom_num in $(seq 1 22); do 
+	echo $chrom_num
 	sh filter_gtex_variants_to_those_in_ukbb.sh $chrom_num $tissue_name $gtex_genotype_dir $ukbb_preprocessed_for_genome_wide_susie_dir $tissue_gtex_genotype_data_dir
 done

@@ -17,6 +17,7 @@ import traceback
 import copy
 import os
 import glob
+import pdb
 
 
 _N_CHR = 22
@@ -237,6 +238,21 @@ def _merge_and_log(ld, sumstats, noun, log):
 
     return sumstats
 
+def _read_w_gene_ld(args):
+    gene_weights = []
+    snp_ids = []
+    for chrom_num in range(1,23):
+        filer = args.w_gene_chr + str(chrom_num) + '.gene_weights'
+        tmp_data = np.loadtxt(filer,dtype=str, delimiter='\t')
+        snp_ids.append(tmp_data[1:,1])
+        gene_weights.append(tmp_data[1:,3].astype(float))
+    snp_ids=np.hstack(snp_ids)
+    gene_weights=np.hstack(gene_weights)
+
+    ddd = {'SNP': snp_ids, 'gene_weight': gene_weights}
+    df = pd.DataFrame(data=ddd)
+    return df
+
 
 def _read_ld_sumstats(args, log, fh, alleles=False, dropna=True):
     sumstats = _read_sumstats(args, log, fh, alleles=alleles, dropna=dropna)
@@ -245,11 +261,14 @@ def _read_ld_sumstats(args, log, fh, alleles=False, dropna=True):
     M_annot = _read_M(args, log, n_annot)
     M_annot, ref_ld, novar_cols = _check_variance(log, M_annot, ref_ld)
     w_ld = _read_w_ld(args, log)
+    w_gene_ld = _read_w_gene_ld(args)
     sumstats = _merge_and_log(ref_ld, sumstats, 'reference panel LD', log)
     sumstats = _merge_and_log(sumstats, w_ld, 'regression SNP LD', log)
-    w_ld_cname = sumstats.columns[-1]
+    sumstats = _merge_and_log(sumstats, w_gene_ld, 'regression gene LD', log)
+    w_ld_cname = sumstats.columns[-2]
+    w_gene_ld_cname = sumstats.columns[-1]
     ref_ld_cnames = ref_ld.columns[1:len(ref_ld.columns)]
-    return M_annot, w_ld_cname, ref_ld_cnames, sumstats, novar_cols
+    return M_annot, w_ld_cname, ref_ld_cnames, sumstats, novar_cols, w_gene_ld_cname
 
 def cell_type_specific(args, log):
     '''Cell type specific analysis'''
@@ -311,6 +330,89 @@ def cell_type_specific(args, log):
     df_results.to_csv(args.out+'.cell_type_results.txt', sep='\t', index=False)
     log.log('Results printed to '+args.out+'.cell_type_results.txt')
 
+def get_snp_position(args, ordered_snps):
+    n_snps = len(ordered_snps)
+    mapping = {}
+    for ii_iter, ordered_snp in enumerate(ordered_snps):
+        mapping[ordered_snp] = ii_iter
+
+
+    snp_chroms = np.zeros(n_snps)
+    snp_positions = np.zeros(n_snps)
+    counter = 0
+    used = {}
+    for chrom_num in range(1,23):
+        filer = args.ref_ld_chr + str(chrom_num) + '.l2.ldscore'
+        f = open(filer)
+        head_count = 0
+        for line in f:
+            line = line.rstrip()
+            data = line.split('\t')
+            if head_count == 0:
+                head_count = head_count + 1
+                continue
+            rs_id = data[1]
+            if rs_id in used:
+                print('assumption eroror')
+                pdb.set_trace()
+            if rs_id in mapping:
+                indexer = mapping[rs_id]
+                snp_chroms[indexer] = float(data[0])
+                snp_positions[indexer] = float(data[2])
+                counter = counter + 1
+                used[rs_id] = 1
+        f.close()
+    if counter != n_snps:
+        print('assumption erororo')
+        pdb.set_trace()
+    return np.asarray(snp_chroms), np.asarray(snp_positions)
+
+def extract_bootstrap_window_seperators(bootstrap_window_file, snp_chromosomes, snp_positions):
+    # Seperators refers to snps
+    seperators = []
+    # Create snp indices array
+    n_snps = len(snp_chromosomes)
+    snp_indices = np.arange(n_snps)
+    #f = open(bootstrap_window_file)
+    # Previous end index
+    seperators.append(0)
+    prev_window_snp_end_index = 0
+    prev_chrom = -1.0
+    bs_window_data = np.loadtxt(bootstrap_window_file, dtype=str)
+    n_windows = bs_window_data.shape[0]
+    for window_iter in range(n_windows):
+        data = bs_window_data[window_iter,:]
+        window_chrom = float(data[0].split('hr')[1])
+        window_start = int(data[1])
+        window_end = int(data[2])
+        # First window on a chromosome
+        if prev_chrom != window_chrom:
+            window_start = 0.0
+            prev_chrom = window_chrom
+        # Last window on a chromosome
+        if window_iter == (n_windows-1) or bs_window_data[window_iter, 0] != bs_window_data[(window_iter+1), 0]:
+            window_end=1e9
+
+        window_bool = (window_chrom==snp_chromosomes)&(snp_positions>=window_start)&(snp_positions<window_end)
+        if np.sum(window_bool) == 0:
+            continue
+        window_snp_indices = snp_indices[window_bool]
+        window_snp_start_index = np.min(window_snp_indices)
+        window_snp_end_index = np.max(window_snp_indices)
+
+        # Error checking
+        if prev_window_snp_end_index != window_snp_start_index:
+            print('assumption erororo')
+            pdb.set_trace()
+        prev_window_snp_end_index = window_snp_end_index + 1
+        if np.array_equal(np.arange(window_snp_start_index, window_snp_end_index+1), window_snp_indices) == False:
+            print('assumptoin erororo')
+            pdb.set_trace()
+        seperators.append(window_snp_end_index+1)
+    seperators = np.asarray(seperators)
+    if seperators[-1] != n_snps:
+        print('assumption erroro')
+    return seperators
 
 def estimate_h2(args, log):
     '''Estimate h2 and partitioned h2.'''
@@ -322,8 +424,10 @@ def estimate_h2(args, log):
         args.intercept_h2 = float(args.intercept_h2)
     if args.no_intercept:
         args.intercept_h2 = 1
-    M_annot, w_ld_cname, ref_ld_cnames, sumstats, novar_cols = _read_ld_sumstats(
+    M_annot, w_ld_cname, ref_ld_cnames, sumstats, novar_cols, w_gene_ld_cname = _read_ld_sumstats(
         args, log, args.h2)
+    snp_chromosomes, snp_positions = get_snp_position(args, np.asarray(sumstats['SNP']))
+
     ref_ld = np.array(sumstats[ref_ld_cnames])
     _check_ld_condnum(args, log, ref_ld_cnames)
     _warn_length(log, sumstats)
@@ -351,12 +455,28 @@ def estimate_h2(args, log):
         ref_ld = np.array(sumstats[ref_ld_cnames])
         chisq = chisq[ii].reshape((n_snp, 1))
 
+        snp_chromosomes = snp_chromosomes[ii]
+        snp_positions = snp_positions[ii]
+
     if args.two_step is not None:
         log.log('Using two-step estimator with cutoff at {M}.'.format(M=args.two_step))
 
+    if args.bootstrap_window_file is not None:
+        window_seperators = extract_bootstrap_window_seperators(args.bootstrap_window_file, snp_chromosomes, snp_positions)
+    else:
+        window_seperators = None
+
+
     hsqhat = reg.Hsq(chisq, ref_ld, s(sumstats[w_ld_cname]), s(sumstats.N),
-                     M_annot, n_blocks=n_blocks, intercept=args.intercept_h2,
+                     M_annot, n_blocks, s(sumstats[w_gene_ld_cname]), window_seperators, intercept=args.intercept_h2,
                      twostep=args.two_step, old_weights=old_weights)
+
+
+    coef_est = hsqhat.jknife.jknife_est/np.mean(sumstats.N)
+    #pdb.set_trace()
+    np.savetxt(args.out + 'coef_estimate.txt', coef_est, fmt="%s", delimiter='\n')
+    coef_cov_est = hsqhat.jknife.jknife_cov/np.square(np.mean(sumstats.N))
+    np.savetxt(args.out + 'coef_cov_estimate.txt', coef_cov_est, fmt="%s", delimiter='\t')
 
     if args.print_cov:
         _print_cov(hsqhat, args.out + '.cov', log)

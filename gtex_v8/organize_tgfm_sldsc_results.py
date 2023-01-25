@@ -9,6 +9,7 @@ from sparse_sldsc_from_multivariate_summary_statistics import SPARSE_SLDSC
 from sparse_sldsc_from_multivariate_summary_statistics_with_some_fixed_effects import SPARSE_SLDSC_SOME_FIXED
 from sparse_sldsc_from_multivariate_summary_statistics_fixed_genotype import SPARSE_SLDSC_FIXED_TERM
 from sparse_sldsc_from_multivariate_summary_statistics_ard_with_some_fixed_effects import SPARSE_SLDSC_ARD_SOME_FIXED
+from sparse_sldsc_from_multivariate_summary_statistics_ard_with_some_fixed_effects_mv_updates import SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES
 
 
 def get_anno_names(example_anno_file):
@@ -50,6 +51,11 @@ def compute_jacknifed_covariance_matrix(jacknifed_taus):
 	num_jacknife_samples = jacknifed_taus.shape[0]
 
 	jacknifed_cov = np.dot(np.transpose(diff),diff)*(num_jacknife_samples-1.0)/num_jacknife_samples
+
+	#from sklearn.covariance import GraphicalLassoCV, ledoit_wolf
+	#X = diff*(num_jacknife_samples-1.0)
+	#model = GraphicalLassoCV(max_iter=3000)
+	#model.fit(X)
 
 	return jacknifed_cov, jacknife_mean
 
@@ -139,9 +145,17 @@ annotation_names, annotation_sdev = load_in_annotation_sdev_data(annotation_sd_f
 jacknifed_taus_file = sldsc_output_root + '.part_delete'
 jacknifed_taus = np.loadtxt(jacknifed_taus_file)
 
-# Compute standardized jacknifed mean tau and covariance
+# Load in Jacknifed intercept data
+jacknifed_intercept_file = sldsc_output_root + '.delete'
+pdb.set_trace()
+
+# Compute standardized jacknifed mean tau and covarianc
 standardized_jacknifed_taus = jacknifed_taus*annotation_sdev
 jacknifed_tau_covariance, jacknifed_tau_mean = compute_jacknifed_covariance_matrix(standardized_jacknifed_taus)
+
+
+
+
 jacknifed_tau_z = jacknifed_tau_mean/np.sqrt(np.diag(jacknifed_tau_covariance))
 
 
@@ -156,12 +170,75 @@ h2_5_50_med, h2_5_50_med_se = extract_expression_mediated_h2(jacknifed_taus, eqt
 print_organized_h2_mediated(sldsc_output_root + 'h2_med.txt', h2_med, h2_med_se)
 print_organized_h2_mediated(sldsc_output_root + 'h2_5_50_med.txt', h2_5_50_med, h2_5_50_med_se)
 
+
+# TEMP HACK
+#jacknifed_tau_mean2 = np.loadtxt(sldsc_output_root + 'coef_estimate.txt')
+#jacknifed_tau_covariance2 = np.loadtxt(sldsc_output_root + 'coef_cov_estimate.txt')
+#annotation_sdev_full = np.hstack((annotation_sdev, [1]))
+#jacknifed_tau_mean2 = jacknifed_tau_mean2*annotation_sdev_full
+#jacknifed_tau_covariance2 = np.dot(np.dot(np.diag(annotation_sdev_full), jacknifed_tau_covariance2), np.diag(annotation_sdev_full))
+
+
+# Susie sparse updates
+#sparse_sldsc_obj = SPARSE_SLDSC_SOME_FIXED(max_iter=20000, L=10)
+#sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=non_eqtl_annotations)
+
+#################
+# Multivariate updates (MV) UPDATES ACROSS range of Regularization parameters
+#for reg_param in [1e-2, 1e-1, 5e-1, 1.0, 2.0, 5.0, 10.0]:
+for reg_param in [5e-1]:
+	print(reg_param)
+	non_eqtl_annotations_include_intercept = np.hstack([non_eqtl_annotations])
+	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(max_iter=10000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
+	sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=non_eqtl_annotations_include_intercept)
+	model_beta_mu = sparse_sldsc_obj.beta_mu
+	model_beta_var = np.diag(sparse_sldsc_obj.beta_cov)
+	print_organized_summary_file(sldsc_output_root + 'organized_' + str(reg_param) + '_sparse_ard_eqtl_coefficients_mv_update_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
+
+	eqtl_coef = (model_beta_mu/annotation_sdev)[eqtl_annotations]
+	print(np.sort(eqtl_coef))
+	print(anno_names[eqtl_annotations][np.argsort(eqtl_coef)])
+
+
+	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(max_iter=20000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
+	sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=np.asarray([]))
+	model_beta_mu = sparse_sldsc_obj.beta_mu
+	model_beta_var = np.diag(sparse_sldsc_obj.beta_cov)
+	print_organized_summary_file(sldsc_output_root + 'organized_' + str(reg_param) + '_sparse_ard_all_coefficients_mv_update_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
+
+
+
+
+
+'''
+# Univariate UPDATES ACROSS range of Regularization parameters
+for reg_param in [1e-20, 1e-2, 1e-1, 1.0, 2.0, 5.0, 10.0, 50.0]:
+	print(reg_param)
+	non_eqtl_annotations_include_intercept = np.hstack([non_eqtl_annotations,[131]])
+	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED(max_iter=30000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
+	sparse_sldsc_obj.fit(tau=jacknifed_tau_mean2, tau_cov=jacknifed_tau_covariance2, fixed_coefficients=non_eqtl_annotations_include_intercept)
+	model_beta_mu = np.hstack((sparse_sldsc_obj.fixed_beta_mu[:-1], sparse_sldsc_obj.beta_mu))
+	model_beta_var = np.hstack((sparse_sldsc_obj.fixed_beta_var[:-1], sparse_sldsc_obj.beta_var))
+	print_organized_summary_file(sldsc_output_root + 'organized_' + str(reg_param) + '_sparse_ard_eqtl_coefficients_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
+
+
+	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED(max_iter=30000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
+	sparse_sldsc_obj.fit(tau=jacknifed_tau_mean2, tau_cov=jacknifed_tau_covariance2, fixed_coefficients=np.asarray([131]))
+	print_organized_summary_file(sldsc_output_root + 'organized_' + str(reg_param) + '_sparse_ard_all_coefficients_res.txt', anno_names, sparse_sldsc_obj.beta_mu/annotation_sdev, np.sqrt(sparse_sldsc_obj.beta_var)/annotation_sdev)
+'''
+
+
+'''
 sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED(max_iter=40000, L=10, nonneg=False, nonneg_int=eqtl_start_index)
 sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=non_eqtl_annotations)
 model_beta_mu = np.hstack((sparse_sldsc_obj.fixed_beta_mu, sparse_sldsc_obj.beta_mu))
 model_beta_var = np.hstack((sparse_sldsc_obj.fixed_beta_var, sparse_sldsc_obj.beta_var))
+print(np.sort((model_beta_mu/annotation_sdev)[eqtl_annotations]))
+print(anno_names[eqtl_annotations][np.argsort((model_beta_mu/annotation_sdev)[eqtl_annotations])])
+pdb.set_trace()
 print_organized_summary_file(sldsc_output_root + 'organized_sparse_ard_no_geno_regularization_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
-
+'''
+'''
 sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED(max_iter=20000, L=10, nonneg=True, nonneg_int=-1.0)
 sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=non_eqtl_annotations)
 model_beta_mu = np.hstack((sparse_sldsc_obj.fixed_beta_mu, sparse_sldsc_obj.beta_mu))
@@ -177,3 +254,4 @@ print_organized_summary_file(sldsc_output_root + 'organized_sparse_nonneg_ard_re
 sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED(max_iter=20000, L=10, nonneg=False)
 sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=np.asarray([]))
 print_organized_summary_file(sldsc_output_root + 'organized_sparse_ard_res.txt', anno_names, sparse_sldsc_obj.beta_mu/annotation_sdev, np.sqrt(sparse_sldsc_obj.beta_var)/annotation_sdev)
+'''
