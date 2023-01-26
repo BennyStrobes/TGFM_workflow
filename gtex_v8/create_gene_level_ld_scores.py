@@ -299,14 +299,14 @@ def compute_gene_level_ld_scores_for_single_gene(gene_tissue_model, ref_genotype
 	#window_gene_ld_scores_corr, window_adj_ld_scores_corr = extract_ld_annotations_for_this_gene_region_with_sample_correlation(np.sum(window_susie_mu*window_susie_alpha,axis=0), G_window_geno,  window_regression_snp_indices, n_ref_panel_samples)
 
 	# Extract gene regression weights
-	window_gene_regression_weights_pe = extract_gene_regression_weights_for_this_gene_region_with_eqtl_point_estimate(G_window_ld, gene_pmces, window_regression_snp_indices, n_ref_panel_samples)
+	#window_gene_regression_weights_pe = extract_gene_regression_weights_for_this_gene_region_with_eqtl_point_estimate(G_window_ld, gene_pmces, window_regression_snp_indices, n_ref_panel_samples)
 
 	# Add updates to global array
 	#global_gene_level_ld_scores[global_regression_snp_positions] = global_gene_level_ld_scores[global_regression_snp_positions] + window_gene_ld_scores
 	#global_gene_level_adj_ld_scores[global_regression_snp_positions] = global_gene_level_adj_ld_scores[global_regression_snp_positions] + window_adj_ld_scores
 	global_gene_level_pmces_ld_scores[global_regression_snp_positions] = global_gene_level_pmces_ld_scores[global_regression_snp_positions] + window_gene_ld_scores_pe
 	global_gene_level_pmces_adj_ld_scores[global_regression_snp_positions] = global_gene_level_pmces_adj_ld_scores[global_regression_snp_positions] + window_adj_ld_scores_pe
-	global_gene_level_pmces_weights[global_regression_snp_positions] = global_gene_level_pmces_weights[global_regression_snp_positions] + window_gene_regression_weights_pe
+	#global_gene_level_pmces_weights[global_regression_snp_positions] = global_gene_level_pmces_weights[global_regression_snp_positions] + window_gene_regression_weights_pe
 
 	return global_gene_level_pmces_ld_scores, global_gene_level_pmces_adj_ld_scores, global_gene_level_pmces_weights
 
@@ -502,8 +502,8 @@ np.savetxt(output_file3, global_gene_level_pmces_ld_scores, fmt="%s")
 output_file4 = gene_level_sldsc_output_root + pseudotissue_name + '_' + gene_type + '_pmces_gene_adj_ld_scores'
 np.savetxt(output_file4, global_gene_level_pmces_adj_ld_scores, fmt="%s")
 
-output_file5 = gene_level_sldsc_output_root + pseudotissue_name + '_' + gene_type + '_pmces_gene_weights'
-np.savetxt(output_file5, global_gene_level_pmces_weights, fmt="%s")
+#output_file5 = gene_level_sldsc_output_root + pseudotissue_name + '_' + gene_type + '_pmces_gene_weights'
+#np.savetxt(output_file5, global_gene_level_pmces_weights, fmt="%s")
 
 
 

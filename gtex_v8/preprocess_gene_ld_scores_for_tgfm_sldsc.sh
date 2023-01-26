@@ -23,7 +23,6 @@ source ~/.bash_profile
 echo $pseudotissue_name
 echo $chromosome_group
 
-
 num_chrom="22"
 for chrom_num in $(seq 1 $(($num_chrom))); do 
 	# Residual (used to calculate even vs odd)

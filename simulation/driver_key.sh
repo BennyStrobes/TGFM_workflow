@@ -18,13 +18,13 @@ ukbb_genotype_dir="/n/scratch3/users/j/jz286/imp_geno/"
 ldsc_weights_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/weights/"
 
 # LDSC baseline annotations (hg19)
-ldsc_baseline_ld_hg19_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/baseline_v1.2/"
+ldsc_baseline_hg19_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/baseline_v1.2/"
 
 # LDSC baselineLD annotations (hg19)
 ldsc_baseline_ld_hg19_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/baselineLD_v2.2/"
 
 # LDSC 1KG genotype files (hg19)
-ldsc_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/plink_files/"
+kg_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/plink_files/"
 
 
 
@@ -48,3 +48,35 @@ processed_genotype_data_dir=$temp_output_root"processed_genotype/"
 ############################
 # Number of simulated individuals in GWAS
 n_gwas_individuals="100000"
+
+
+
+
+
+
+
+
+
+############################
+# Prepare genotype data for analysis:
+## 1. Filter number of individuals in original data
+## 2. Filter sites to be those in LDSC annotation file
+## 3. Convert to plink bed files
+############################
+chrom_num="21"
+if false; then
+sh prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir
+fi
+
+
+
+
+
+
+
+
+
+
+
+
+

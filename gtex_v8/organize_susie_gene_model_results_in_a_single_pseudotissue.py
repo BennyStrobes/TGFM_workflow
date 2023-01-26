@@ -275,19 +275,19 @@ gene_summary_file = gtex_pseudotissue_gene_model_input_dir + pseudotissue_name +
 
 # Generate pos file with only component genes
 gene_component_pos_file = pseudotissue_gene_model_dir + pseudotissue_name + '_component_gene_pos_file.txt'
-#generate_component_gene_pos_file(gene_summary_file, gene_component_pos_file, pseudotissue_gene_model_dir, pseudotissue_name)
+generate_component_gene_pos_file(gene_summary_file, gene_component_pos_file, pseudotissue_gene_model_dir, pseudotissue_name)
 
 # Generate pos file with only cis-heritable genes
 cis_heritable_pos_file = pseudotissue_gene_model_dir + pseudotissue_name + '_cis_heritable_gene_pos_file.txt'
-#generate_cis_heritable_gene_pos_file(gene_summary_file, cis_heritable_pos_file, pseudotissue_gene_model_dir, pseudotissue_name)
+generate_cis_heritable_gene_pos_file(gene_summary_file, cis_heritable_pos_file, pseudotissue_gene_model_dir, pseudotissue_name)
 
 
 # Generate pos file with only all genes
 all_nonzero_pos_file = pseudotissue_gene_model_dir + pseudotissue_name + '_all_non_zero_gene_pos_file.txt'
-generate_all_nonzero_gene_pos_file(gene_summary_file, all_nonzero_pos_file, pseudotissue_gene_model_dir, pseudotissue_name)
+#generate_all_nonzero_gene_pos_file(gene_summary_file, all_nonzero_pos_file, pseudotissue_gene_model_dir, pseudotissue_name)
 
 all_pos_file = pseudotissue_gene_model_dir + pseudotissue_name + '_all_gene_pos_file.txt'
-generate_all_gene_pos_file(gene_summary_file, all_pos_file, pseudotissue_gene_model_dir, pseudotissue_name)
+#generate_all_gene_pos_file(gene_summary_file, all_pos_file, pseudotissue_gene_model_dir, pseudotissue_name)
 
 
 

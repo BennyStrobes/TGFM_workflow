@@ -57,11 +57,11 @@ gene_model="pmces_gene_adj_ld_scores"
 tissue_version="non_sex_tissues"
 	data_version=${variant_model}"_"${gene_type}"_"${tissue_version}"_"${gene_model}
 
-	source /n/groups/price/ben/environments/sldsc/bin/activate
-	module load python/2.7.12
+	#source /n/groups/price/ben/environments/sldsc/bin/activate
+	#module load python/2.7.12
 	#python ${mod_ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
 
-source ~/.bash_profile
+#source ~/.bash_profile
 python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
 
 
