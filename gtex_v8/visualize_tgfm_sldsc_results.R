@@ -336,6 +336,66 @@ make_per_tissue_tau_barplot_stratefied_by_sparse_models <- function(df, titler, 
 
 }
 
+make_coef_heatmap <- function(df) {
+
+	df$tau[df$tau < 0.0] = 0.0
+
+
+
+	df$tissue = str_replace_all(as.character(df$tissue), "-", "_")
+	df$tissue <- recode(df$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+	df$trait <- recode(df$trait, pigment_HAIR="Hair pigment", body_BALDING1="Balding1",bmd_HEEL_TSCOREz="Heel t-score", biochemistry_Cholesterol="Cholesterol", biochemistry_LDLdirect="LDLdirect", biochemistry_VitaminD="VitaminD", blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT="Reticulocyte count", blood_MEAN_CORPUSCULAR_HEMOGLOBIN="Hemoglobin", blood_MEAN_PLATELET_VOL="Platelet volume", blood_MONOCYTE_COUNT="Monocyte count", body_BMIz="BMI", body_HEIGHTz="Height", body_WHRadjBMIz="WHR-adj BMI", bp_DIASTOLICadjMEDz="Diastolic BP", cov_EDU_COLLEGE="College Education", disease_ALLERGY_ECZEMA_DIAGNOSED="Eczema", disease_CARDIOVASCULAR="Cardiovascular", lung_FEV1FVCzSMOKE="FEV1FVCz", repro_MENARCHE_AGE="Menarche Age")
+	p <- ggplot(df, aes(x = tissue, y = trait, fill = tau)) +
+  		geom_tile() +
+  		theme(text = element_text(size=14), panel.background = element_blank(), axis.text.x = element_text(angle = 90, vjust=.5)) + 
+  		theme(legend.position="bottom") +
+  		scale_fill_gradient(low="grey",high="blue") +
+  		labs(fill="tau",x="Tissue", y="GWAS trait",title="")
+  	return(p)
+
+}
+
+
+make_coef_z_score_heatmap <- function(df) {
+	df$tau_z = df$tau/df$tau_se
+
+	#df$tau_z[(df$tau_z < 2.5) & (df$tau_z > -2.5)] = 0.0
+	df$tau_z[df$tau_z < 2.4] = 0.0
+
+	df$tissue = str_replace_all(as.character(df$tissue), "-", "_")
+	df$tissue <- recode(df$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+	df$trait <- recode(df$trait, pigment_HAIR="Hair pigment", body_BALDING1="Balding1",bmd_HEEL_TSCOREz="Heel t-score", biochemistry_Cholesterol="Cholesterol", biochemistry_LDLdirect="LDLdirect", biochemistry_VitaminD="VitaminD", blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT="Reticulocyte count", blood_MEAN_CORPUSCULAR_HEMOGLOBIN="Hemoglobin", blood_MEAN_PLATELET_VOL="Platelet volume", blood_MONOCYTE_COUNT="Monocyte count", body_BMIz="BMI", body_HEIGHTz="Height", body_WHRadjBMIz="WHR-adj BMI", bp_DIASTOLICadjMEDz="Diastolic BP", cov_EDU_COLLEGE="College Education", disease_ALLERGY_ECZEMA_DIAGNOSED="Eczema", disease_CARDIOVASCULAR="Cardiovascular", lung_FEV1FVCzSMOKE="FEV1FVCz", repro_MENARCHE_AGE="Menarche Age")
+	p <- ggplot(df, aes(x = tissue, y = trait, fill = tau_z)) +
+  		geom_tile() +
+  		theme(text = element_text(size=14), panel.background = element_blank(), axis.text.x = element_text(angle = 90, vjust=.5)) + 
+  		theme(legend.position="bottom") +
+  		scale_fill_gradient(low="grey",high="blue") +
+  		labs(fill="tau z-score",x="Tissue", y="GWAS trait",title="")
+  	return(p)
+
+}
+
+load_in_per_tissue_sparse_tau_df <- function(trait_names, tissue_version, gene_version, annotation_version, regularization_weight, sparse_model_name, tgfm_sldsc_results_dir) {
+	tissue_vec <- c()
+	trait_vec <- c()
+	tau_vec <- c()
+	tau_se_vec <- c()
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- trait_names[trait_iter]
+		sparse_file <- paste0(tgfm_sldsc_results_dir, trait_name, "_", annotation_version, "_", gene_version, "_", tissue_version, "_pmces_gene_adj_ld_scores_organized_", regularization_weight, "_sparse_", sparse_model_name, "_res.txt")
+		t_df <- read.table(sparse_file, header=TRUE, sep="\t")
+		first_eqtl_row_num = which(as.character(t_df$Annotation)=="Adipose_Subcutaneous")
+		eqtl_df <- t_df[first_eqtl_row_num:dim(t_df)[1],]
+		n_tiss = dim(eqtl_df)[1]
+		tissue_vec <- c(tissue_vec, as.character(eqtl_df$Annotation))
+		tau_vec <- c(tau_vec, eqtl_df$tau)
+		tau_se_vec <- c(tau_se_vec, eqtl_df$tau_se)
+		trait_vec <- c(trait_vec, rep(trait_name, n_tiss))
+	}
+	df <- data.frame(trait=trait_vec, tissue=tissue_vec, tau=tau_vec, tau_se=tau_se_vec)
+	return(df)
+}
+
 
 independent_trait_names_file = args[1]
 tgfm_sldsc_results_dir = args[2]
@@ -412,6 +472,14 @@ annotation_versions <- c("genotype_intercept", "baseline_no_qtl", "baselineLD_no
 gene_tau_df <- load_in_per_tissue_tau_df(trait_names, tissue_versions, gene_versions, annotation_versions, tgfm_sldsc_results_dir)
 
 
+subset_df <- gene_tau_df[as.character(gene_tau_df$tissue_version)=="non_sex_tissues",]
+subset_df <- subset_df[as.character(subset_df$gene_version)=="component_gene",]
+subset_df <- subset_df[as.character(subset_df$annotation_model)=="baseline_no_qtl",]
+
+
+
+
+
 # Make barplot showing per-tissue tau stratefied by annotation model for (seperate for each other parameters and traits)
 for (tissue_version_iter in 1:length(tissue_versions)) {
 	for (gene_version_iter in 1:length(gene_versions)) {
@@ -458,10 +526,6 @@ for (annotation_version_iter in 1:length(annotation_versions)) {
 
 
 
-}
-
-
-
 models <- c("ard_all_coefficients_mv_update", "ard_eqtl_coefficients_mv_update")
 regularization_weights <- c("0.1","0.5", "1.0")
 annotation_version <- "baseline_no_qtl"
@@ -486,6 +550,100 @@ for (trait_iter in 1:length(trait_names)) {
 }
 
 
+}
+
+
+############################################
+# Per-tissue tau estimates for single model 
+
+#############################################
+# Load in data for sparse modell
+tissue_version <- "non_sex_tissues"
+gene_version <- "component_gene"
+annotation_version <- "baseline_no_qtl"
+reg_param <- "0.5"
+sparse_model_name <- "ard_eqtl_coefficients_mv_update"
+sparse_gene_tau_df <- load_in_per_tissue_sparse_tau_df(trait_names, tissue_version, gene_version, annotation_version, reg_param, sparse_model_name, tgfm_sldsc_results_dir)
+
+tau_heatmap <- make_coef_heatmap(sparse_gene_tau_df) + theme(legend.position="right")
+output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_sparse_coef_heatmap_", tissue_version, "_", gene_version, "_", annotation_version, "_", reg_param,".pdf")
+ggsave(tau_heatmap, file=output_file, width=8.0, height=7.5, units="in")	
+
+tissue_version <- "all_tissues"
+gene_version <- "component_gene"
+annotation_version <- "baseline_no_qtl"
+reg_param <- "0.5"
+sparse_model_name <- "ard_eqtl_coefficients_mv_update"
+sparse_gene_tau_df <- load_in_per_tissue_sparse_tau_df(trait_names, tissue_version, gene_version, annotation_version, reg_param, sparse_model_name, tgfm_sldsc_results_dir)
+
+tau_heatmap <- make_coef_heatmap(sparse_gene_tau_df) + theme(legend.position="right")
+output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_sparse_coef_heatmap_", tissue_version, "_", gene_version, "_", annotation_version, "_", reg_param,".pdf")
+ggsave(tau_heatmap, file=output_file, width=8.0, height=7.5, units="in")	
+
+
+# Load in data for sparse modell
+tissue_version <- "non_sex_tissues"
+gene_version <- "component_gene"
+annotation_version <- "baselineLD_no_qtl"
+reg_param <- "0.5"
+sparse_model_name <- "ard_eqtl_coefficients_mv_update"
+sparse_gene_tau_df <- load_in_per_tissue_sparse_tau_df(trait_names, tissue_version, gene_version, annotation_version, reg_param, sparse_model_name, tgfm_sldsc_results_dir)
+
+tau_heatmap <- make_coef_heatmap(sparse_gene_tau_df) + theme(legend.position="right")
+output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_sparse_coef_heatmap_", tissue_version, "_", gene_version, "_", annotation_version, "_", reg_param,".pdf")
+ggsave(tau_heatmap, file=output_file, width=8.0, height=7.5, units="in")	
+
+tissue_version <- "all_tissues"
+gene_version <- "component_gene"
+annotation_version <- "baselineLD_no_qtl"
+reg_param <- "0.5"
+sparse_model_name <- "ard_eqtl_coefficients_mv_update"
+sparse_gene_tau_df <- load_in_per_tissue_sparse_tau_df(trait_names, tissue_version, gene_version, annotation_version, reg_param, sparse_model_name, tgfm_sldsc_results_dir)
+
+tau_heatmap <- make_coef_heatmap(sparse_gene_tau_df) + theme(legend.position="right")
+output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_sparse_coef_heatmap_", tissue_version, "_", gene_version, "_", annotation_version, "_", reg_param,".pdf")
+ggsave(tau_heatmap, file=output_file, width=8.0, height=7.5, units="in")	
+
+
+
+
+
+
+#############################################
+# Load in data for non-sparse modell
+tissue_versions <- c("all_tissues", "non_sex_tissues")
+gene_versions <- c("component_gene", "cis_heritable_gene")
+annotation_versions <- c("genotype_intercept", "baseline_no_qtl", "baselineLD_no_qtl")
+gene_tau_df <- load_in_per_tissue_tau_df(trait_names, tissue_versions, gene_versions, annotation_versions, tgfm_sldsc_results_dir)
+
+# Filter to single model
+tissue_version <- "non_sex_tissues"
+gene_version <- "component_gene"
+annotation_version <- "baseline_no_qtl"
+gene_tau_df2 <- gene_tau_df[as.character(gene_tau_df$tissue_version)==tissue_version,]
+gene_tau_df2 <- gene_tau_df2[as.character(gene_tau_df2$gene_version)==gene_version,]
+gene_tau_df2 <- gene_tau_df2[as.character(gene_tau_df2$annotation_model)==annotation_version,]
+
+
+# Make heatmap showing z-scores of multivariable approach across traits
+z_score_heatmap <- make_coef_z_score_heatmap(gene_tau_df2)
+output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_coef_z_score_heatmap_", tissue_version, "_", gene_version, "_", annotation_version,".pdf")
+ggsave(z_score_heatmap, file=output_file, width=7.2, height=7.5, units="in")		
+
+
+# Filter to single model
+tissue_version <- "all_tissues"
+gene_version <- "component_gene"
+annotation_version <- "baseline_no_qtl"
+gene_tau_df2 <- gene_tau_df[as.character(gene_tau_df$tissue_version)==tissue_version,]
+gene_tau_df2 <- gene_tau_df2[as.character(gene_tau_df2$gene_version)==gene_version,]
+gene_tau_df2 <- gene_tau_df2[as.character(gene_tau_df2$annotation_model)==annotation_version,]
+
+
+# Make heatmap showing z-scores of multivariable approach across traits
+z_score_heatmap <- make_coef_z_score_heatmap(gene_tau_df2)
+output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_coef_z_score_heatmap_", tissue_version, "_", gene_version, "_", annotation_version,".pdf")
+ggsave(z_score_heatmap, file=output_file, width=7.2, height=7.5, units="in")		
 
 
 

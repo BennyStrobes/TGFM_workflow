@@ -339,9 +339,8 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
-if false; then
 Rscript visualize_tgfm_sldsc_results.R $independent_trait_names_file $tgfm_sldsc_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_sldsc_dir
-fi
+
 
 if false; then
 Rscript visualize_tgfm_results.R $independent_trait_names_file $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_dir
