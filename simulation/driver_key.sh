@@ -1,3 +1,10 @@
+#!/bin/bash
+#SBATCH -c 1                               # Request one core
+#SBATCH -t 0-15:00                         # Runtime in D-HH:MM format
+#SBATCH -p medium                           # Partition to run in
+#SBATCH --mem=50GB                         # Memory total in MiB (for all cores)
+
+
 #############################
 # Simulation of:
 ####### 1. TGFM-SLDSC
@@ -44,8 +51,11 @@ processed_genotype_data_dir=$temp_output_root"processed_genotype/"
 # Directory containing simulated gene positions
 simulated_gene_position_dir=$temp_output_root"simulated_gene_positions/"
 
+# Directory containing simulated gene expression (ie causal eQTL effect sizes in each tissue)
+simulated_gene_expression_dir=$temp_output_root"simulated_gene_expression/"
 
-
+# Directory containing simulated gene expression (ie causal eQTL effect sizes in each tissue)
+simulated_learned_gene_models_dir=$temp_output_root"simulated_learned_gene_models/"
 
 
 
@@ -56,7 +66,7 @@ simulated_gene_position_dir=$temp_output_root"simulated_gene_positions/"
 n_gwas_individuals="100000"
 
 # Chromosome to simulate on 
-chrom_num="21"
+chrom_num="1"
 
 # cis window arround genes to define eQTLs
 cis_window="25000"
@@ -77,7 +87,6 @@ fi
 
 
 
-
 ############################
 # Prepare gene file for simulation:
 # Genes are defined by actual tss
@@ -89,6 +98,20 @@ if false; then
 sh prepare_simulated_gene_position_list.sh $chrom_num $gencode_gene_annotation_file $simulated_gene_position_file
 fi
 
+
+
+
+
+############################
+# Run single simulation
+############################
+# Iteration of simulation (also works as seed)
+simulation_number="1" 
+# Simulation string used for output file
+simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
+if false; then
+sh run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir
+fi
 
 
 

@@ -12,9 +12,8 @@ chrom_num="$1"
 gencode_gene_annotation_file="$2"
 simulated_gene_position_file="$3"
 
-if false; then
 source ~/.bash_profile
-fi
+
 
 python3 prepare_simulated_gene_position_list.py $chrom_num $gencode_gene_annotation_file $simulated_gene_position_file
 
