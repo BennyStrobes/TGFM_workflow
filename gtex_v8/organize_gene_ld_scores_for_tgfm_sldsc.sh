@@ -17,9 +17,15 @@ gene_type="$3"
 gtex_susie_gene_models_dir="$4"
 source ~/.bash_profile
 
+if false; then
 tissue_version="all_tissues"
 python3 organize_gene_ld_scores_for_tgfm_sldsc.py $gtex_pseudotissue_file $preprocessed_tgfm_sldsc_data_dir $gene_type $gtex_susie_gene_models_dir $tissue_version
 
 
 tissue_version="non_sex_tissues"
+python3 organize_gene_ld_scores_for_tgfm_sldsc.py $gtex_pseudotissue_file $preprocessed_tgfm_sldsc_data_dir $gene_type $gtex_susie_gene_models_dir $tissue_version
+fi
+
+
+tissue_version="no_testis"
 python3 organize_gene_ld_scores_for_tgfm_sldsc.py $gtex_pseudotissue_file $preprocessed_tgfm_sldsc_data_dir $gene_type $gtex_susie_gene_models_dir $tissue_version

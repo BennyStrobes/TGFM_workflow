@@ -25,6 +25,8 @@ def get_pseudotissue_names(gtex_pseudotissue_file, tissue_version):
 			continue
 		if tissue_version == 'non_sex_tissues' and data[0] in sex_tissues_dicti:
 			continue
+		if tissue_version == 'no_testis' and data[0] == 'Testis':
+			continue
 		arr.append(data[0])
 	f.close()
 
