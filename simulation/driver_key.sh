@@ -21,6 +21,10 @@
 # Directory containing ldsc scripts
 ldsc_code_dir="/n/groups/price/ben/tools/ldsc/"
 
+# Mod-ldscore regression code
+curr_dir=`pwd`
+mod_ldsc_code_dir=$curr_dir"/modified_sldsc/"
+
 # Directory created by Martin containing UKBB genotype for 334K unrelated European individuals
 ukbb_genotype_dir="/n/scratch3/users/j/jz286/imp_geno/"
 
@@ -69,6 +73,20 @@ simulated_learned_gene_models_dir=$temp_output_root"simulated_learned_gene_model
 # Directory containing simulated trait values
 simulated_trait_dir=$temp_output_root"simulated_trait/"
 
+# Directory contaiing simulated gwas results
+simulated_gwas_dir=$temp_output_root"simulated_gwas/"
+
+# Directory containing simulated ld scores
+simulated_ld_scores_dir=$temp_output_root"simulated_ld_scores/"
+
+# Directory containing simulated sldsc results
+simulated_sldsc_results_dir=$temp_output_root"simulated_sldsc_results/"
+
+# Directory containing organized simulation results
+simulated_organized_results_dir=$temp_output_root"simulated_organized_results/"
+
+# Directory containing visualizations of simulated results
+visualize_simulated_results_dir=$temp_output_root"visualize_simulated_results/"
 
 
 
@@ -82,7 +100,7 @@ n_gwas_individuals="100000"
 chrom_num="21"
 
 # cis window arround genes to define eQTLs
-cis_window="25000"
+cis_window="100000"
 
 # Per genetic-element heritabilities
 per_element_heritability="0.0001"
@@ -114,9 +132,8 @@ fi
 ## 2. Filter sites to be those in LDSC annotation file
 ## 3. Convert to plink bed files
 ############################
-if false; then
 sh prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir
-fi
+
 
 ############################
 # Prepare gene file for simulation:
@@ -136,21 +153,37 @@ fi
 ############################
 # Run single simulation
 ############################
+# cis window arround genes to define eQTLs
+cis_window="100000"
 # Iteration of simulation (also works as seed)
-simulation_number="1" 
-# Simulation string used for output file
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
 if false; then
-sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir
+for simulation_number in $(seq 1 100); do 
+	# Simulation string used for output file
+	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
+	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir
+done
+fi
+
+# Organize simulation results across parallel simulations
+global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
+if false; then
+sh organize_simulation_results_across_parallel_simulations.sh $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_sldsc_results_dir $simulated_organized_results_dir
 fi
 
 
 
+############################
+# Visualize single simulation
+############################
+if false; then
+source ~/.bash_profile
+module load R/3.5.1
+fi
+if false; then
+global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
+Rscript visualize_single_simulation.R $global_simulation_name_string $simulated_organized_results_dir $visualize_simulated_results_dir
 
-
-
-
-
+fi
 
 
 

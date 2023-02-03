@@ -128,8 +128,11 @@ def mean_impute_and_standardize_genotype(G_obj_geno):
 	return G_obj_geno_stand
 
 def simulate_gene_expression(G, sim_beta):
-	gene_heritability = np.sum(np.square(sim_beta))
+	#gene_heritability = np.sum(np.square(sim_beta))
 	genetic_pred_ge = np.dot(G, sim_beta)
+	gene_heritability = np.var(genetic_pred_ge)
+	if gene_heritability > 1:
+		gene_heritability = .99
 	ge = np.random.normal(loc=genetic_pred_ge, scale=np.sqrt(1.0-gene_heritability))
 	return ge
 

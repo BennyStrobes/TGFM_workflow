@@ -149,6 +149,8 @@ def compute_expression_mediated_trait_values_for_single_gene(genotype_obj, gene_
 		# Standardize genetically predicted gene expression
 		standardized_genetically_predicted_gene_expression = genetically_predicted_gene_expression/np.std(genetically_predicted_gene_expression,axis=0)
 
+		tissue_corr = np.corrcoef(np.transpose(standardized_genetically_predicted_gene_expression))
+
 		# Get expression mediated trait values
 		expr_med_trait_for_current_gene = np.dot(standardized_genetically_predicted_gene_expression, gene_trait_effect_size_vec)
 	elif computation_version == 'v2':
@@ -223,6 +225,8 @@ def compute_expression_mediated_trait_values(simulated_expression_summary_file, 
 	# Load in genotype object
 	genotype_obj = read_plink1_bin(gwas_plink_stem + '.bed', gwas_plink_stem + '.bim', gwas_plink_stem + '.fam', verbose=False)
 
+	#global_tissue_corr = np.zeros((10,10))
+	#tissue_corr_counter = 0
 	# Loop through genes in simulated_expression_summary_file (should be of same length as ordered_gene_names) and only stop at genes with non-zero gene-trait-effect sizes
 	f = open(simulated_expression_summary_file)
 	head_count = 0
@@ -262,6 +266,8 @@ def compute_expression_mediated_trait_values(simulated_expression_summary_file, 
 		# Compute expression-mediated trait value coming from this single gene (across tissues)
 		expr_med_trait_for_current_gene = compute_expression_mediated_trait_values_for_single_gene(genotype_obj, gene_trait_effect_size_vec, causal_eqtl_effect_sizes, eqtl_snp_indices, computation_version='v1')
 		#expr_med_trait_for_current_gene_v2 = compute_expression_mediated_trait_values_for_single_gene(genotype_obj, gene_trait_effect_size_vec, causal_eqtl_effect_sizes, eqtl_snp_indices, computation_version='v2')
+		#global_tissue_corr = global_tissue_corr + tissue_corr
+		#tissue_corr_counter = tissue_corr_counter + 1
 
 		# Now add current gene to total
 		expr_med_trait = expr_med_trait + expr_med_trait_for_current_gene
@@ -272,6 +278,31 @@ def compute_expression_mediated_trait_values(simulated_expression_summary_file, 
 
 	# Save to output
 	np.savetxt(expression_mediated_trait_values_output, expr_med_trait, fmt="%s", delimiter='\n')
+
+	return
+
+
+def simulate_trait_values(expression_mediated_trait_values_file, variant_mediated_trait_values_file, trait_values_output):
+	# Load in genetically predicted trait values
+	expr_med_trait = np.loadtxt(expression_mediated_trait_values_file)
+	non_med_trait = np.loadtxt(variant_mediated_trait_values_file)
+
+	# Calculate total genetic variance
+	expr_med_var = np.var(expr_med_trait)
+	non_med_var = np.var(non_med_trait)
+	total_genetic_var = np.var(expr_med_trait + non_med_trait)
+
+	# Residual variance
+	residual_var = 1.0 - total_genetic_var
+
+	# Draw trait values
+	trait_values = np.random.normal(loc=(expr_med_trait + non_med_trait), scale=np.sqrt(residual_var))
+
+	# Standardize trait values
+	standardized_trait_values = (trait_values - np.mean(trait_values))/np.std(trait_values)
+
+	# Save to output
+	np.savetxt(trait_values_output, standardized_trait_values, fmt="%s", delimiter='\n')
 
 	return
 
@@ -312,7 +343,6 @@ non_mediated_causal_effects_output = simulated_trait_dir + simulation_name_strin
 simulate_non_mediated_variant_causal_effect_sizes(variant_annotation_file, real_sldsc_results_file, per_element_heritability, total_heritability, fraction_expression_mediated_heritability, non_mediated_causal_effects_output)
 
 
-
 ####################################################
 # Extract component of trait values coming from genetically predicted gene expression
 ####################################################
@@ -322,7 +352,6 @@ gwas_plink_stem = processed_genotype_data_dir + 'simulated_gwas_data_' + str(chr
 expression_mediated_trait_values_output = simulated_trait_dir + simulation_name_string + '_expression_mediated_trait_values.txt'  # Output file
 compute_expression_mediated_trait_values(simulated_expression_summary_file, expression_mediated_causal_effects_file, gwas_plink_stem, expression_mediated_trait_values_output, n_gwas_individuals)
 
-
 ####################################################
 # Extract component of trait values coming from non-mediated variant effects
 ####################################################
@@ -331,5 +360,14 @@ variant_mediated_trait_values_output = simulated_trait_dir + simulation_name_str
 compute_non_mediated_variant_mediated_trait_values(non_mediated_variant_causal_effects_file, gwas_plink_stem, variant_mediated_trait_values_output, n_gwas_individuals)
 
 
+
+
+####################################################
+# Simulate trait values
+####################################################
+expression_mediated_trait_values_file = simulated_trait_dir + simulation_name_string + '_expression_mediated_trait_values.txt'  # Now an input file
+variant_mediated_trait_values_file = simulated_trait_dir + simulation_name_string + '_non_mediated_variant_mediated_trait_values.txt'  # Now an input file
+trait_values_output = simulated_trait_dir + simulation_name_string + '_trait_values.txt'  # Output file
+simulate_trait_values(expression_mediated_trait_values_file, variant_mediated_trait_values_file, trait_values_output)
 
 
