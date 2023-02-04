@@ -143,6 +143,12 @@ print_organized_summary_file(sldsc_output_root + '_organized_mediated_h2_5_50.tx
 jacknifed_taus_file = sldsc_output_root + '.part_delete'
 jacknifed_taus = np.loadtxt(jacknifed_taus_file)
 
+# Compute mean and covariance of jacknifed taus on raw scale to save
+jacknifed_tau_covariance_ts, jacknifed_tau_mean_ts = compute_jacknifed_covariance_matrix(jacknifed_taus)
+np.savetxt(sldsc_output_root + '_mean_jacknifed_taus.txt', jacknifed_tau_mean_ts)
+np.savetxt(sldsc_output_root + '_covariance_jacknifed_taus.txt', jacknifed_tau_covariance_ts)
+
+
 # Load in Jacknifed intercept data
 jacknifed_intercept_file = sldsc_output_root + '.intercept_delete'
 jacknifed_intercept = np.loadtxt(jacknifed_intercept_file)

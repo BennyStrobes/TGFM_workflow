@@ -18,7 +18,6 @@ kg_genotype_dir="$6"
 
 source ~/.bash_profile
 
-
 ###############################
 # Extract list of variants in ldsc baseline analysis
 ###############################
@@ -83,6 +82,20 @@ rm ${processed_genotype_data_dir}"ukb_imp_chr_"${chrom_num}*
 ##########################
 genomic_annotation_file=${processed_genotype_data_dir}"baseline."${chrom_num}".annot"
 python3 extract_genomic_annotations_for_simulation_variants.py ${processed_genotype_data_dir}"simulated_gwas_data_"${chrom_num}".bim" ${processed_genotype_data_dir}"100G.EUR.QC.filtered."${chrom_num}".bim" $ldsc_baseline_hg19_annotation_dir"baseline."${chrom_num}".annot.gz" $genomic_annotation_file
+
+
+
+#########################
+# Create 3MB chromosome windows
+##########################
+window_size_mb="3" # In MB
+reference_bim=${processed_genotype_data_dir}"simulated_gwas_data_"${chrom_num}".bim"  # Used to know where end and start on this chromosome
+window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_"${window_size_mb}"_mb.txt"
+python3 create_chromosome_windows.py $window_size_mb $reference_bim $window_file ${chrom_num}
+
+
+
+
 
 
 
