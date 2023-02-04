@@ -140,8 +140,9 @@ simulation_window_list_file=${simulated_tgfm_input_data_dir}${simulation_name_st
 annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
 
 eqtl_sample_size="100"
+if false; then
 python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $simulation_window_list_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir
-
+fi
 
 
 
