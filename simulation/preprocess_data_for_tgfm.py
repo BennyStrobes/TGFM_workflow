@@ -269,7 +269,7 @@ rsid_to_genomic_annotation, variant_position_vec, rsids = create_dictionary_mapp
 
 
 # Open outputful summarizing TGFM input (one line for each window)
-tgfm_input_data_summary_file = simulated_tgfm_input_data_dir + simulation_name_string + '_tgfm_input_data_summary.txt'
+tgfm_input_data_summary_file = simulated_tgfm_input_data_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_tgfm_input_data_summary.txt'
 t = open(tgfm_input_data_summary_file,'w')
 # Write header
 t.write('window_name\tLD_npy_file\tTGFM_input_pkl\tlog_prior_probability_file_stem\n')
@@ -298,6 +298,7 @@ for line in f:
 	# Extract indices of variants in this window
 	window_indices = (variant_position_vec >= window_start) & (variant_position_vec < window_end)
 	window_rsids = rsids[window_indices]
+	window_variant_position_vec = variant_position_vec[window_indices]
 
 	# Create annotation matrix for window rsids
 	window_anno_mat = create_anno_matrix_for_set_of_rsids(rsid_to_genomic_annotation, window_rsids)
@@ -311,7 +312,7 @@ for line in f:
 	ld_mat = np.load(ld_mat_file)
 
 	# Get middle variant indices and middle gene indices
-	middle_variant_indices = np.where((variant_position_vec >= window_middle_start) & (variant_position_vec < window_middle_end))[0]
+	middle_variant_indices = np.where((window_variant_position_vec >= window_middle_start) & (window_variant_position_vec < window_middle_end))[0]
 	middle_gene_indices = np.where((gene_tissue_pairs_tss >= window_middle_start) & (gene_tissue_pairs_tss < window_middle_end))[0]
 
 	# Load in GWAS betas and standard errors
@@ -321,7 +322,7 @@ for line in f:
 	beta_scaled, beta_se_scaled, XtX = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, n_gwas_individuals, ld_mat)
 
 	# Compute various ln(pi) and save to output # and save those results to output files
-	ln_pi_output_stem = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_ln_pi'
+	ln_pi_output_stem = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi'
 	thresholds = [1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15, 1e-20, 1e-30]
 	for threshold in thresholds:
 		point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi = compute_various_versions_of_log_prior_probabilities(window_rsids, window_anno_mat, gene_tissue_pairs, sldsc_tau_mean, sldsc_tau_cov, sparse_sldsc_tau, threshold=threshold)
@@ -337,10 +338,12 @@ for line in f:
 	tgfm_data['gwas_beta'] = beta_scaled
 	tgfm_data['gwas_beta_se'] = beta_se_scaled
 	tgfm_data['gwas_sample_size'] = n_gwas_individuals
-	tgfm_data['gene_eqtl_pmces'] = gene_tissue_pair_weight_vectors
+	tgfm_data['gene_eqtl_pmces'] = np.asarray(gene_tissue_pair_weight_vectors)
+	tgfm_data['middle_gene_indices'] = middle_gene_indices
+	tgfm_data['middle_variant_indices'] = middle_variant_indices
 
 	# Save TGFM output data to pickle
-	window_pickle_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_tgfm_input_data.pkl'
+	window_pickle_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size) + '_tgfm_input_data.pkl'
 	g = open(window_pickle_output_file, "wb")
 	pickle.dump(tgfm_data, g)
 	g.close()

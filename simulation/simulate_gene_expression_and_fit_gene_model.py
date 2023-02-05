@@ -123,6 +123,8 @@ def mean_impute_and_standardize_genotype(G_obj_geno):
 		n_missing.append(np.sum(nan_indices))
 	n_missing = np.asarray(n_missing)
 
+	if np.sum(np.std(G_obj_geno_stand,axis=0) == 0) > 0:
+		pdb.set_trace()
 	G_obj_geno_stand = (G_obj_geno_stand -np.mean(G_obj_geno_stand,axis=0))/np.std(G_obj_geno_stand,axis=0)
 
 	return G_obj_geno_stand

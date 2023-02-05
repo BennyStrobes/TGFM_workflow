@@ -30,7 +30,6 @@ python3 extract_list_of_ldsc_annotation_rs_ids.py $ldsc_baseline_hg19_annotation
 ###############################
 plink2 --pfile ${ukbb_genotype_dir}"ukb_imp_chr"${chrom_num}"_v3" --hwe .01 --extract ${ldsc_annotation_rs_id_file} --maf .05 --make-bed --keep-allele-order --threads 1 --out ${processed_genotype_data_dir}"ukb_imp_chr_"${chrom_num}
 
-
 ###############################
 # extract lists of Individuals for each data set
 ###############################

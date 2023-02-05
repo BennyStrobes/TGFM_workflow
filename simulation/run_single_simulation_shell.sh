@@ -26,51 +26,45 @@ simulated_ld_scores_dir="${17}"
 ldsc_code_dir="${18}"
 simulated_sldsc_results_dir="${19}"
 simulated_tgfm_input_data_dir="${20}"
+simulated_tgfm_results_dir="${21}"
 
-if false; then
 source ~/.bash_profile
 module load R/4.0.1
-fi
+
 echo "Simulation"$simulation_number
 
 #######################################################
 # Step 1: Simulate gene expression and fit gene models
 #######################################################
 echo "Simulation Step 1"
-if false; then
 python3 simulate_gene_expression_and_fit_gene_model.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir
-fi
+
 
 #######################################################
 # Step 2: Simulate trait values
 #######################################################
 echo "Simulation Step 2"
-if false; then
 python3 simulate_trait_values.py $simulation_number $chrom_num $cis_window $simulated_gene_expression_dir $simulation_name_string $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_trait_dir $n_gwas_individuals
-fi
+
 
 #######################################################
 # Step 3: Run GWAS on only hapmap3 snps
 #######################################################
 echo "Simulation Step 3"
-if false; then
 python3 run_gwas_on_simulated_trait_at_only_hapmap3_snps.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $ldsc_weights_dir $simulated_gwas_dir
-fi
 
 
 #######################################################
 # Step 4: Generate gene ld-scores
 #######################################################
 echo "Simulation Step 4"
-if false; then
 python3 generate_gene_ld_scores.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_ld_scores_dir
-fi
+
 
 #######################################################
 # Step 5: Generate variant annotation-weighted ld-scores
 #######################################################
 echo "Simulation Step 5"
-if false; then
 source /n/groups/price/ben/environments/sldsc/bin/activate
 module load python/2.7.12
 python ${ldsc_code_dir}ldsc.py\
@@ -80,7 +74,7 @@ python ${ldsc_code_dir}ldsc.py\
 	--annot ${processed_genotype_data_dir}baseline.${chrom_num}.annot\
 	--out ${simulated_ld_scores_dir}${simulation_name_string}"_baseline".${chrom_num}\
 	--print-snps ${simulated_ld_scores_dir}${simulation_name_string}"_regression_snp_ids.txt"
-fi
+
 
 
 
@@ -88,10 +82,9 @@ fi
 # Step 6: Organize data for tgfm-sldsc
 #######################################################
 echo "Simulation Step 6"
-if false; then
 source ~/.bash_profile
 python3 organize_data_for_sldsc.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $processed_genotype_data_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir 
-fi
+
 
 
 #######################################################
@@ -99,7 +92,6 @@ fi
 #######################################################
 echo "Simulation Step 7"
 eqtl_sample_size_arr=( "100" "200" "300" "500" "1000")
-if false; then
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
 	source /n/groups/price/ben/environments/sldsc/bin/activate
@@ -110,7 +102,7 @@ do
 	source ~/.bash_profile
 	python3 organize_tgfm_sldsc_results.py ${simulated_sldsc_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_sldsc_results" ${simulated_ld_scores_dir}${simulation_name_string}"_joint_baseline_variant_"${eqtl_sample_size}"_gene_ld_scores" $n_gwas_individuals
 done
-fi
+
 
 #######################################################
 # Step 8: Randomly select chromosome windows to run tgfm on
@@ -118,9 +110,8 @@ fi
 echo "Simulation Step 8"
 global_window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_3_mb.txt"
 simulation_window_list_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_tgfm_windows.txt"
-if false; then
 python3 randomly_select_windows_to_run_tgfm_on_in_simulation.py $global_window_file $simulation_window_list_file $simulation_number
-fi
+
 
 #######################################################
 # Step 9: Run GWAS on simulated trait on only snps in TGFM windows.
@@ -128,9 +119,8 @@ fi
 #######################################################
 echo "Simulation Step 9"
 simulation_window_list_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_tgfm_windows.txt"
-if false; then
 python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $simulation_window_list_file $simulated_gwas_dir $simulated_tgfm_input_data_dir
-fi
+
 
 #######################################################
 # Step 10: Preprocess data for TGFM
@@ -138,20 +128,29 @@ fi
 echo "Simulation Step 10"
 simulation_window_list_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_tgfm_windows.txt"
 annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
-
-eqtl_sample_size="100"
-if false; then
-python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $simulation_window_list_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir
-fi
-
-
+eqtl_sample_size_arr=( "100" "200" "300" "500" "1000")
+for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
+do
+	python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $simulation_window_list_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir
+done
 
 
+#######################################################
+# Step 11: Run TGFM
+#######################################################
+echo "Simulation Step 11"
+eqtl_sample_size_arr=( "100" "200" "300" "500" "1000")
+ln_pi_method_arr=( "point_estimate_1e-10" "sparse_estimate_1e-10" "distribution_estimate_1e-10" "point_estimate_1e-30" "sparse_estimate_1e-30" "distribution_estimate_1e-30")
 
-
-
-
-
+for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
+do
+	for ln_pi_method in "${ln_pi_method_arr[@]}"
+	do
+		tgfm_input_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_tgfm_input_data_summary.txt"
+		tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_ln_pi_"${ln_pi_method}
+		python3 run_tgfm.py ${tgfm_input_file} ${tgfm_output_stem} ${ln_pi_method}
+	done
+done
 
 
 
