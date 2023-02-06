@@ -42,14 +42,19 @@ def simulate_causal_eqtl_effect_sizes_across_tissues(n_cis_snps, n_tiss=10):
 		causal_effect_sizes[tissue_specific_indices, tiss_iter] = np.random.normal(loc=0.0, scale=np.sqrt(0.015),size=2)
 	return causal_effect_sizes
 
-def simulate_causal_eqtl_effect_sizes_across_tissues_shell(n_cis_snps):
+def simulate_causal_eqtl_effect_sizes_across_tissues_shell(n_cis_snps, fraction_genes_cis_h2):
 	min_h2 = 0
 	while min_h2 < .01:
 		causal_eqtl_effects = simulate_causal_eqtl_effect_sizes_across_tissues(n_cis_snps)
 		min_h2 = np.min(np.sum(np.square(causal_eqtl_effects),axis=0))
+	# Make (1.0 - fraction_genes_cis_h2)% of genes not cis heritable
+	gene_cis_h2_boolean = np.random.binomial(n=1, p=fraction_genes_cis_h2, size=causal_eqtl_effects.shape[1])
+	for tiss_iter, boolean_value in enumerate(gene_cis_h2_boolean):
+		if boolean_value == 0:
+			causal_eqtl_effects[:, tiss_iter] = (causal_eqtl_effects[:, tiss_iter])*0.0
 	return causal_eqtl_effects
 
-def simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir,simulation_name_string, ref_eqtl_sample_size, processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file):
+def simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir,simulation_name_string, ref_eqtl_sample_size, processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2):
 	# Load in genotype data across chromosome for single eQTL data set (note: it doesn't matter what eqtl data set we are using because we are just using snp positions here and all eqtl data sets have the same snps)
 	genotype_stem = processed_genotype_data_dir + 'simulated_eqtl_' + str(ref_eqtl_sample_size) + '_data_' + chrom_num
 	G_obj = read_plink1_bin(genotype_stem + '.bed', genotype_stem + '.bim', genotype_stem + '.fam', verbose=False)
@@ -92,7 +97,7 @@ def simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, 
 		n_cis_snps = len(cis_rsids)
 
 		# Simulate causal eqtl effects across tissues
-		causal_eqtl_effects = simulate_causal_eqtl_effect_sizes_across_tissues_shell(n_cis_snps)
+		causal_eqtl_effects = simulate_causal_eqtl_effect_sizes_across_tissues_shell(n_cis_snps, fraction_genes_cis_h2)
 
 
 		# Save results to output
@@ -113,6 +118,7 @@ def simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, 
 	t.close()
 
 def mean_impute_and_standardize_genotype(G_obj_geno):
+	# Fill in missing values
 	G_obj_geno_stand = np.copy(G_obj_geno)
 	ncol = G_obj_geno_stand.shape[1]
 	n_missing = []
@@ -123,11 +129,16 @@ def mean_impute_and_standardize_genotype(G_obj_geno):
 		n_missing.append(np.sum(nan_indices))
 	n_missing = np.asarray(n_missing)
 
+	# Quick error check
 	if np.sum(np.std(G_obj_geno_stand,axis=0) == 0) > 0:
+		print('no variance genotype assumption error')
 		pdb.set_trace()
+
+	# Standardize genotype
 	G_obj_geno_stand = (G_obj_geno_stand -np.mean(G_obj_geno_stand,axis=0))/np.std(G_obj_geno_stand,axis=0)
 
 	return G_obj_geno_stand
+
 
 def simulate_gene_expression(G, sim_beta):
 	#gene_heritability = np.sum(np.square(sim_beta))
@@ -159,8 +170,6 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 
 	# Mean impute and standardize genotype
 	G_obj_geno_stand = mean_impute_and_standardize_genotype(G_obj_geno)
-
-
 	# Now loop through genes
 	f = open(simulated_causal_eqtl_effect_summary_file)
 	head_count = 0
@@ -179,7 +188,7 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 		gene_causal_eqtl_effect_file = data[3]
 		gene_cis_snp_indices_file = data[5]
 
-		# Extract simulate causal effect sizes for this gene (cis_snpsXn_tissues)
+		# Extract simulated causal effect sizes for this gene (cis_snpsXn_tissues)
 		sim_causal_eqtl_effect_sizes = np.load(gene_causal_eqtl_effect_file)
 
 		# Extract indices of cis_snps
@@ -224,6 +233,7 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 		np.save(gene_model_output_file, pmces_cross_tissues)
 
 	f.close()
+	return
 
 
 ############################
@@ -245,13 +255,16 @@ np.random.seed(simulation_number)
 # Define vector of eQTL sample sizes
 eqtl_sample_sizes = np.asarray([100,200,300,500,1000])
 
+# Fraction of genes cis heritable for a given tissue
+fraction_genes_cis_h2 = .7
+
 
 ############################
 # Simulate causal eQTL effect sizes across tissues
 ############################
 # Create file to keep track of causal eqtl effect sizes across genes
 simulated_causal_eqtl_effect_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
-simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file)
+simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2)
 
 
 ############################
@@ -259,6 +272,7 @@ simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simu
 ############################
 # Do seperately in each data set (eqtl sample size) because genotypes are different
 for eqtl_sample_size in eqtl_sample_sizes:
+	print(eqtl_sample_size)
 	simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num)
 
 

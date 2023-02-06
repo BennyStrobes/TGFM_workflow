@@ -79,30 +79,75 @@ def extract_ordered_gene_names_from_gene_summary_file(simulated_expression_summa
 	f.close()
 	return np.asarray(arr)
 
+
+# Extract boolean matrix of total_genesXtissues that is a 1 if gene, tissue is cis_h2
+# Causal eqtl effects can only be selected in gene, tissue pairs that are cis heritable
+def extract_boolean_matrix_of_cis_heritable_genes(simulated_expression_summary_file):
+	boolean_arr = []
+	f = open(simulated_expression_summary_file)
+	head_count = 0
+	gene_counter = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		# extract causal eqtl effect matrix (n_snpsXn_tiss)
+		causal_eqtl_effect_size_mat = np.load(data[3])
+
+		# Genes that are not cis heritable will always have 0 eqtl effect size and therefor zero variance
+		cis_h2_genes = 1.0*(np.var(causal_eqtl_effect_size_mat,axis=0) != 0.0)
+		boolean_arr.append(cis_h2_genes)
+	f.close()
+
+	# Convert from list to array
+	boolean_mat = np.asarray(boolean_arr)
+
+	return boolean_mat
+
+
+
 # Simulate mediated gene-expression causal effect sizes
 def simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_summary_file, per_element_heritability, total_heritability, fraction_expression_mediated_heritability, expression_mediated_causal_effects_output):
 	# Extract list of ordered gene names
 	ordered_gene_names = extract_ordered_gene_names_from_gene_summary_file(simulated_expression_summary_file)
 	total_genes = len(ordered_gene_names)
 
+	# Extract boolean matrix of total_genesXtissues that is a 1 if gene, tissue is cis_h2
+	# Causal eqtl effects can only be selected in gene, tissue pairs that are cis heritable
+	cis_h2_gene_boolean_matrix = extract_boolean_matrix_of_cis_heritable_genes(simulated_expression_summary_file)
+
+	# Quick error checking
+	if cis_h2_gene_boolean_matrix.shape[0] != total_genes:
+		print('assumption eroror')
+		pdb.set_trace()
+
 	# Calculate number of causal genes
 	total_mediated_h2 = (fraction_expression_mediated_heritability*total_heritability)
 	total_n_causal_genes = int(np.round(total_mediated_h2/per_element_heritability))
 
-	# We are going to assume 50% of gene-mediated h2 is coming from tissue0 and 50% of gene-mediated h2 is coming from tissue3
+	# We are going to assume 50% of gene-mediated h2 is coming from one tissue and 50% of gene-mediated h2 is coming from another tissue
 	# And as a reminder there are 10 tissues
-	n_causal_genes_t0 = int(np.round(.5*total_mediated_h2/per_element_heritability))
-	n_causal_genes_t3 = int(np.round(.5*total_mediated_h2/per_element_heritability))
+	n_causal_genes_per_causal_tissue = int(np.round(.5*total_mediated_h2/per_element_heritability))
 
-	# Extract indices of non-mediated causal genes
-	t0_med_causal_gene_indices = np.random.choice(np.arange(total_genes), size=n_causal_genes_t0, replace=False)
-	t3_med_causal_gene_indices = np.random.choice(np.arange(total_genes), size=n_causal_genes_t3, replace=False)
+	# Causal tissues
+	causal_tissues = [0,3]
 
-	# Extract gene causal effect sizes
+	# Initialize matrix of gene causal effect sizes
 	gene_causal_effect_sizes = np.zeros((total_genes, 10))
-	gene_causal_effect_sizes[t0_med_causal_gene_indices, 0] = np.random.normal(loc=0.0, scale=np.sqrt(per_element_heritability),size=n_causal_genes_t0)
-	gene_causal_effect_sizes[t3_med_causal_gene_indices, 3] = np.random.normal(loc=0.0, scale=np.sqrt(per_element_heritability),size=n_causal_genes_t3)
-	
+
+	for causal_tissue in causal_tissues:
+		# Extract indices of mediated causal genes for this causal tissue
+		cis_h2_genes = np.where(cis_h2_gene_boolean_matrix[:, causal_tissue] == 1.0)[0]
+		tissue_med_causal_gene_indices = np.random.choice(cis_h2_genes, size=n_causal_genes_per_causal_tissue, replace=False)
+		# Randomly sample gene causal effect sizes at causal indices
+		gene_causal_effect_sizes[tissue_med_causal_gene_indices, causal_tissue] = np.random.normal(loc=0.0, scale=np.sqrt(per_element_heritability),size=n_causal_genes_per_causal_tissue)
+
+		# Quick error check
+		if np.array_equal(cis_h2_gene_boolean_matrix[tissue_med_causal_gene_indices,causal_tissue], np.ones(n_causal_genes_per_causal_tissue)) == False:
+			print('assumption eroror')
+
 	# Print to output file
 	t = open(expression_mediated_causal_effects_output,'w')
 	for gene_iter in range(total_genes):
@@ -146,10 +191,19 @@ def compute_expression_mediated_trait_values_for_single_gene(genotype_obj, gene_
 		# Get genetically predicted gene expression (in each tissue)
 		genetically_predicted_gene_expression = np.dot(stand_eqtl_genotype, causal_eqtl_effect_sizes)  # Matrix of number of samplesXnumber of tissues
 
-		# Standardize genetically predicted gene expression
-		standardized_genetically_predicted_gene_expression = genetically_predicted_gene_expression/np.std(genetically_predicted_gene_expression,axis=0)
+		# Compute variance (standard deviation) of genetically predicted expression
+		genetically_predicted_gene_expression_sdev = np.std(genetically_predicted_gene_expression,axis=0)
 
-		tissue_corr = np.corrcoef(np.transpose(standardized_genetically_predicted_gene_expression))
+		# Quick error check
+		if np.sum((genetically_predicted_gene_expression_sdev==0) & (gene_trait_effect_size_vec > 0)) != 0:
+			print('assumption error')
+			pdb.set_trace()
+
+		# hack to get rid of nans in tissues for this gene that are not genetically heritable
+		genetically_predicted_gene_expression_sdev[genetically_predicted_gene_expression_sdev==0] = 1
+
+		# Standardize genetically predicted gene expression
+		standardized_genetically_predicted_gene_expression = genetically_predicted_gene_expression/genetically_predicted_gene_expression_sdev
 
 		# Get expression mediated trait values
 		expr_med_trait_for_current_gene = np.dot(standardized_genetically_predicted_gene_expression, gene_trait_effect_size_vec)
@@ -181,7 +235,7 @@ def compute_non_mediated_variant_mediated_trait_values(non_mediated_variant_caus
 	# Loop through variants
 	total_nvar = len(ordered_rsids)
 	for var_iter in range(total_nvar):
-		print(var_iter)
+		#print(var_iter)
 		# Only consider variants with non-zero variant-trait effect
 		var_trait_effect_size = var_trait_effect_sizes[var_iter]
 		if var_trait_effect_size == 0.0:
@@ -237,7 +291,7 @@ def compute_expression_mediated_trait_values(simulated_expression_summary_file, 
 		if head_count == 0:
 			head_count = head_count + 1
 			continue
-		print(gene_counter)
+		#print(gene_counter)
 		# This corresponds to a single gene
 		# Extract relevent fields for this gene
 		gene_name = data[0]

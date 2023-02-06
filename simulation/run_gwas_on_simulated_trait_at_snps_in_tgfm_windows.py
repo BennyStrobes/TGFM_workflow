@@ -227,7 +227,7 @@ for line in g:
 	trait_values_file = simulated_trait_dir + simulation_name_string + '_trait_values.txt'  # Trait vector
 	gwas_plink_stem = processed_genotype_data_dir + 'simulated_gwas_data_' + str(chrom_num)  # Genotype files
 	gwas_output_file = simulated_gwas_dir + simulation_name_string + '_simualated_gwas_results_window_' + window_name + '.txt'
-	#run_gwas_on_specified_rsids(window_rsids, trait_values_file, gwas_plink_stem, gwas_output_file)
+	run_gwas_on_specified_rsids(window_rsids, trait_values_file, gwas_plink_stem, gwas_output_file)
 
 	####################################################
 	# Compute window LD 
