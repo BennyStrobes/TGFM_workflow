@@ -15,6 +15,8 @@ total_heritability="$5"
 fraction_expression_mediated_heritability="$6"
 simulated_sldsc_results_dir="$7"
 simulated_organized_results_dir="$8"
+simulated_tgfm_results_dir="$9"
+simulated_trait_dir="${10}"
 
 
 if false; then
@@ -22,4 +24,4 @@ source ~/.bash_profile
 fi
 
 
-python3 organize_simulation_results_across_parallel_simulations.py $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_sldsc_results_dir $simulated_organized_results_dir
+python3 organize_simulation_results_across_parallel_simulations.py $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_sldsc_results_dir $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir

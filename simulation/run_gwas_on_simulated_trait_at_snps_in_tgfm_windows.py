@@ -215,11 +215,8 @@ for line in g:
 	window_start = int(data[1])
 	window_end = int(data[4])
 
-
-	
 	# Extract dictionary list of window rsids
 	window_rsids = extract_dictionary_list_of_window_rsids(bim_file, window_start, window_end)
-
 
 	####################################################
 	# Run GWAS on window rsids 

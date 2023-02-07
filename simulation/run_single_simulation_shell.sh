@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-40:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-20:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=30GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -83,7 +83,6 @@ echo "Simulation Step 6"
 source ~/.bash_profile
 python3 organize_data_for_sldsc.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $processed_genotype_data_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir 
 
-
 #######################################################
 # Step 7: Run TGFM-sldsc
 #######################################################
@@ -110,6 +109,7 @@ simulation_window_list_file=${simulated_tgfm_input_data_dir}${simulation_name_st
 python3 randomly_select_windows_to_run_tgfm_on_in_simulation.py $global_window_file $simulation_window_list_file $simulation_number
 
 
+
 #######################################################
 # Step 9: Run GWAS on simulated trait on only snps in TGFM windows.
 # Also computes in-sample LD for TGFM windows
@@ -132,12 +132,14 @@ do
 done
 
 
+
+
 #######################################################
 # Step 11: Run TGFM
 #######################################################
 echo "Simulation Step 11"
 eqtl_sample_size_arr=( "100" "200" "300" "500" "1000")
-ln_pi_method_arr=( "point_estimate_1e-10" "sparse_estimate_1e-10" "distribution_estimate_1e-10" "point_estimate_1e-30" "sparse_estimate_1e-30" "distribution_estimate_1e-30")
+ln_pi_method_arr=( "uniform" "point_estimate_1e-10" "sparse_estimate_1e-10" "distribution_estimate_1e-10" "variant_v_gene_only_1e-10" "point_estimate_1e-30" "sparse_estimate_1e-30" "distribution_estimate_1e-30" "variant_v_gene_only_1e-30")
 
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
@@ -148,7 +150,5 @@ do
 		python3 run_tgfm.py ${tgfm_input_file} ${tgfm_output_stem} ${ln_pi_method}
 	done
 done
-
-
 
 

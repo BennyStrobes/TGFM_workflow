@@ -139,6 +139,29 @@ def compute_expected_log_probability(full_anno_mat, sldsc_tau_mean, sldsc_tau_co
 
 	return np.mean(log_prob,axis=1)
 
+def compute_log_expected_probability_variant_v_gene_only(full_anno_mat, sldsc_tau_mean, threshold):
+	expected_per_ele_h2 = np.dot(full_anno_mat, sldsc_tau_mean)
+	variant_elements = full_anno_mat[:,0] == 1
+	gene_elements = full_anno_mat[:,0] != 1
+	# Quick error check
+	if np.sum(variant_elements) + np.sum(gene_elements) != full_anno_mat.shape[0]:
+		print('assumption eroror')
+		pdb.set_trace()
+	window_snp_h2 = np.sum(expected_per_ele_h2[variant_elements])
+	window_gene_h2 = np.sum(expected_per_ele_h2[gene_elements])
+	if window_snp_h2 < threshold:
+		window_snp_h2 = threshold
+	if window_gene_h2 < threshold:
+		window_gene_h2 = threshold
+
+	avg_per_ele_h2 = np.ones(len(expected_per_ele_h2))
+	avg_per_ele_h2[variant_elements] = window_snp_h2/np.sum(variant_elements)
+	avg_per_ele_h2[gene_elements] = window_gene_h2/np.sum(gene_elements)
+
+	prob = avg_per_ele_h2/np.sum(avg_per_ele_h2)
+
+	return np.log(prob)
+
 
 
 def compute_various_versions_of_log_prior_probabilities(window_rsids, window_snp_anno_mat, gene_tissue_pairs, sldsc_tau_mean, sldsc_tau_cov, sparse_sldsc_tau, threshold=1e-30):
@@ -159,12 +182,12 @@ def compute_various_versions_of_log_prior_probabilities(window_rsids, window_snp
 		print('assumption error')
 		pdb.set_trace()
 
-
+	variant_v_gene_only_ln_pi = compute_log_expected_probability_variant_v_gene_only(full_anno_mat, sldsc_tau_mean, threshold)	
 	point_estimate_ln_pi = compute_log_expected_probability(full_anno_mat, sldsc_tau_mean, threshold)
 	sparse_estimate_ln_pi = compute_log_expected_probability(full_anno_mat, sparse_sldsc_tau, threshold)
 	distribution_estimate_ln_pi = compute_expected_log_probability(full_anno_mat, sldsc_tau_mean, sldsc_tau_cov, threshold)
 
-	return point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi
+	return point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi, variant_v_gene_only_ln_pi
 
 def load_in_window_gwas_betas_and_ses(window_gwas_summary_file, window_rsids):
 	f = open(window_gwas_summary_file)
@@ -323,12 +346,19 @@ for line in f:
 
 	# Compute various ln(pi) and save to output # and save those results to output files
 	ln_pi_output_stem = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi'
+	# Uniform prior
+	n_window_elements = len(window_rsids) + len(gene_tissue_pairs)
+	uniform_pi = np.ones(n_window_elements)*(1.0/n_window_elements)
+	uniform_ln_pi = np.log(uniform_pi)
+	save_ln_pi_output_file(uniform_ln_pi, ln_pi_output_stem + '_uniform.txt', window_rsids, gene_tissue_pairs)
+
 	thresholds = [1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15, 1e-20, 1e-30]
 	for threshold in thresholds:
-		point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi = compute_various_versions_of_log_prior_probabilities(window_rsids, window_anno_mat, gene_tissue_pairs, sldsc_tau_mean, sldsc_tau_cov, sparse_sldsc_tau, threshold=threshold)
+		point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi, variant_v_gene_only_ln_pi = compute_various_versions_of_log_prior_probabilities(window_rsids, window_anno_mat, gene_tissue_pairs, sldsc_tau_mean, sldsc_tau_cov, sparse_sldsc_tau, threshold=threshold)
 		save_ln_pi_output_file(point_estimate_ln_pi, ln_pi_output_stem + '_point_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 		save_ln_pi_output_file(sparse_estimate_ln_pi, ln_pi_output_stem + '_sparse_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 		save_ln_pi_output_file(distribution_estimate_ln_pi, ln_pi_output_stem + '_distribution_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
+		save_ln_pi_output_file(variant_v_gene_only_ln_pi, ln_pi_output_stem + '_variant_v_gene_only_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 
 
 	# Organize TGFM data into nice data structure

@@ -51,9 +51,9 @@ make_type_1_error_med_h2_se_barplot <- function(df) {
 
 make_avg_fraction_h2_se_barplot <- function(df) {
 	 df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000))
-	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=med_h2)) +
+	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=frac_h2)) +
   		geom_bar(fill="skyblue",stat="identity", position=position_dodge()) +
-  		geom_errorbar(aes(ymin=med_h2_lb, ymax=med_h2_ub), width=.4, position=position_dodge(.9), colour="orange")  +
+  		geom_errorbar(aes(ymin=frac_h2_lb, ymax=frac_h2_ub), width=.4, position=position_dodge(.9), colour="orange")  +
   		figure_theme() +
   		labs(x="eQTL Sample size", y="Fraction h2 mediated\nby gene expression") +
   		theme(legend.position="bottom") +
@@ -80,12 +80,15 @@ make_avg_per_tissue_h2_se_barplot_for_single_class <- function(df, titler, sim_v
 }
 
 make_avg_per_tissue_h2_se_barplot <- function(df) {
+
+	print(head(df))
 	causal_df <- df[as.character(df$causal_status)=="causal",]
 	null_df <- df[as.character(df$causal_status)=="null",]
 
 	min_height = min(df$med_h2_lb)
 	max_height = max(df$med_h2_ub)
 	max_height = max(c(max_height, .0152))
+
 
 
 	causal_plot <- make_avg_per_tissue_h2_se_barplot_for_single_class(causal_df, "Causal tissues", .015, min_height, max_height)
@@ -106,7 +109,6 @@ simulated_organized_results_dir = args[2]
 visualize_simulated_results_dir = args[3]
 
 
-if (FALSE) {
 #####################################################################
 # Make barplot with standard error showing AVG heritability estimates
 #####################################################################
@@ -145,7 +147,6 @@ avg_per_tissue_h2_se_barplot <- make_avg_per_tissue_h2_se_barplot(per_tissue_h2_
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_avg_h2_per_tissue.pdf")
 ggsave(avg_per_tissue_h2_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
 
-}
 
 #####################################################################
 # Make barplot with standard error showing AVG heritability estimates per tissue given sparse estimates
@@ -160,7 +161,6 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(avg_per_tissue_h2_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
 
 
-if (FALSE) {
 #####################################################################
 # Make barplot with standard error showing Power
 #####################################################################
@@ -186,7 +186,6 @@ t1e_se_barplot <- make_type_1_error_med_h2_se_barplot(t1e_h2_df)
 # Save to output
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_med_h2.pdf")
 ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
-}
 
 
 

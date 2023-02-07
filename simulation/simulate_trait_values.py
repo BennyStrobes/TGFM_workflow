@@ -227,9 +227,17 @@ def compute_non_mediated_variant_mediated_trait_values(non_mediated_variant_caus
 	genotype_obj = read_plink1_bin(gwas_plink_stem + '.bed', gwas_plink_stem + '.bim', gwas_plink_stem + '.fam', verbose=False)
 
 	# Extract non-mediated variant-trait effect sizes
-	var_trait_effect_sizes_raw = np.loadtxt(non_mediated_variant_causal_effects_file, dtype=str, delimiter='\t')
-	ordered_rsids = var_trait_effect_sizes_raw[:,0]
-	var_trait_effect_sizes = var_trait_effect_sizes_raw[:,1].astype(float)
+	var_trait_effect_sizes = []
+	f = open(non_mediated_variant_causal_effects_file)
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		ordered_rsids.append(data[0])
+		var_trait_effect_sizes.append(float(data[1]))
+	f.close()
+	ordered_rsids = np.asarray(ordered_rsids)
+	var_trait_effect_sizes = np.asarray(var_trait_effect_sizes)
+
 
 
 	# Loop through variants
@@ -269,9 +277,20 @@ def compute_non_mediated_variant_mediated_trait_values(non_mediated_variant_caus
 
 def compute_expression_mediated_trait_values(simulated_expression_summary_file, expression_mediated_causal_effects_file, gwas_plink_stem, expression_mediated_trait_values_output, n_gwas_individuals):
 	# First extract gene-trait effect sizes
-	gene_trait_effect_sizes_raw = np.loadtxt(expression_mediated_causal_effects_file, dtype=str, delimiter='\t')
-	ordered_gene_names = gene_trait_effect_sizes_raw[:,0]
-	gene_trait_effect_sizes = gene_trait_effect_sizes_raw[:,1:].astype(float)
+	#gene_trait_effect_sizes_raw = np.loadtxt(expression_mediated_causal_effects_file, dtype=str, delimiter='\t')
+	#ordered_gene_names = gene_trait_effect_sizes_raw[:,0]
+	#gene_trait_effect_sizes = gene_trait_effect_sizes_raw[:,1:].astype(float)
+	ordered_gene_names = []
+	gene_trait_effect_sizes = []
+	f = open(expression_mediated_causal_effects_file)
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		ordered_gene_names.append(data[0])
+		gene_trait_effect_sizes.append(np.asarray(data[1:]).astype(float))
+	f.close()
+	ordered_gene_names = np.asarray(ordered_gene_names)
+	gene_trait_effect_sizes = np.asarray(gene_trait_effect_sizes)
 
 	# Initialize expression mediated trait values
 	expr_med_trait = np.zeros(n_gwas_individuals)
@@ -387,7 +406,6 @@ simulated_expression_summary_file = simulated_gene_expression_dir + simulation_n
 expression_mediated_causal_effects_output = simulated_trait_dir + simulation_name_string + '_expression_mediated_gene_causal_effect_sizes.txt'
 simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_summary_file, per_element_heritability, total_heritability, fraction_expression_mediated_heritability, expression_mediated_causal_effects_output)
 
-
 ####################################################
 # Simulate non-mediated variant causal effect sizes
 ####################################################
@@ -395,7 +413,6 @@ variant_annotation_file = processed_genotype_data_dir + 'baseline.' + chrom_num 
 real_sldsc_results_file = ldsc_real_data_results_dir + 'blood_WHITE_COUNT_sldsc_baseline.results'  # Output of sldsc run on real trait (contains heritability model)
 non_mediated_causal_effects_output = simulated_trait_dir + simulation_name_string + '_non_mediated_variant_causal_effect_sizes.txt'
 simulate_non_mediated_variant_causal_effect_sizes(variant_annotation_file, real_sldsc_results_file, per_element_heritability, total_heritability, fraction_expression_mediated_heritability, non_mediated_causal_effects_output)
-
 
 ####################################################
 # Extract component of trait values coming from genetically predicted gene expression
@@ -412,8 +429,6 @@ compute_expression_mediated_trait_values(simulated_expression_summary_file, expr
 non_mediated_variant_causal_effects_file = simulated_trait_dir + simulation_name_string + '_non_mediated_variant_causal_effect_sizes.txt'
 variant_mediated_trait_values_output = simulated_trait_dir + simulation_name_string + '_non_mediated_variant_mediated_trait_values.txt'  # Output file
 compute_non_mediated_variant_mediated_trait_values(non_mediated_variant_causal_effects_file, gwas_plink_stem, variant_mediated_trait_values_output, n_gwas_individuals)
-
-
 
 
 ####################################################

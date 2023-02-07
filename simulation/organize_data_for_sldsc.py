@@ -45,11 +45,20 @@ def reformat_gwas_summary_statistics_for_sldsc(genotype_bim_file, standard_gwas_
 
 	return
 
-
+def load_in_string_matrix(file_name, delimiter='\t'):
+	arr = []
+	f = open(file_name)
+	for line in f:
+		line = line.rstrip()
+		data = line.split(delimiter)
+		arr.append(data)
+	f.close()
+	return np.asarray(arr)
 
 def create_joint_ld_score_file(variant_ld_score_file, gene_ld_score_file, joint_ld_score_file):
 	# Load in gene-ld scores into memory
-	gene_ld_scores_raw = np.loadtxt(gene_ld_score_file,dtype=str,delimiter='\t')
+	gene_ld_scores_raw = load_in_string_matrix(gene_ld_score_file)
+
 	n_tiss = gene_ld_scores_raw.shape[1] - 1
 	# create names of annotation defining eqtls
 	tissue_anno_names = []
@@ -171,13 +180,13 @@ reformat_variant_weights_for_ldsc(regression_snps_file, existing_variant_weights
 variant_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.ldscore.gz'  # Variant level ld-score (doesn't change as we vary expression data)
 # Loop through eqtl sample sizes
 eqtl_sample_sizes = np.asarray([100,200,300,500,1000])  # Various eqtl data sets
+
 for eqtl_sample_size in eqtl_sample_sizes:
 	# File containing gene ld scores for this data set
 	gene_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_gene_weighted_ld_scores_eqtlss_' + str(eqtl_sample_size) + '_ld_scores.txt'
 	# Output file
 	joint_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_gene_ld_scores.l2.ldscore'
 	create_joint_ld_score_file(variant_ld_score_file, gene_ld_score_file, joint_ld_score_file)
-
 
 ############################
 #  Generate Joint-variant-gene M files for each of the eqtl sample sizes
@@ -191,7 +200,6 @@ for eqtl_sample_size in eqtl_sample_sizes:
 	# Output file
 	joint_m_file = simulated_ld_scores_dir + simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_gene_ld_scores.l2.M_5_50'
 	create_joint_M_file(variant_m_file, gene_m_file, joint_m_file)
-
 
 
 

@@ -256,7 +256,7 @@ np.random.seed(simulation_number)
 eqtl_sample_sizes = np.asarray([100,200,300,500,1000])
 
 # Fraction of genes cis heritable for a given tissue
-fraction_genes_cis_h2 = .7
+fraction_genes_cis_h2 = .5
 
 
 ############################
