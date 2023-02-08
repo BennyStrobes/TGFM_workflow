@@ -57,9 +57,10 @@ def load_in_log_priors(log_prior_prob_file, variant_names, gene_names):
 	if np.array_equal(temp_var_names, variant_names) == False:
 		print('assumption eroror')
 		pdb.set_trace()
-	if np.array_equal(temp_gene_names, gene_names) == False:
-		print('assumption eroror')
-		pdb.set_trace()
+	if len(gene_names) > 0:
+		if np.array_equal(temp_gene_names, gene_names) == False:
+			print('assumption eroror')
+			pdb.set_trace()
 	
 	return variant_log_prob, gene_log_prob
 

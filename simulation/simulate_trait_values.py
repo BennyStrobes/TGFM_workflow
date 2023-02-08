@@ -228,6 +228,7 @@ def compute_non_mediated_variant_mediated_trait_values(non_mediated_variant_caus
 
 	# Extract non-mediated variant-trait effect sizes
 	var_trait_effect_sizes = []
+	ordered_rsids = []
 	f = open(non_mediated_variant_causal_effects_file)
 	for line in f:
 		line = line.rstrip()
