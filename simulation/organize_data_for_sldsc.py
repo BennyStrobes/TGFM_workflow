@@ -166,13 +166,6 @@ standard_gwas_results_file = simulated_gwas_dir + simulation_name_string + '_sim
 ldsc_gwas_results_file = simulated_ld_scores_dir + simulation_name_string + '_ldsc_ready_summary_statistics.txt'
 reformat_gwas_summary_statistics_for_sldsc(genotype_bim_file, standard_gwas_results_file, ldsc_gwas_results_file, n_gwas_individuals)
 
-############################
-#  Reformat variant weights for sldsc
-############################
-regression_snps_file = simulated_ld_scores_dir + simulation_name_string + '_regression_snp_ids.txt'
-existing_variant_weights_file = ldsc_weights_dir + 'weights.hm3_noMHC.' + chrom_num + '.l2.ldscore.gz'
-new_variant_weights_file = simulated_ld_scores_dir + simulation_name_string + '_ldsc_ready_weights.hm3_noMHC.' + chrom_num + '.l2.ldscore'
-reformat_variant_weights_for_ldsc(regression_snps_file, existing_variant_weights_file, new_variant_weights_file)
 
 ############################
 #  Generate Joint-variant-gene LD-score files for each of the eqtl sample sizes
@@ -203,5 +196,25 @@ for eqtl_sample_size in eqtl_sample_sizes:
 
 
 
+
+
+
+
+
+
+
+
+
+
+# No longer used
+'''
+############################
+#  Reformat variant weights for sldsc
+############################
+regression_snps_file = simulated_ld_scores_dir + simulation_name_string + '_regression_snp_ids.txt'
+existing_variant_weights_file = ldsc_weights_dir + 'weights.hm3_noMHC.' + chrom_num + '.l2.ldscore.gz'
+new_variant_weights_file = simulated_ld_scores_dir + simulation_name_string + '_ldsc_ready_weights.hm3_noMHC.' + chrom_num + '.l2.ldscore'
+reformat_variant_weights_for_ldsc(regression_snps_file, existing_variant_weights_file, new_variant_weights_file)
+'''
 
 

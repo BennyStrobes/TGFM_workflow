@@ -123,6 +123,126 @@ def compute_log_expected_probability(full_anno_mat, sldsc_tau_mean, threshold):
 
 	return np.log(prob)
 
+def compute_log_expected_probability_with_ratio_to_max(full_anno_mat, sldsc_tau_mean, ratio_to_max, max_variant_value, max_tissue_value):
+	expected_per_ele_h2 = np.dot(full_anno_mat, sldsc_tau_mean)
+	variant_indices = full_anno_mat[:,0] == 1
+	gene_indices = full_anno_mat[:,0] == 0
+
+	variant_h2 = np.copy(expected_per_ele_h2[variant_indices])
+	variant_h2[variant_h2 <= ratio_to_max*max_variant_value] = ratio_to_max*max_variant_value
+	
+	gene_h2 = np.copy(expected_per_ele_h2[gene_indices])
+	gene_h2[gene_h2 <= ratio_to_max*max_tissue_value] = ratio_to_max*max_tissue_value
+
+	expected_per_ele_h2[variant_indices] = variant_h2
+	expected_per_ele_h2[gene_indices] = gene_h2
+
+	prob = expected_per_ele_h2/np.sum(expected_per_ele_h2)
+
+	return np.log(prob)
+
+def compute_shared_variant_log_expected_probability_with_ratio_to_max(full_anno_mat, sldsc_tau_mean, ratio_to_max, max_variant_value, max_tissue_value):
+	expected_per_ele_h2 = np.dot(full_anno_mat, sldsc_tau_mean)
+	variant_indices = full_anno_mat[:,0] == 1
+	gene_indices = full_anno_mat[:,0] == 0
+
+	variant_h2 = np.copy(expected_per_ele_h2[variant_indices])
+	per_variant_h2 = np.sum(variant_h2)/len(variant_h2)
+	if per_variant_h2 < 1e-8:
+		per_variant_h2 = 1e-8
+	shared_variant_h2 = variant_h2*0.0 + per_variant_h2
+	gene_h2 = np.copy(expected_per_ele_h2[gene_indices])
+	gene_h2[gene_h2 <= max_tissue_value*ratio_to_max] = max_tissue_value*ratio_to_max
+
+	expected_per_ele_h2[variant_indices] = shared_variant_h2
+	expected_per_ele_h2[gene_indices] = gene_h2
+
+	prob = expected_per_ele_h2/np.sum(expected_per_ele_h2)
+	return np.log(prob)
+
+def compute_shared_variant_expected_log_probability_with_ratio_to_max(full_anno_mat, sldsc_tau_mean, sldsc_tau_cov, ratio_to_max, max_variant_value, max_tissue_value, n_samples=10000):
+	# Sample a whole bunch of taus
+	sampled_taus = np.random.multivariate_normal(mean=sldsc_tau_mean, cov=sldsc_tau_cov, size=n_samples)
+
+	sampled_expected_per_ele_h2 = np.dot(full_anno_mat, np.transpose(sampled_taus))
+
+	variant_indices = full_anno_mat[:,0] == 1
+	gene_indices = full_anno_mat[:,0] == 0
+
+	sampled_expected_per_variant_h2 = sampled_expected_per_ele_h2[variant_indices,:]
+	n_var = np.sum(variant_indices)
+	sampled_shared_variant_h2 = np.sum(sampled_expected_per_variant_h2,axis=0)/n_var
+
+def compute_shared_variant_expected_log_probability(full_anno_mat, sldsc_tau_mean,sldsc_tau_cov, threshold, n_samples=10000):
+	# Sample a whole bunch of taus
+	sampled_taus = np.random.multivariate_normal(mean=sldsc_tau_mean, cov=sldsc_tau_cov, size=n_samples)
+
+	sampled_expected_per_ele_h2 = np.dot(full_anno_mat, np.transpose(sampled_taus))
+
+	variant_indices = full_anno_mat[:,0] == 1
+	gene_indices = full_anno_mat[:,0] == 0
+
+	sampled_expected_per_variant_h2 = sampled_expected_per_ele_h2[variant_indices,:]
+	n_var = np.sum(variant_indices)
+	sampled_shared_variant_h2 = np.sum(sampled_expected_per_variant_h2,axis=0)/n_var
+
+	prob = np.copy(sampled_expected_per_ele_h2)
+	for sample_iter in range(n_samples):
+		prob[variant_indices, sample_iter] = prob[variant_indices, sample_iter]*0.0 + sampled_shared_variant_h2[sample_iter]
+		neg_indices = prob[:, sample_iter] <= threshold
+		prob[neg_indices, sample_iter] = threshold
+		prob[:, sample_iter] = prob[:, sample_iter]/np.sum(prob[:, sample_iter])
+
+	log_prob = np.log(prob)
+
+	return np.mean(log_prob,axis=1)
+
+
+def compute_shared_variant_log_expected_probability(full_anno_mat, sldsc_tau_mean, threshold):
+	expected_per_ele_h2 = np.dot(full_anno_mat, sldsc_tau_mean)
+	variant_indices = full_anno_mat[:,0] == 1
+	gene_indices = full_anno_mat[:,0] == 0
+
+	variant_h2 = np.copy(expected_per_ele_h2[variant_indices])
+	per_variant_h2 = np.sum(variant_h2)/len(variant_h2)
+
+	shared_variant_h2 = variant_h2*0.0 + per_variant_h2
+	gene_h2 = np.copy(expected_per_ele_h2[gene_indices])
+
+	expected_per_ele_h2[variant_indices] = shared_variant_h2
+	expected_per_ele_h2[gene_indices] = gene_h2
+
+	expected_per_ele_h2[expected_per_ele_h2 <= threshold] = threshold
+
+	prob = expected_per_ele_h2/np.sum(expected_per_ele_h2)
+	return np.log(prob)
+
+def compute_expected_log_probability_with_ratio_to_max(full_anno_mat, sldsc_tau_mean, sldsc_tau_cov, ratio_to_max, max_variant_value, max_tissue_value, n_samples=10000):
+	# Sample a whole bunch of taus
+	sampled_taus = np.random.multivariate_normal(mean=sldsc_tau_mean, cov=sldsc_tau_cov, size=n_samples)
+
+	sampled_expected_per_ele_h2 = np.dot(full_anno_mat, np.transpose(sampled_taus))
+
+	variant_indices = full_anno_mat[:,0] == 1
+	gene_indices = full_anno_mat[:,0] == 0
+
+	sampled_expected_per_variant_h2 = sampled_expected_per_ele_h2[variant_indices,:]
+	sampled_expected_per_variant_h2[sampled_expected_per_variant_h2 <= ratio_to_max*max_variant_value] = ratio_to_max*max_variant_value
+
+	sampled_expected_per_gene_h2 = sampled_expected_per_ele_h2[gene_indices,:]
+	sampled_expected_per_gene_h2[sampled_expected_per_gene_h2 <= ratio_to_max*max_tissue_value] = ratio_to_max*max_variant_value
+
+	sampled_expected_per_ele_h2[variant_indices,:] = sampled_expected_per_variant_h2
+	sampled_expected_per_ele_h2[gene_indices,:] = sampled_expected_per_gene_h2
+
+	prob = np.copy(sampled_expected_per_ele_h2)
+	for sample_iter in range(n_samples):
+		prob[:, sample_iter] = prob[:, sample_iter]/np.sum(prob[:, sample_iter])
+
+	log_prob = np.log(prob)
+
+	return np.mean(log_prob,axis=1)
+
 def compute_expected_log_probability(full_anno_mat, sldsc_tau_mean, sldsc_tau_cov, threshold, n_samples=10000):
 	# Sample a whole bunch of taus
 	sampled_taus = np.random.multivariate_normal(mean=sldsc_tau_mean, cov=sldsc_tau_cov, size=n_samples)
@@ -163,6 +283,36 @@ def compute_log_expected_probability_variant_v_gene_only(full_anno_mat, sldsc_ta
 	return np.log(prob)
 
 
+def compute_various_versions_of_log_prior_probabilities_with_ratio_to_max(window_rsids, window_snp_anno_mat, gene_tissue_pairs, sldsc_tau_mean, sldsc_tau_cov, sparse_sldsc_tau, ratio_to_max):
+	# Merge together window_snp_anno_mat with tissue_anno_mat
+	n_snps = len(window_rsids)
+	n_genes = len(gene_tissue_pairs)
+	tissue_anno_mat = np.zeros((n_genes, 10))
+	for gene_iter, gene_tissue_pair in enumerate(gene_tissue_pairs):
+		tissue_index = int(gene_tissue_pair.split('_')[1].split('issue')[1])
+		tissue_anno_mat[gene_iter, tissue_index] = 1
+
+	full_anno_mat_top = np.hstack((window_snp_anno_mat, np.zeros((n_snps,10))))
+	full_anno_mat_bottom = np.hstack((np.zeros((n_genes, window_snp_anno_mat.shape[1])), tissue_anno_mat))
+	full_anno_mat = np.vstack((full_anno_mat_top, full_anno_mat_bottom))
+
+	# Quick error check
+	if full_anno_mat.shape[1] != len(sldsc_tau_mean):
+		print('assumption error')
+		pdb.set_trace()
+
+	max_variant_value = np.max(np.dot(window_snp_anno_mat, sldsc_tau_mean[0:-10]))
+	if max_variant_value < 1e-8:
+		max_variant_value = 1e-8
+	max_tissue_value = np.max(sldsc_tau_mean[-10:])
+	if max_tissue_value < 1e-8:
+		max_tissue_value = 1e-8
+
+	#point_estimate_ln_pi = compute_log_expected_probability_with_ratio_to_max(full_anno_mat, sldsc_tau_mean, ratio_to_max, max_variant_value, max_tissue_value)
+	#distribution_estimate_ln_pi = compute_expected_log_probability_with_ratio_to_max(full_anno_mat, sldsc_tau_mean, sldsc_tau_cov, ratio_to_max, max_variant_value, max_tissue_value)
+	#shared_variant_point_estimate_ln_pi = compute_shared_variant_log_expected_probability_with_ratio_to_max(full_anno_mat, sldsc_tau_mean, ratio_to_max, max_variant_value, max_tissue_value)
+	shared_variant_distribution_estimate_ln_pi = compute_shared_variant_expected_log_probability_with_ratio_to_max(full_anno_mat, sldsc_tau_mean, sldsc_tau_cov, ratio_to_max, max_variant_value, max_tissue_value)
+
 
 def compute_various_versions_of_log_prior_probabilities(window_rsids, window_snp_anno_mat, gene_tissue_pairs, sldsc_tau_mean, sldsc_tau_cov, sparse_sldsc_tau, threshold=1e-30):
 	# Merge together window_snp_anno_mat with tissue_anno_mat
@@ -182,12 +332,14 @@ def compute_various_versions_of_log_prior_probabilities(window_rsids, window_snp
 		print('assumption error')
 		pdb.set_trace()
 
+	shared_variant_point_estimate_ln_pi = compute_shared_variant_log_expected_probability(full_anno_mat, sldsc_tau_mean, threshold)
+	shared_variant_distribution_estimate_ln_pi = compute_shared_variant_expected_log_probability(full_anno_mat, sldsc_tau_mean,sldsc_tau_cov, threshold)
 	variant_v_gene_only_ln_pi = compute_log_expected_probability_variant_v_gene_only(full_anno_mat, sldsc_tau_mean, threshold)	
 	point_estimate_ln_pi = compute_log_expected_probability(full_anno_mat, sldsc_tau_mean, threshold)
 	sparse_estimate_ln_pi = compute_log_expected_probability(full_anno_mat, sparse_sldsc_tau, threshold)
 	distribution_estimate_ln_pi = compute_expected_log_probability(full_anno_mat, sldsc_tau_mean, sldsc_tau_cov, threshold)
 
-	return point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi, variant_v_gene_only_ln_pi
+	return point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi, variant_v_gene_only_ln_pi, shared_variant_point_estimate_ln_pi, shared_variant_distribution_estimate_ln_pi
 
 def load_in_window_gwas_betas_and_ses(window_gwas_summary_file, window_rsids):
 	f = open(window_gwas_summary_file)
@@ -351,14 +503,22 @@ for line in f:
 	uniform_pi = np.ones(n_window_elements)*(1.0/n_window_elements)
 	uniform_ln_pi = np.log(uniform_pi)
 	save_ln_pi_output_file(uniform_ln_pi, ln_pi_output_stem + '_uniform.txt', window_rsids, gene_tissue_pairs)
+	## V2
+	#ratio_to_maxs = [0.01, 0.001]
+	#for ratio_to_max in ratio_to_maxs:
+	#	point_estimate_ln_pi, distribution_estimate_ln_pi, shared_variant_point_estimate_ln_pi, shared_variant_distribution_estimate_ln_pi = compute_various_versions_of_log_prior_probabilities_with_ratio_to_max(window_rsids, window_anno_mat, gene_tissue_pairs, sldsc_tau_mean, sldsc_tau_cov, sparse_sldsc_tau, ratio_to_max)
 
-	thresholds = [1e-10, 1e-11, 1e-12, 1e-13, 1e-14, 1e-15, 1e-20, 1e-30]
+
+	# v1
+	thresholds = [1e-8,1e-10,1e-30]
 	for threshold in thresholds:
-		point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi, variant_v_gene_only_ln_pi = compute_various_versions_of_log_prior_probabilities(window_rsids, window_anno_mat, gene_tissue_pairs, sldsc_tau_mean, sldsc_tau_cov, sparse_sldsc_tau, threshold=threshold)
+		point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi, variant_v_gene_only_ln_pi,shared_variant_point_estimate_ln_pi, shared_variant_distribution_estimate_ln_pi  = compute_various_versions_of_log_prior_probabilities(window_rsids, window_anno_mat, gene_tissue_pairs, sldsc_tau_mean, sldsc_tau_cov, sparse_sldsc_tau, threshold=threshold)
 		save_ln_pi_output_file(point_estimate_ln_pi, ln_pi_output_stem + '_point_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 		save_ln_pi_output_file(sparse_estimate_ln_pi, ln_pi_output_stem + '_sparse_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 		save_ln_pi_output_file(distribution_estimate_ln_pi, ln_pi_output_stem + '_distribution_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 		save_ln_pi_output_file(variant_v_gene_only_ln_pi, ln_pi_output_stem + '_variant_v_gene_only_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
+		save_ln_pi_output_file(shared_variant_point_estimate_ln_pi, ln_pi_output_stem + '_shared_variant_point_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
+		save_ln_pi_output_file(shared_variant_distribution_estimate_ln_pi, ln_pi_output_stem + '_shared_variant_distribution_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 
 
 	# Organize TGFM data into nice data structure

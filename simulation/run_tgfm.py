@@ -157,6 +157,8 @@ for line in f:
 	# Extract relevent fields
 	###############################
 	window_name = data[0]
+	if window_name != 'chr1_31734349_34734349':
+		continue
 	ld_file = data[1]
 	tgfm_input_pkl = data[2]
 	log_prior_prob_file = data[3] + '_' + ln_pi_method_name + '.txt'
@@ -174,6 +176,10 @@ for line in f:
 	# Add ld to tgfm_data obj
 	tgfm_data['reference_ld'] = ld_mat
 
+	# Skip windows with no genes
+	if len(tgfm_data['genes']) == 0:
+		continue
+
 	# Load in log_priors
 	var_log_prior, gene_log_prior = load_in_log_priors(log_prior_prob_file, tgfm_data['variants'], tgfm_data['genes'])
 
@@ -188,6 +194,8 @@ for line in f:
 	###############################
 	tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=500)
 	tgfm_obj.fit(twas_data_obj=tgfm_data)
+
+	pdb.set_trace()
 
 	##############################
 	# Organize TGFM data and print to results

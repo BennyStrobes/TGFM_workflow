@@ -198,7 +198,6 @@ class TGFM(object):
 			mixture_beta_var = -1.0/(2.0*variant_a_terms)
 			mixture_beta_mu = variant_b_terms*mixture_beta_var
 
-
 			
 			################
 			# Normalization (across beta and alpha)
@@ -216,6 +215,8 @@ class TGFM(object):
 			self.beta_phi[l_index,:] = np.exp(un_normalized_lv_beta_weights-normalizing_term)
 			self.beta_mu[l_index,:] = mixture_beta_mu
 			self.beta_var[l_index,:] = mixture_beta_var
+
+			pdb.set_trace()
 
 
 			# Remove current component (as it is currently removed)
