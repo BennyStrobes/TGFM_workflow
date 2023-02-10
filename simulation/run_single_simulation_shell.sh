@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-8:00                         # Runtime in D-HH:MM format
-#SBATCH -p short                           # Partition to run in
+#SBATCH -t 0-18:00                         # Runtime in D-HH:MM format
+#SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
 
 
@@ -30,8 +30,9 @@ simulated_tgfm_results_dir="${21}"
 
 source ~/.bash_profile
 module load R/4.0.1
-if false; then
 echo "Simulation"$simulation_number
+date
+if false; then
 #######################################################
 # Step 1: Simulate gene expression and fit gene models
 #######################################################
@@ -58,7 +59,7 @@ fi
 echo "Simulation Step 4"
 python3 generate_gene_ld_scores.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_ld_scores_dir
 
-if false; then
+
 #######################################################
 # Step 5: Generate variant annotation-weighted ld-scores
 #######################################################
@@ -106,7 +107,8 @@ python3 organize_data_for_sldsc.py $simulation_number $chrom_num $simulation_nam
 # Step 7: Run TGFM-sldsc
 #######################################################
 echo "Simulation Step 7"
-eqtl_sample_size_arr=( "100" "200" "300" "500" "1000")
+eqtl_sample_size_arr=( "100" "200" "300" "500" "1000" "inf")
+
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
 	source /n/groups/price/ben/environments/sldsc/bin/activate
@@ -120,6 +122,7 @@ do
 done
 
 
+
 #######################################################
 # Step 8: Randomly select chromosome windows to run tgfm on
 #######################################################
@@ -127,6 +130,8 @@ echo "Simulation Step 8"
 global_window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_3_mb.txt"
 simulation_window_list_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_tgfm_windows.txt"
 python3 randomly_select_windows_to_run_tgfm_on_in_simulation.py $global_window_file $simulation_window_list_file $simulation_number
+
+
 
 
 #######################################################
@@ -145,7 +150,7 @@ python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows.py $simulation_numbe
 echo "Simulation Step 10"
 simulation_window_list_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_tgfm_windows.txt"
 annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
-eqtl_sample_size_arr=( "100" "200" "300" "500" "1000")
+eqtl_sample_size_arr=( "100" "200" "300" "500" "1000" "inf" )
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
 	python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $simulation_window_list_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir
@@ -157,8 +162,9 @@ done
 # Step 11: Run TGFM (need to test)
 #######################################################
 echo "Simulation Step 11"
-eqtl_sample_size_arr=( "100" "200" "300" "500" "1000")
+eqtl_sample_size_arr=( "100" "200" "300" "500" "1000" "inf")
 ln_pi_method_arr=( "uniform" "shared_variant_point_estimate_1e-08" "shared_variant_distribution_estimate_1e-08" "point_estimate_1e-08" "sparse_estimate_1e-08" "distribution_estimate_1e-08" "variant_v_gene_only_1e-08" "shared_variant_point_estimate_1e-10" "shared_variant_distribution_estimate_1e-10" "point_estimate_1e-10" "sparse_estimate_1e-10" "distribution_estimate_1e-10" "variant_v_gene_only_1e-10" "shared_variant_point_estimate_1e-30" "shared_variant_distribution_estimate_1e-30" "point_estimate_1e-30" "sparse_estimate_1e-30" "distribution_estimate_1e-30" "variant_v_gene_only_1e-30")
+ln_pi_method_arr=( "uniform" )
 
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
@@ -170,4 +176,4 @@ do
 	done
 done
 
-fi
+date

@@ -171,7 +171,7 @@ def print_gene_weighted_ld_scores_to_output(gene_weighted_ld_scores, regression_
 	t.close()
 
 
-def generate_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, gene_weighted_ld_score_output_root):
+def generate_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, simulated_gene_expression_dir, gene_weighted_ld_score_output_root):
 	# Create dictionary of regression_snp_names
 	regression_snp_names_set = create_regression_snp_names_dictionary(regression_snp_names)
 
@@ -218,8 +218,14 @@ def generate_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sa
 		# Subloop through eqtl sample sizes
 		for eqtl_sample_size_iter, eqtl_sample_size in enumerate(eqtl_sample_sizes):
 			# Extract estimated eQTL PMCES for this gene
-			gene_eqtl_pmces_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + gene_name + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
-			gene_eqtl_pmces = np.load(gene_eqtl_pmces_file)
+			if eqtl_sample_size == 'inf':
+				# Use known (simulated eqtl effect sizes)
+				gene_eqtl_ce_file = simulated_gene_expression_dir + simulation_name_string + '_' + gene_name + '_causal_eqtl_effects.npy'
+				gene_eqtl_pmces = np.transpose(np.load(gene_eqtl_ce_file))
+			else:
+				# Use learned eqtl effect sizes
+				gene_eqtl_pmces_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + gene_name + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
+				gene_eqtl_pmces = np.load(gene_eqtl_pmces_file)
 
 			# Extract boolean whether gene model exists for each tissue
 			gene_model_boolean_cross_tissues = extract_boolean_on_whether_gene_model_exists(gene_eqtl_pmces)
@@ -289,8 +295,9 @@ genotype_obj = load_in_genotype_data(genotype_stem)
 # Generate gene-weighted ld scores
 ####################################################
 gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'  # names of genes
-eqtl_sample_sizes = np.asarray([100,200,300,500,1000])  # Various eqtl data sets
+eqtl_sample_sizes = np.asarray([100,200,300,500,1000,'inf'])  # Various eqtl data sets
+
 gene_weighted_ld_score_output_root = simulated_ld_scores_dir + simulation_name_string + '_gene_weighted_ld_scores'  # output root
-generate_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, gene_weighted_ld_score_output_root)
+generate_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,simulated_gene_expression_dir, gene_weighted_ld_score_output_root)
 
 

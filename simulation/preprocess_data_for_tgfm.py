@@ -45,7 +45,7 @@ def create_dictionary_mapping_from_rsid_to_genomic_annotation_vector(annotation_
 
 
 
-def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, eqtl_sample_size, window_indices):
+def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, eqtl_sample_size, window_indices, simulated_gene_expression_dir):
 	# Initialize output vectors
 	gene_tissue_pairs = []
 	weight_vectors = []
@@ -76,8 +76,12 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 			# Gene is in cis with respect to window
 
 			# Fitted gene file
-			fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
-			gene_model_mat = np.load(fitted_gene_file)
+			if eqtl_sample_size == 'inf':
+				fitted_gene_file = simulated_gene_expression_dir + simulation_name_string + '_' + ensamble_id + '_causal_eqtl_effects.npy'
+				gene_model_mat = np.transpose(np.load(fitted_gene_file))
+			else:
+				fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
+				gene_model_mat = np.load(fitted_gene_file)
 
 			# Relevent info
 			n_tiss = gene_model_mat.shape[0]
@@ -420,7 +424,7 @@ simulation_number = int(sys.argv[1])
 chrom_num = sys.argv[2]
 simulation_name_string = sys.argv[3]
 n_gwas_individuals = int(sys.argv[4])
-eqtl_sample_size = int(sys.argv[5])
+eqtl_sample_size = sys.argv[5]
 simulation_window_list_file = sys.argv[6]
 annotation_file = sys.argv[7]
 simulated_gwas_dir = sys.argv[8]
@@ -480,7 +484,7 @@ for line in f:
 
 	# Extract gene-tissue pairs and fitted models in this window
 	gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
-	gene_tissue_pairs, gene_tissue_pair_weight_vectors, gene_tissue_pairs_tss = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, eqtl_sample_size, window_indices)
+	gene_tissue_pairs, gene_tissue_pair_weight_vectors, gene_tissue_pairs_tss = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, eqtl_sample_size, window_indices, simulated_gene_expression_dir)
 
 	# Extract LD
 	ld_mat_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_in_sample_ld.npy'

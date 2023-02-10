@@ -36,7 +36,7 @@ subset_windows_data = all_windows_data[num_middle_var > 500,:]
 total_windows = subset_windows_data.shape[0]
 
 # Randomly select 1 window
-randomly_selected_windows = np.random.choice(total_windows, size=3, replace=False)
+randomly_selected_windows = np.random.choice(total_windows, size=20, replace=False)
 
 # Print to output file
 t = open(simulation_window_list_file,'w')

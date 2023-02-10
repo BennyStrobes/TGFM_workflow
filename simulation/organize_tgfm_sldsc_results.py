@@ -126,12 +126,12 @@ print_organized_summary_file(sldsc_output_root + '_organized_res.txt', anno_name
 
 
 # Total counts
-#m_vec = load_in_mvec(anno_stem, '.M')
-m_5_50_vec = load_in_mvec(anno_stem, '.M_5_50')
+m_vec = load_in_mvec(anno_stem, '.M')
+#m_5_50_vec = load_in_mvec(anno_stem, '.M_5_50')
 
 # Print partioned h2 to output
-#print_organized_summary_file(sldsc_output_root + 'organized_mediated_h2.txt', anno_names, tau*m_vec, tau_se*m_vec)
-print_organized_summary_file(sldsc_output_root + '_organized_mediated_h2_5_50.txt', anno_names, tau*m_5_50_vec, tau_se*m_5_50_vec)
+print_organized_summary_file(sldsc_output_root + '_organized_mediated_h2.txt', anno_names, tau*m_vec, tau_se*m_vec)
+#print_organized_summary_file(sldsc_output_root + '_organized_mediated_h2_5_50.txt', anno_names, tau*m_5_50_vec, tau_se*m_5_50_vec)
 
 
 # Load in annotation names and annotation sdevs
@@ -177,11 +177,11 @@ non_eqtl_annotations, eqtl_annotations = extract_non_eqtl_annotations(anno_names
 eqtl_start_index = np.min(eqtl_annotations)
 
 # Jacknife expression mediated h2
-#h2_med, h2_med_se = extract_expression_mediated_h2(jacknifed_taus, eqtl_start_index-1, m_vec)
-h2_5_50_med, h2_5_50_med_se = extract_expression_mediated_h2(jacknifed_taus, eqtl_start_index-1, m_5_50_vec)
+h2_med, h2_med_se = extract_expression_mediated_h2(jacknifed_taus, eqtl_start_index-1, m_vec)
+#h2_5_50_med, h2_5_50_med_se = extract_expression_mediated_h2(jacknifed_taus, eqtl_start_index-1, m_5_50_vec)
 
-#print_organized_h2_mediated(sldsc_output_root + 'h2_med.txt', h2_med, h2_med_se)
-print_organized_h2_mediated(sldsc_output_root + '_h2_5_50_med.txt', h2_5_50_med, h2_5_50_med_se)
+print_organized_h2_mediated(sldsc_output_root + '_h2_med.txt', h2_med, h2_med_se)
+#print_organized_h2_mediated(sldsc_output_root + '_h2_5_50_med.txt', h2_5_50_med, h2_5_50_med_se)
 
 
 #################
