@@ -216,8 +216,6 @@ class TGFM(object):
 			self.beta_mu[l_index,:] = mixture_beta_mu
 			self.beta_var[l_index,:] = mixture_beta_var
 
-			pdb.set_trace()
-
 
 			# Remove current component (as it is currently removed)
 			component_gene_trait_pred = np.dot(self.alpha_mu[l_index,:]*self.alpha_phi[l_index,:], self.gene_eqtl_pmces)

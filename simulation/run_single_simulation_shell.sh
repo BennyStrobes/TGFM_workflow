@@ -156,13 +156,15 @@ do
 	python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $simulation_window_list_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir
 done
 
-
+fi
 
 #######################################################
 # Step 11: Run TGFM (need to test)
 #######################################################
 echo "Simulation Step 11"
 eqtl_sample_size_arr=( "100" "200" "300" "500" "1000" "inf")
+
+
 ln_pi_method_arr=( "uniform" "shared_variant_point_estimate_1e-08" "shared_variant_distribution_estimate_1e-08" "point_estimate_1e-08" "sparse_estimate_1e-08" "distribution_estimate_1e-08" "variant_v_gene_only_1e-08" "shared_variant_point_estimate_1e-10" "shared_variant_distribution_estimate_1e-10" "point_estimate_1e-10" "sparse_estimate_1e-10" "distribution_estimate_1e-10" "variant_v_gene_only_1e-10" "shared_variant_point_estimate_1e-30" "shared_variant_distribution_estimate_1e-30" "point_estimate_1e-30" "sparse_estimate_1e-30" "distribution_estimate_1e-30" "variant_v_gene_only_1e-30")
 ln_pi_method_arr=( "uniform" )
 
