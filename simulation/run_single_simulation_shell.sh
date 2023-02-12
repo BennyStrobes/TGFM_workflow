@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-18:00                         # Runtime in D-HH:MM format
-#SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
+#SBATCH -t 0-10:00                         # Runtime in D-HH:MM format
+#SBATCH -p short                           # Partition to run in
+#SBATCH --mem=25GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -52,7 +52,7 @@ python3 simulate_trait_values.py $simulation_number $chrom_num $cis_window $simu
 echo "Simulation Step 3"
 python3 run_gwas_on_simulated_trait_at_only_hapmap3_snps.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $ldsc_weights_dir $simulated_gwas_dir
 fi
-
+if false; then
 #######################################################
 # Step 4: Generate gene ld-scores
 #######################################################
@@ -156,8 +156,8 @@ do
 	python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $simulation_window_list_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir
 done
 
-fi
 
+fi
 #######################################################
 # Step 11: Run TGFM (need to test)
 #######################################################
@@ -173,9 +173,10 @@ do
 	for ln_pi_method in "${ln_pi_method_arr[@]}"
 	do
 		tgfm_input_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_tgfm_input_data_summary.txt"
-		tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_ln_pi_"${ln_pi_method}
+		tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_ln_pi_"${ln_pi_method}"_susie"
 		python3 run_tgfm.py ${tgfm_input_file} ${tgfm_output_stem} ${ln_pi_method}
 	done
 done
 
-date
+
+

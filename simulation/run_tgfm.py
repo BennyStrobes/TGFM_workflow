@@ -8,7 +8,13 @@ import scipy.special
 import pickle
 import tgfm
 
-
+import rpy2
+import rpy2.robjects.numpy2ri as numpy2ri
+import rpy2.robjects as ro
+ro.conversion.py2ri = numpy2ri
+numpy2ri.activate()
+from rpy2.robjects.packages import importr
+susieR_pkg = importr('susieR')
 
 
 
@@ -107,6 +113,12 @@ def get_probability_coming_from_each_tissue(ordered_tissue_names, tissue_to_posi
 		tiss_probs[tissue_position] = tiss_probs[tissue_position] + window_gene_probs[gene_index]
 	return tiss_probs
 
+def run_susie_debug(tgfm_obj, gene_variant_full_ld,tgfm_data):
+	z_vec = np.hstack((tgfm_obj.nominal_twas_z,tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']))
+	susie_variant_obj_orig = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20)
+	susie_alpha = susie_variant_obj_orig.rx2('alpha')
+	pdb.set_trace()
+
 ######################
 # Command line args
 ######################
@@ -191,8 +203,19 @@ for line in f:
 	##############################
 	# Run TGFM
 	###############################
-	tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=500)
+	#tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=500)
+	tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
 	tgfm_obj.fit(twas_data_obj=tgfm_data)
+	###################################
+	# Weird temporary hack (Fix??)
+	z_vec = np.hstack((tgfm_obj.nominal_twas_z,tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']))
+	susie_variant_obj_orig = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20)
+	susie_alpha = susie_variant_obj_orig.rx2('alpha')
+	tgfm_obj.alpha_phi = susie_alpha[:,:(tgfm_obj.G)]
+	tgfm_obj.beta_phi = susie_alpha[:,(tgfm_obj.G):]
+	##########################
+
+
 
 	##############################
 	# Organize TGFM data and print to results
@@ -203,6 +226,8 @@ for line in f:
 	genetic_element_names = np.hstack((tgfm_data['genes'], tgfm_data['variants']))
 	# Extract dictionary list of genetic elements in the middel of this window
 	middle_genetic_elements = extract_middle_genetic_elements(tgfm_data['genes'], tgfm_data['middle_gene_indices'], tgfm_data['variants'], tgfm_data['middle_variant_indices'])
+
+	#run_susie_debug(tgfm_obj, gene_variant_full_ld,tgfm_data)
 
 	# loop through TGFM components for this window
 	for tgfm_component in valid_tgfm_components:
