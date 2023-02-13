@@ -12,7 +12,7 @@ figure_theme <- function() {
 }
 
 make_power_med_h2_se_barplot <- function(df) {
- 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000))
+ 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
 	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=power)) +
   		geom_bar(fill="skyblue",stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9), colour="orange")  +
@@ -23,12 +23,12 @@ make_power_med_h2_se_barplot <- function(df) {
 }
 
 make_type_1_error_med_h2_se_barplot <- function(df) {
- 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000))
+ 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
 	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=type_1_error)) +
   		geom_bar(fill="skyblue",stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=type_1_error_lb, ymax=type_1_error_ub), width=.4, position=position_dodge(.9), colour="orange")  +
   		figure_theme() +
-  		labs(x="eQTL Sample size", y="Type 1 Error") +
+  		labs(x="eQTL Sample size", y="FDR") +
   		theme(legend.position="bottom")  +
   		geom_hline(yintercept=.05, linetype=2)
 
@@ -37,7 +37,7 @@ make_type_1_error_med_h2_se_barplot <- function(df) {
 
  make_avg_h2_se_barplot <- function(df) {
 
- 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000))
+ 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
 	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=total_h2)) +
   		geom_bar(fill="skyblue",stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=total_h2_lb, ymax=total_h2_ub), width=.4, position=position_dodge(.9), colour="orange")  +
@@ -50,7 +50,7 @@ make_type_1_error_med_h2_se_barplot <- function(df) {
 
 
 make_avg_fraction_h2_se_barplot <- function(df) {
-	 df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000))
+	 df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
 	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=frac_h2)) +
   		geom_bar(fill="skyblue",stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=frac_h2_lb, ymax=frac_h2_ub), width=.4, position=position_dodge(.9), colour="orange")  +
@@ -62,7 +62,7 @@ make_avg_fraction_h2_se_barplot <- function(df) {
 }
 
 make_avg_per_tissue_h2_se_barplot_for_single_class <- function(df, titler, sim_value, min_height, max_height) {
-	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000))
+	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
 	df$tissue_number = factor(df$tissue_number)
 	p<-ggplot(data=df, aes(x=tissue_number, y=med_h2, fill=eqtl_sample_size)) +
   		geom_bar(stat="identity", position=position_dodge()) +
@@ -81,7 +81,6 @@ make_avg_per_tissue_h2_se_barplot_for_single_class <- function(df, titler, sim_v
 
 make_avg_per_tissue_h2_se_barplot <- function(df) {
 
-	print(head(df))
 	causal_df <- df[as.character(df$causal_status)=="causal",]
 	null_df <- df[as.character(df$causal_status)=="null",]
 
@@ -141,7 +140,7 @@ make_n_detected_genes_se_barplot <- function(df) {
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=frac_lb, ymax=frac_ub), width=.4, position=position_dodge(.9))  +
   		figure_theme() +
-  		labs(x="eQTL sample size", y="Fraction of detected genes", fill="") 
+  		labs(x="eQTL sample size", y="Fraction of genes detected", fill="") 
   	return(p)
 }
 
@@ -151,13 +150,13 @@ make_tgfm_pip_fdr_plot_varying_eqtl_sample_and_element_class <- function(df2, pi
 	df$fdr_lb = 1.0 - df$coverage_ub
 	df$fdr_ub = 1.0 - df$coverage_lb
 
-	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(100,200,300,500,1000))
+	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(100,200,300,500,1000, "Inf"))
 
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=fdr, fill=genetic_element_class)) +
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.4, position=position_dodge(.9))  +
   		figure_theme() +
-  		labs(x="eQTL sample size", y="FDR", fill="", title=paste0(ln_pi_method, " prior"))  +
+  		labs(x="eQTL sample size", y="FDR", fill="", title=paste0(ln_pi_method, " prior / PIP=", pip_threshold))  +
   		geom_hline(yintercept=(1.0-pip_threshold), linetype=2) +
   		theme(plot.title = element_text(hjust = 0.5,size=12))
   	return(p)
@@ -207,7 +206,7 @@ make_tgfm_pip_power_plot_varying_prior_method_and_element_class <- function(df, 
 
 
 make_tgfm_pip_power_plot_varying_eqtl_sample_and_element_class <- function(df, pip_threshold, ln_pi_method) {
-	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(100,200,300,500,1000))
+	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(100,200,300,500,1000, "Inf"))
 
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=power, fill=genetic_element_class)) +
   		geom_bar(stat="identity", position=position_dodge()) +
@@ -228,7 +227,6 @@ global_simulation_name_string = args[1]
 simulated_organized_results_dir = args[2]
 visualize_simulated_results_dir = args[3]
 
-if (FALSE) {
 
 #####################################################################
 # Fraction of genes detected
@@ -257,7 +255,6 @@ avg_h2_se_barplot <- make_avg_h2_se_barplot(avg_h2_df)
 # Save to output
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_avg_total_h2_se_barplot.pdf")
 ggsave(avg_h2_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
-
 
 #####################################################################
 # Make barplot with standard error showing AVG fraction of heritability mediated by gene expression in any tissue
@@ -323,8 +320,34 @@ t1e_se_barplot <- make_type_1_error_med_h2_se_barplot(t1e_h2_df)
 # Save to output
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_med_h2.pdf")
 ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
-}
 
+#####################################################################
+# Make barplot with standard error showing Power with sparse
+#####################################################################
+# load in data
+power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_sparse_mediated_h2_power.txt")
+power_h2_df <- read.table(power_h2_file, header=TRUE)
+# Make plot
+power_se_barplot <- make_power_med_h2_se_barplot(power_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_power_sparse_med_h2.pdf")
+ggsave(power_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+
+
+#####################################################################
+# Make barplot with standard error showing Type 1 error with sparse model
+#####################################################################
+# load in data
+t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_sparse_mediated_h2_type_1_error.txt")
+t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
+# Make plot
+t1e_se_barplot <- make_type_1_error_med_h2_se_barplot(t1e_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_sparse_med_h2.pdf")
+ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+print("DONE")
 
 #####################################################################
 # TGFM
@@ -333,7 +356,9 @@ ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
 #####################################################################
 # Calibration at PIP threshold of .9 at varying eQTL sample sizes for variant and gene assuming single prior
 #####################################################################
-pip_threshold=0.9
+pip_thresholds = c(0.5, 0.9)
+for (pip_threshold_iter in 1:length(pip_thresholds)) {
+pip_threshold=pip_thresholds[pip_threshold_iter]
 ln_pi_method="uniform"
 # Load in data
 calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_calibration.txt")
@@ -342,14 +367,16 @@ calibration_df = calibration_df[as.character(calibration_df$ln_pi_method) == ln_
 # Make plot
 calibration_barplot <- make_tgfm_pip_fdr_plot_varying_eqtl_sample_and_element_class(calibration_df, pip_threshold, ln_pi_method)
 # Save to output
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_fdr_with_", ln_pi_method, "_prior.pdf")
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_fdr_with_", ln_pi_method, "_prior_", pip_threshold, "_pip.pdf")
 ggsave(calibration_barplot, file=output_file, width=7.2, height=4.5, units="in")
-
+}
 
 #####################################################################
 # Power at PIP threshold of .9 at varying eQTL sample sizes for variant and gene assuming single prior
 #####################################################################
-pip_threshold=0.9
+pip_thresholds = c(0.5, 0.9)
+for (pip_threshold_iter in 1:length(pip_thresholds)) {
+pip_threshold=pip_thresholds[pip_threshold_iter]
 ln_pi_method="uniform"
 # Load in data
 power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_power.txt")
@@ -358,9 +385,12 @@ power_df = power_df[as.character(power_df$ln_pi_method) == ln_pi_method,]
 # Make plot
 power_barplot <- make_tgfm_pip_power_plot_varying_eqtl_sample_and_element_class(power_df, pip_threshold, ln_pi_method)
 # Save to output
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_power_with_", ln_pi_method, "_prior.pdf")
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_power_with_", ln_pi_method, "_prior_", pip_threshold, "_pip.pdf")
 ggsave(power_barplot, file=output_file, width=7.2, height=4.5, units="in")
+}
 
+
+if (FALSE) {
 
 
 #####################################################################
@@ -397,7 +427,7 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(power_barplot, file=output_file, width=7.2, height=4.5, units="in")
 
 
-
+}
 
 
 

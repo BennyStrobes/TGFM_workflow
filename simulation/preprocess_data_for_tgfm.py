@@ -337,13 +337,14 @@ def compute_various_versions_of_log_prior_probabilities(window_rsids, window_snp
 		pdb.set_trace()
 
 	shared_variant_point_estimate_ln_pi = compute_shared_variant_log_expected_probability(full_anno_mat, sldsc_tau_mean, threshold)
+	shared_variant_sparse_estimate_ln_pi = compute_shared_variant_log_expected_probability(full_anno_mat, sparse_sldsc_tau, threshold)
 	shared_variant_distribution_estimate_ln_pi = compute_shared_variant_expected_log_probability(full_anno_mat, sldsc_tau_mean,sldsc_tau_cov, threshold)
 	variant_v_gene_only_ln_pi = compute_log_expected_probability_variant_v_gene_only(full_anno_mat, sldsc_tau_mean, threshold)	
 	point_estimate_ln_pi = compute_log_expected_probability(full_anno_mat, sldsc_tau_mean, threshold)
 	sparse_estimate_ln_pi = compute_log_expected_probability(full_anno_mat, sparse_sldsc_tau, threshold)
 	distribution_estimate_ln_pi = compute_expected_log_probability(full_anno_mat, sldsc_tau_mean, sldsc_tau_cov, threshold)
 
-	return point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi, variant_v_gene_only_ln_pi, shared_variant_point_estimate_ln_pi, shared_variant_distribution_estimate_ln_pi
+	return point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi, variant_v_gene_only_ln_pi, shared_variant_point_estimate_ln_pi, shared_variant_distribution_estimate_ln_pi, shared_variant_sparse_estimate_ln_pi
 
 def load_in_window_gwas_betas_and_ses(window_gwas_summary_file, window_rsids):
 	f = open(window_gwas_summary_file)
@@ -515,15 +516,17 @@ for line in f:
 
 	# v1
 	thresholds = [1e-8,1e-10,1e-30]
+	thresholds = [1e-8]
+
 	for threshold in thresholds:
-		point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi, variant_v_gene_only_ln_pi,shared_variant_point_estimate_ln_pi, shared_variant_distribution_estimate_ln_pi  = compute_various_versions_of_log_prior_probabilities(window_rsids, window_anno_mat, gene_tissue_pairs, sldsc_tau_mean, sldsc_tau_cov, sparse_sldsc_tau, threshold=threshold)
+		point_estimate_ln_pi, sparse_estimate_ln_pi, distribution_estimate_ln_pi, variant_v_gene_only_ln_pi,shared_variant_point_estimate_ln_pi, shared_variant_distribution_estimate_ln_pi, shared_variant_sparse_estimate_ln_pi  = compute_various_versions_of_log_prior_probabilities(window_rsids, window_anno_mat, gene_tissue_pairs, sldsc_tau_mean, sldsc_tau_cov, sparse_sldsc_tau, threshold=threshold)
 		save_ln_pi_output_file(point_estimate_ln_pi, ln_pi_output_stem + '_point_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 		save_ln_pi_output_file(sparse_estimate_ln_pi, ln_pi_output_stem + '_sparse_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 		save_ln_pi_output_file(distribution_estimate_ln_pi, ln_pi_output_stem + '_distribution_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 		save_ln_pi_output_file(variant_v_gene_only_ln_pi, ln_pi_output_stem + '_variant_v_gene_only_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 		save_ln_pi_output_file(shared_variant_point_estimate_ln_pi, ln_pi_output_stem + '_shared_variant_point_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 		save_ln_pi_output_file(shared_variant_distribution_estimate_ln_pi, ln_pi_output_stem + '_shared_variant_distribution_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
-
+		save_ln_pi_output_file(shared_variant_sparse_estimate_ln_pi, ln_pi_output_stem + '_shared_variant_sparse_estimate_' + str(threshold) + '.txt', window_rsids, gene_tissue_pairs)
 
 	# Organize TGFM data into nice data structure
 	tgfm_data = {}

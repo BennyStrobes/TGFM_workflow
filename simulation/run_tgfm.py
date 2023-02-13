@@ -7,6 +7,8 @@ import pdb
 import scipy.special
 import pickle
 import tgfm
+import susie_inf
+import tgfm2
 
 import rpy2
 import rpy2.robjects.numpy2ri as numpy2ri
@@ -170,6 +172,7 @@ for line in f:
 	###############################
 	window_name = data[0]
 
+
 	ld_file = data[1]
 	tgfm_input_pkl = data[2]
 	log_prior_prob_file = data[3] + '_' + ln_pi_method_name + '.txt'
@@ -203,6 +206,14 @@ for line in f:
 	##############################
 	# Run TGFM
 	###############################
+	z_vec = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
+	susie_variant_only_obj = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=tgfm_data['reference_ld'], n=tgfm_data['gwas_sample_size'], L=20)
+	susie_variant_alpha = susie_variant_only_obj.rx2('alpha')
+	susie_variant_effect = susie_variant_only_obj.rx2('mu')
+	tgfm_obj = tgfm2.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=5e-6, max_iter=500)
+	tgfm_obj.fit(twas_data_obj=tgfm_data, variant_init_alpha=susie_variant_alpha, variant_init_mu=susie_variant_effect)
+
+	'''
 	#tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=500)
 	tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
 	tgfm_obj.fit(twas_data_obj=tgfm_data)
@@ -214,8 +225,8 @@ for line in f:
 	tgfm_obj.alpha_phi = susie_alpha[:,:(tgfm_obj.G)]
 	tgfm_obj.beta_phi = susie_alpha[:,(tgfm_obj.G):]
 	##########################
-
-
+	susie_inf_res = susie_inf.susie(z_vec, 1.0, tgfm_data['gwas_sample_size'], L=20, LD=gene_variant_full_ld)
+	'''
 
 	##############################
 	# Organize TGFM data and print to results
