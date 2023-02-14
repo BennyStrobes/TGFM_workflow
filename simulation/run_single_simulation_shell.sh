@@ -2,7 +2,7 @@
 #SBATCH -c 1                               # Request one core
 #SBATCH -t 0-20:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=25GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=12GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -142,7 +142,7 @@ echo "Simulation Step 9"
 simulation_window_list_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_tgfm_windows.txt"
 python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $simulation_window_list_file $simulated_gwas_dir $simulated_tgfm_input_data_dir
 
-fi
+
 
 #######################################################
 # Step 10: Preprocess data for TGFM
@@ -156,7 +156,7 @@ do
 	python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $simulation_window_list_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir
 done
 
-
+fi
 
 #######################################################
 # Step 11: Run TGFM (need to test)
@@ -166,8 +166,8 @@ eqtl_sample_size_arr=( "100" "200" "300" "500" "1000" "inf")
 
 
 ln_pi_method_arr=( "uniform" "shared_variant_point_estimate_1e-08" "shared_variant_distribution_estimate_1e-08" "point_estimate_1e-08" "sparse_estimate_1e-08" "distribution_estimate_1e-08" "variant_v_gene_only_1e-08" "shared_variant_point_estimate_1e-10" "shared_variant_distribution_estimate_1e-10" "point_estimate_1e-10" "sparse_estimate_1e-10" "distribution_estimate_1e-10" "variant_v_gene_only_1e-10" "shared_variant_point_estimate_1e-30" "shared_variant_distribution_estimate_1e-30" "point_estimate_1e-30" "sparse_estimate_1e-30" "distribution_estimate_1e-30" "variant_v_gene_only_1e-30")
-ln_pi_method_arr=( "uniform" )
 ln_pi_method_arr=( "shared_variant_point_estimate_1e-08" "shared_variant_sparse_estimate_1e-08" )
+ln_pi_method_arr=( "uniform" )
 
 
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
@@ -175,13 +175,10 @@ do
 	for ln_pi_method in "${ln_pi_method_arr[@]}"
 	do
 		tgfm_input_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_tgfm_input_data_summary.txt"
-		tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_ln_pi_"${ln_pi_method}"_susie2"
+		tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_ln_pi_"${ln_pi_method}"_susie_adaptive"
 		python3 run_tgfm.py ${tgfm_input_file} ${tgfm_output_stem} ${ln_pi_method}
 	done
 done
-
-
-
 
 
 

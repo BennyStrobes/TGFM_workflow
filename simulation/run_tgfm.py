@@ -121,6 +121,77 @@ def run_susie_debug(tgfm_obj, gene_variant_full_ld,tgfm_data):
 	susie_alpha = susie_variant_obj_orig.rx2('alpha')
 	pdb.set_trace()
 
+def temp_elbo_calc(z_vec, LD, samp_size, alpha, mu, mu2, KL_terms):
+	bb = alpha*mu
+	b_bar = np.sum(bb,axis=0)
+	postb2 = alpha*mu2
+	elbo_term1 = samp_size -1
+	elbo_term2 = -2.0*np.sum(np.sqrt(samp_size-1)*b_bar*z_vec)
+	elbo_term3 = np.sum(b_bar*np.dot((samp_size-1.0)*LD, b_bar))
+	elbo_term4 = - np.sum(np.dot(bb, (samp_size-1.0)*LD)*bb)
+	elbo_term5 = np.sum(np.dot(np.diag(LD*(samp_size-1)), np.transpose(postb2)))
+	elbo_term7 = (-samp_size/2.0)*np.log(2.0*np.pi)
+
+	elbo = elbo_term7 - .5*(elbo_term1 + elbo_term2 + elbo_term3 + elbo_term4 + elbo_term5) - np.sum(KL_terms)
+	return elbo
+
+def update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_obj):
+	# Alphas
+	susie_alpha = susie_obj.rx2('alpha')
+	tgfm_obj.alpha_phi = susie_alpha[:,:(tgfm_obj.G)]
+	tgfm_obj.beta_phi = susie_alpha[:,(tgfm_obj.G):]
+
+	# Mus
+	susie_mu = susie_obj.rx2('mu')
+	tgfm_obj.alpha_mu = susie_mu[:,:(tgfm_obj.G)]
+	tgfm_obj.beta_mu = susie_mu[:,(tgfm_obj.G):]
+
+	# susie_mu_var
+	susie_mu_var = susie_obj.rx2('mu2') - np.square(susie_mu)
+	tgfm_obj.alpha_var = susie_mu_var[:,:(tgfm_obj.G)]
+	tgfm_obj.beta_var = susie_mu_var[:,(tgfm_obj.G):]
+
+	return tgfm_obj
+
+def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld):
+	# Hacky: Initialize old TGFM object using only one iter of optimization
+	tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
+	tgfm_obj.fit(twas_data_obj=tgfm_data)
+
+	# Create vector of concatenated z-scores
+	z_vec = np.hstack((tgfm_obj.nominal_twas_z,tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']))
+
+	# Create concatenated vector of prior probs
+	prior_probs = np.hstack((np.exp(gene_log_prior), np.exp(var_log_prior)))
+
+	# Run susie with only variants
+	p_var_only = np.ones(len(z_vec))
+	p_var_only[:len(tgfm_obj.nominal_twas_z)] = 0.0
+	p_var_only = p_var_only/np.sum(p_var_only)
+	susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=p_var_only.reshape((len(p_var_only),1)))
+	
+	# Run susie with variant initialization
+	init_obj = {'alpha':susie_variant_only.rx2('alpha'), 'mu':susie_variant_only.rx2('mu'),'mu2':susie_variant_only.rx2('mu2')}
+	init_obj2 = ro.ListVector(init_obj)
+	init_obj2.rclass = rpy2.robjects.StrVector(("list", "susie"))
+	susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)))
+
+	# Run susie with null initialization
+	susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)))
+
+	# Select model with largest elbo
+	susie_null_init_elbo = susie_null_init.rx2('elbo')[-1]
+	susie_variant_init_elbo = susie_variant_init.rx2('elbo')[-1]
+
+	if susie_variant_init_elbo > susie_null_init_elbo:
+		# Variant init wins
+		tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_variant_init)
+	else:
+		# Null init wins
+		tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
+
+	return tgfm_obj
+
 ######################
 # Command line args
 ######################
@@ -172,7 +243,6 @@ for line in f:
 	###############################
 	window_name = data[0]
 
-
 	ld_file = data[1]
 	tgfm_input_pkl = data[2]
 	log_prior_prob_file = data[3] + '_' + ln_pi_method_name + '.txt'
@@ -206,27 +276,7 @@ for line in f:
 	##############################
 	# Run TGFM
 	###############################
-	z_vec = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
-	susie_variant_only_obj = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=tgfm_data['reference_ld'], n=tgfm_data['gwas_sample_size'], L=20)
-	susie_variant_alpha = susie_variant_only_obj.rx2('alpha')
-	susie_variant_effect = susie_variant_only_obj.rx2('mu')
-	tgfm_obj = tgfm2.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=5e-6, max_iter=500)
-	tgfm_obj.fit(twas_data_obj=tgfm_data, variant_init_alpha=susie_variant_alpha, variant_init_mu=susie_variant_effect)
-
-	'''
-	#tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=500)
-	tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
-	tgfm_obj.fit(twas_data_obj=tgfm_data)
-	###################################
-	# Weird temporary hack (Fix??)
-	z_vec = np.hstack((tgfm_obj.nominal_twas_z,tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']))
-	susie_variant_obj_orig = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20)
-	susie_alpha = susie_variant_obj_orig.rx2('alpha')
-	tgfm_obj.alpha_phi = susie_alpha[:,:(tgfm_obj.G)]
-	tgfm_obj.beta_phi = susie_alpha[:,(tgfm_obj.G):]
-	##########################
-	susie_inf_res = susie_inf.susie(z_vec, 1.0, tgfm_data['gwas_sample_size'], L=20, LD=gene_variant_full_ld)
-	'''
+	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld)
 
 	##############################
 	# Organize TGFM data and print to results
