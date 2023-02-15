@@ -382,7 +382,7 @@ def create_file_containing_tgfm_high_pip_snp_power_per_component(global_simulati
 			discovered_dicti = {}
 			for ln_pi_method in ln_pi_methods:
 				discovered_pi_dicti = {}
-				cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_susie2' + '_tgfm_component_cs_summary.txt'
+				cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_susie_adaptive' + '_tgfm_component_cs_summary.txt'
 				f = open(cs_file)
 				head_count = 0
 				for line in f:
@@ -482,7 +482,7 @@ def create_file_containing_tgfm_cs_power_per_component(global_simulation_name_st
 			discovered_dicti = {}
 			for ln_pi_method in ln_pi_methods:
 				discovered_pi_dicti = {}
-				cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_susie2' + '_tgfm_component_cs_summary.txt'
+				cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_susie_adaptive' + '_tgfm_component_cs_summary.txt'
 				f = open(cs_file)
 				head_count = 0
 				for line in f:
@@ -855,7 +855,7 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp(global_simulatio
 			for ln_pi_method in ln_pi_methods:
 
 				# Credible set file for this run
-				cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_susie2' + '_tgfm_component_cs_summary.txt'
+				cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_susie_adaptive' + '_tgfm_component_cs_summary.txt'
 				# Loop through cs in cs file
 				head_count = 0
 				f = open(cs_file)
@@ -924,7 +924,7 @@ def create_file_containing_tgfm_cs_calibration_per_component(global_simulation_n
 			for ln_pi_method in ln_pi_methods:
 
 				# Credible set file for this run
-				cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_susie2' + '_tgfm_component_cs_summary.txt'
+				cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_susie_adaptive' + '_tgfm_component_cs_summary.txt'
 				# Loop through cs in cs file
 				head_count = 0
 				f = open(cs_file)
@@ -1257,7 +1257,6 @@ pip_threshold=.9
 cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_calibration_per_component_old.txt'
 create_file_containing_tgfm_cs_calibration_per_high_pip_snp_old(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, simulated_trait_dir, simulated_tgfm_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file)
 
-print('done')
 
 pip_thresholds = [.1, .3, .5, .9, .95, .99]
 

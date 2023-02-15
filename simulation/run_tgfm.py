@@ -153,7 +153,7 @@ def update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_obj):
 
 	return tgfm_obj
 
-def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld):
+def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld, init_method):
 	# Hacky: Initialize old TGFM object using only one iter of optimization
 	tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
 	tgfm_obj.fit(twas_data_obj=tgfm_data)
@@ -164,32 +164,52 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 	# Create concatenated vector of prior probs
 	prior_probs = np.hstack((np.exp(gene_log_prior), np.exp(var_log_prior)))
 
-	# Run susie with only variants
-	p_var_only = np.ones(len(z_vec))
-	p_var_only[:len(tgfm_obj.nominal_twas_z)] = 0.0
-	p_var_only = p_var_only/np.sum(p_var_only)
-	susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=p_var_only.reshape((len(p_var_only),1)))
+	if init_method == 'best':
+		# Run susie with only variants
+		p_var_only = np.ones(len(z_vec))
+		p_var_only[:len(tgfm_obj.nominal_twas_z)] = 0.0
+		p_var_only = p_var_only/np.sum(p_var_only)
+		susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=p_var_only.reshape((len(p_var_only),1)), estimate_residual_variance=True)
 	
-	# Run susie with variant initialization
-	init_obj = {'alpha':susie_variant_only.rx2('alpha'), 'mu':susie_variant_only.rx2('mu'),'mu2':susie_variant_only.rx2('mu2')}
-	init_obj2 = ro.ListVector(init_obj)
-	init_obj2.rclass = rpy2.robjects.StrVector(("list", "susie"))
-	susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)))
+		# Run susie with variant initialization
+		init_obj = {'alpha':susie_variant_only.rx2('alpha'), 'mu':susie_variant_only.rx2('mu'),'mu2':susie_variant_only.rx2('mu2')}
+		init_obj2 = ro.ListVector(init_obj)
+		init_obj2.rclass = rpy2.robjects.StrVector(("list", "susie"))
+		susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=True)
 
-	# Run susie with null initialization
-	susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)))
+		# Run susie with null initialization
+		susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=True)
 
-	# Select model with largest elbo
-	susie_null_init_elbo = susie_null_init.rx2('elbo')[-1]
-	susie_variant_init_elbo = susie_variant_init.rx2('elbo')[-1]
+		# Select model with largest elbo
+		susie_null_init_elbo = susie_null_init.rx2('elbo')[-1]
+		susie_variant_init_elbo = susie_variant_init.rx2('elbo')[-1]
 
-	if susie_variant_init_elbo > susie_null_init_elbo:
-		# Variant init wins
+		if susie_variant_init_elbo > susie_null_init_elbo:
+			# Variant init wins
+			tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_variant_init)
+		else:
+			# Null init wins
+			tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
+	elif init_method == 'null':
+		# Run susie with null initialization
+		susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=True)
+		tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
+	elif init_method == 'variant_only':
+		# Run susie with only variants
+		p_var_only = np.ones(len(z_vec))
+		p_var_only[:len(tgfm_obj.nominal_twas_z)] = 0.0
+		p_var_only = p_var_only/np.sum(p_var_only)
+		susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=p_var_only.reshape((len(p_var_only),1)), estimate_residual_variance=True)
+	
+		# Run susie with variant initialization
+		init_obj = {'alpha':susie_variant_only.rx2('alpha'), 'mu':susie_variant_only.rx2('mu'),'mu2':susie_variant_only.rx2('mu2')}
+		init_obj2 = ro.ListVector(init_obj)
+		init_obj2.rclass = rpy2.robjects.StrVector(("list", "susie"))
+		susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=True)
 		tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_variant_init)
 	else:
-		# Null init wins
-		tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
-
+		print('assumption errror: susie initialization method ' + init_method + ' not recognized')
+		pdb.set_trace()
 	return tgfm_obj
 
 ######################
@@ -198,6 +218,7 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 tgfm_input_file = sys.argv[1]
 tgfm_output_stem = sys.argv[2]
 ln_pi_method_name = sys.argv[3]
+init_method = sys.argv[4]
 
 
 # Extract ordered tissue information
@@ -276,7 +297,7 @@ for line in f:
 	##############################
 	# Run TGFM
 	###############################
-	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld)
+	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld, init_method)
 
 	##############################
 	# Organize TGFM data and print to results

@@ -2,7 +2,7 @@
 #SBATCH -c 1                               # Request one core
 #SBATCH -t 0-20:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=12GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=15GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -169,14 +169,19 @@ ln_pi_method_arr=( "uniform" "shared_variant_point_estimate_1e-08" "shared_varia
 ln_pi_method_arr=( "shared_variant_point_estimate_1e-08" "shared_variant_sparse_estimate_1e-08" )
 ln_pi_method_arr=( "uniform" )
 
+init_method_arr=( "best" "null" "variant_only" )
 
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
 	for ln_pi_method in "${ln_pi_method_arr[@]}"
 	do
-		tgfm_input_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_tgfm_input_data_summary.txt"
-		tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_ln_pi_"${ln_pi_method}"_susie_adaptive"
-		python3 run_tgfm.py ${tgfm_input_file} ${tgfm_output_stem} ${ln_pi_method}
+		for init_method in "${init_method_arr[@]}"
+		do
+			echo ${eqtl_sample_size}"_"${ln_pi_method}"_"${init_method}
+			tgfm_input_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_tgfm_input_data_summary.txt"
+			tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_ln_pi_"${ln_pi_method}"_init_"${init_method}
+			python3 run_tgfm.py ${tgfm_input_file} ${tgfm_output_stem} ${ln_pi_method} ${init_method}
+		done
 	done
 done
 
