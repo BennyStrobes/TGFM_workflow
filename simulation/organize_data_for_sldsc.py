@@ -169,6 +169,7 @@ reformat_gwas_summary_statistics_for_sldsc(genotype_bim_file, standard_gwas_resu
 
 ############################
 #  Generate Joint-variant-gene LD-score files for each of the eqtl sample sizes
+# Using eqtl pmces
 ############################
 variant_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.ldscore.gz'  # Variant level ld-score (doesn't change as we vary expression data)
 # Loop through eqtl sample sizes
@@ -181,8 +182,26 @@ for eqtl_sample_size in eqtl_sample_sizes:
 	joint_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_gene_ld_scores.l2.ldscore'
 	create_joint_ld_score_file(variant_ld_score_file, gene_ld_score_file, joint_ld_score_file)
 
+
+############################
+#  Generate Joint-variant-gene LD-score files for each of the eqtl sample sizes
+# Using susie distribution eqtls
+############################
+variant_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.ldscore.gz'  # Variant level ld-score (doesn't change as we vary expression data)
+# Loop through eqtl sample sizes
+eqtl_sample_sizes = np.asarray([100,200,300,500,1000])  # Various eqtl data sets
+
+for eqtl_sample_size in eqtl_sample_sizes:
+	# File containing gene ld scores for this data set
+	gene_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_susie_distr_gene_weighted_ld_scores_eqtlss_' + str(eqtl_sample_size) + '_ld_scores.txt'
+	# Output file
+	joint_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_susie_distr_gene_ld_scores.l2.ldscore'
+	create_joint_ld_score_file(variant_ld_score_file, gene_ld_score_file, joint_ld_score_file)
+
+
 ############################
 #  Generate Joint-variant-gene M files for each of the eqtl sample sizes
+# Using eqtl pmces
 ############################
 variant_m_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.M'  # Variant level m file (doesn't change as we vary expression data)
 variant_m_5_50_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.M_5_50'  # Variant level m file (doesn't change as we vary expression data)
@@ -200,25 +219,34 @@ for eqtl_sample_size in eqtl_sample_sizes:
 	create_joint_M_file(variant_m_file, gene_m_file, joint_m_file)
 
 
-
-
-
-
-
-
-
-
-
-
-# No longer used
-'''
 ############################
-#  Reformat variant weights for sldsc
+#  Generate Joint-variant-gene M files for each of the eqtl sample sizes
+# Using susie distribution eqtls
 ############################
-regression_snps_file = simulated_ld_scores_dir + simulation_name_string + '_regression_snp_ids.txt'
-existing_variant_weights_file = ldsc_weights_dir + 'weights.hm3_noMHC.' + chrom_num + '.l2.ldscore.gz'
-new_variant_weights_file = simulated_ld_scores_dir + simulation_name_string + '_ldsc_ready_weights.hm3_noMHC.' + chrom_num + '.l2.ldscore'
-reformat_variant_weights_for_ldsc(regression_snps_file, existing_variant_weights_file, new_variant_weights_file)
-'''
+variant_m_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.M'  # Variant level m file (doesn't change as we vary expression data)
+variant_m_5_50_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.M_5_50'  # Variant level m file (doesn't change as we vary expression data)
+
+# Loop through eqtl sample sizes
+eqtl_sample_sizes = np.asarray([100,200,300,500,1000])  # Various eqtl data sets
+for eqtl_sample_size in eqtl_sample_sizes:
+	# File containing gene ld scores for this data set
+	gene_m_file = simulated_ld_scores_dir + simulation_name_string + '_susie_distr_gene_weighted_ld_scores_eqtlss_' + str(eqtl_sample_size) + '_M.txt'
+	# Output file
+	joint_m_5_50_file = simulated_ld_scores_dir + simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_susie_distr_gene_ld_scores.l2.M_5_50'
+	create_joint_M_file(variant_m_5_50_file, gene_m_file, joint_m_5_50_file)
+	# Output file
+	joint_m_file = simulated_ld_scores_dir + simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_susie_distr_gene_ld_scores.l2.M'
+	create_joint_M_file(variant_m_file, gene_m_file, joint_m_file)
+
+
+
+
+
+
+
+
+
+
+
 
 

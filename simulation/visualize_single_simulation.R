@@ -184,6 +184,69 @@ make_tgfm_pip_fdr_plot_varying_prior_method_and_element_class <- function(df, pi
   	return(p)
 }
 
+make_tgfm_pip_fdr_plot_varying_detected_gene_and_eqtl_sample_size <- function(calibration_df, calibration_df2, pip_threshold, ln_pi_method, initialization_version) {
+	eqtl_ss_arr <- c()
+	n_element_arr <- c()
+	fdr_arr <- c()
+	fdr_lb_arr <- c()
+	fdr_ub_arr <- c()
+	eval_version_arr <- c()
+
+	eqtl_ss_arr <- c(calibration_df$eQTL_sample_size, calibration_df2$eQTL_sample_size)
+	n_element_arr <- c(calibration_df$n_elements, calibration_df2$n_elements)
+	fdr_arr <- c(1.0 - calibration_df$coverage, 1.0-calibration_df2$coverage)
+	fdr_lb_arr <- c(1.0 - calibration_df$coverage_ub, 1.0 - calibration_df2$coverage_ub)
+	fdr_ub_arr <- c(1.0 - calibration_df$coverage_lb, 1.0 - calibration_df2$coverage_lb)
+	eval_version_arr <- c(rep("standard", length(calibration_df$eQTL_sample_size)), rep("causal_genes_detected", length(calibration_df2$eQTL_sample_size)))
+
+	df <- data.frame(eQTL_sample_size=factor(eqtl_ss_arr), n_elements=n_element_arr, fdr=fdr_arr, fdr_lb=fdr_lb_arr, fdr_ub=fdr_ub_arr, eval_version=factor(eval_version_arr, levels=c("standard", "causal_genes_detected")))
+	
+	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=fdr, fill=eval_version)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="eQTL sample size", y="FDR", fill="", title=paste0("PIP: ", pip_threshold, " / Prior: ", ln_pi_method))  +
+  		geom_hline(yintercept=(1.0-pip_threshold), linetype=2) +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) +
+  		 theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  	return(p)
+  }
+
+
+make_tgfm_pip_fdr_plot_varying_initialization_and_element_class <- function(df, pip_threshold, ln_pi_method, eqtl_sample_size) {
+	df <- df[(df$genetic_element_class)!="all",]
+	df$fdr = 1.0 - df$coverage
+	df$fdr_lb = 1.0 - df$coverage_ub
+	df$fdr_ub = 1.0 - df$coverage_lb
+	df$initialization_version = factor(df$initialization_version, levels=c("null", "variant_only", "best"))
+
+	p<-ggplot(data=df, aes(x=initialization_version, y=fdr, fill=genetic_element_class)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="TGFM Initialization", y="FDR", fill="", title=paste0("eqtl sample size: ", eqtl_sample_size, " / PIP: ", pip_threshold, " / Prior: ", ln_pi_method))  +
+  		geom_hline(yintercept=(1.0-pip_threshold), linetype=2) +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) +
+  		 theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  	return(p)		
+}
+
+make_tgfm_pip_power_plot_varying_initialization_and_element_class <- function(df, pip_threshold, ln_pi_method, eqtl_sample_size) {
+	df$initialization_version = factor(df$initialization_version, levels=c("null", "variant_only", "best"))
+	p<-ggplot(data=df, aes(x=initialization_version, y=power, fill=genetic_element_class)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="TGFM Initialization", y="Power", fill="", title=paste0("eqtl sample size: ", eqtl_sample_size, " / PIP: ", pip_threshold, " / Prior: ", ln_pi_method))  +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) +
+  		theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+  	return(p)
+
+}
+
+
 make_tgfm_pip_power_plot_varying_prior_method_and_element_class <- function(df, pip_threshold, ln_pi_methods, eQTL_sample_size) {
 	df = df[as.character(df$ln_pi_method) %in% ln_pi_methods,]
 	df = df[df$eQTL_sample_size == eQTL_sample_size,]
@@ -227,7 +290,7 @@ global_simulation_name_string = args[1]
 simulated_organized_results_dir = args[2]
 visualize_simulated_results_dir = args[3]
 
-
+if (FALSE) {
 #####################################################################
 # Fraction of genes detected
 #####################################################################
@@ -322,7 +385,7 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
 
 #####################################################################
-# Make barplot with standard error showing Power with sparse
+# Make barplot with standard error showing Power with sparse model
 #####################################################################
 # load in data
 power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_sparse_mediated_h2_power.txt")
@@ -347,7 +410,10 @@ t1e_se_barplot <- make_type_1_error_med_h2_se_barplot(t1e_h2_df)
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_sparse_med_h2.pdf")
 ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
 
-print("DONE")
+}
+
+
+
 
 #####################################################################
 # TGFM
@@ -360,10 +426,12 @@ pip_thresholds = c(0.5, 0.9)
 for (pip_threshold_iter in 1:length(pip_thresholds)) {
 pip_threshold=pip_thresholds[pip_threshold_iter]
 ln_pi_method="uniform"
+initialization_version="best"
 # Load in data
 calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_calibration.txt")
 calibration_df <- read.table(calibration_file, header=TRUE)
 calibration_df = calibration_df[as.character(calibration_df$ln_pi_method) == ln_pi_method,]
+calibration_df = calibration_df[as.character(calibration_df$initialization_version) == initialization_version,]
 # Make plot
 calibration_barplot <- make_tgfm_pip_fdr_plot_varying_eqtl_sample_and_element_class(calibration_df, pip_threshold, ln_pi_method)
 # Save to output
@@ -378,16 +446,112 @@ pip_thresholds = c(0.5, 0.9)
 for (pip_threshold_iter in 1:length(pip_thresholds)) {
 pip_threshold=pip_thresholds[pip_threshold_iter]
 ln_pi_method="uniform"
+initialization_version="best"
 # Load in data
 power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_power.txt")
 power_df <- read.table(power_file, header=TRUE)
 power_df = power_df[as.character(power_df$ln_pi_method) == ln_pi_method,]
+power_df = power_df[as.character(power_df$initialization_version) == initialization_version,]
 # Make plot
 power_barplot <- make_tgfm_pip_power_plot_varying_eqtl_sample_and_element_class(power_df, pip_threshold, ln_pi_method)
 # Save to output
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_power_with_", ln_pi_method, "_prior_", pip_threshold, "_pip.pdf")
 ggsave(power_barplot, file=output_file, width=7.2, height=4.5, units="in")
 }
+
+
+#####################################################################
+# Calibration at PIP threshold of .9 at varying initialization versions for variant and gene assuming single prior at fixed sample size
+#####################################################################
+pip_thresholds = c(0.5, 0.9, 0.99)
+for (pip_threshold_iter in 1:length(pip_thresholds)) {
+pip_threshold=pip_thresholds[pip_threshold_iter]
+ln_pi_method="uniform"
+eqtl_sample_size="Inf"
+# Load in data
+calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_calibration.txt")
+calibration_df <- read.table(calibration_file, header=TRUE)
+calibration_df = calibration_df[as.character(calibration_df$ln_pi_method) == ln_pi_method,]
+calibration_df = calibration_df[as.character(calibration_df$eQTL_sample_size) == eqtl_sample_size,]
+# Make plot
+calibration_barplot <- make_tgfm_pip_fdr_plot_varying_initialization_and_element_class(calibration_df, pip_threshold, ln_pi_method, eqtl_sample_size)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_fdr_with_", ln_pi_method, "_prior_", eqtl_sample_size, "_eQTL_ss_", pip_threshold, "_pip.pdf")
+ggsave(calibration_barplot, file=output_file, width=7.2, height=3.7, units="in")
+}
+
+#####################################################################
+# Power at PIP threshold of .9 at initialization versions for variant and gene assuming single prior and fixed sample size
+#####################################################################
+pip_thresholds = c(0.5, 0.9, 0.99)
+for (pip_threshold_iter in 1:length(pip_thresholds)) {
+pip_threshold=pip_thresholds[pip_threshold_iter]
+ln_pi_method="uniform"
+eqtl_sample_size="Inf"
+# Load in data
+power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_power.txt")
+power_df <- read.table(power_file, header=TRUE)
+power_df = power_df[as.character(power_df$ln_pi_method) == ln_pi_method,]
+power_df = power_df[as.character(power_df$eQTL_sample_size) == eqtl_sample_size,]
+# Make plot
+power_barplot <- make_tgfm_pip_power_plot_varying_initialization_and_element_class(power_df, pip_threshold, ln_pi_method, eqtl_sample_size)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_power_with_", ln_pi_method, "_prior_", eqtl_sample_size, "_eQTL_ss_", pip_threshold, "_pip.pdf")
+ggsave(power_barplot, file=output_file, width=7.2, height=3.7, units="in")
+}
+
+#####################################################################
+# Calibration at PIP threshold of .9 at for gene while varying eQTL sample size and whether genes needs to be detected
+#####################################################################
+pip_threshold=0.9
+ln_pi_method="uniform"
+eqtl_sample_sizes=c("100", "200", "300", "500", "1000")
+initialization_version="best"
+genetic_element_type="gene"
+
+calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_calibration.txt")
+calibration_df <- read.table(calibration_file, header=TRUE)
+calibration_df = calibration_df[as.character(calibration_df$ln_pi_method) == ln_pi_method,]
+calibration_df = calibration_df[as.character(calibration_df$eQTL_sample_size) %in% eqtl_sample_sizes,]
+calibration_df = calibration_df[as.character(calibration_df$genetic_element_class) == genetic_element_type,]
+calibration_df = calibration_df[as.character(calibration_df$initialization_version) == initialization_version,]
+calibration_file2 <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_calibration_where_causal_gene_is_detected.txt")
+calibration_df2 <- read.table(calibration_file2, header=TRUE)
+calibration_df2 = calibration_df2[as.character(calibration_df$ln_pi_method) == ln_pi_method,]
+calibration_df2 = calibration_df2[as.character(calibration_df2$eQTL_sample_size) %in% eqtl_sample_sizes,]
+calibration_df2 = calibration_df2[as.character(calibration_df2$genetic_element_class) == genetic_element_type,]
+calibration_df2 = calibration_df2[as.character(calibration_df2$initialization_version) == initialization_version,]
+
+# Make plot
+calibration_barplot <- make_tgfm_pip_fdr_plot_varying_detected_gene_and_eqtl_sample_size(calibration_df, calibration_df2, pip_threshold, ln_pi_method, initialization_version)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_fdr_varying_gene_detection_evaluation_with_", ln_pi_method, "_prior_", pip_threshold, "_pip.pdf")
+ggsave(calibration_barplot, file=output_file, width=7.2, height=3.7, units="in")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 if (FALSE) {

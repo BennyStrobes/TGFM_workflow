@@ -19,10 +19,20 @@ from rpy2.robjects.packages import importr
 susieR_pkg = importr('susieR')
 
 
+def standardize_eqtl_pmces_old(eqtl_pmces, variant_ld):
 
-def standardize_eqtl_pmces(eqtl_pmces, ld_mat):
+	gene_variances = np.diag(np.dot(np.dot(eqtl_pmces, variant_ld), np.transpose(eqtl_pmces)))
 	# compute gene variance
-	gene_variances = np.diag(np.dot(np.dot(eqtl_pmces, ld_mat), np.transpose(eqtl_pmces)))
+	n_genes = eqtl_pmces.shape[0]
+
+	# standardize
+	for gene_iter in range(n_genes):
+		eqtl_pmces[gene_iter,:] = eqtl_pmces[gene_iter,:]/np.sqrt(gene_variances[gene_iter])
+
+	return eqtl_pmces
+
+def standardize_eqtl_pmces(eqtl_pmces, gene_variances):
+	# compute gene variance
 	n_genes = eqtl_pmces.shape[0]
 
 	# standardize
@@ -34,6 +44,7 @@ def standardize_eqtl_pmces(eqtl_pmces, ld_mat):
 
 def extract_full_gene_variant_ld(standardized_eqtl_effects, variant_ld):
 	expression_covariance = np.dot(np.dot(standardized_eqtl_effects, variant_ld), np.transpose(standardized_eqtl_effects))
+	np.fill_diagonal(expression_covariance, 1.0)
 	dd = np.diag(1.0/np.sqrt(np.diag(expression_covariance)))
 	ge_ld = np.dot(np.dot(dd, expression_covariance),dd)
 	gene_variant_ld = np.dot(standardized_eqtl_effects,variant_ld) # Ngenes X n_variants
@@ -157,9 +168,14 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 	# Hacky: Initialize old TGFM object using only one iter of optimization
 	tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
 	tgfm_obj.fit(twas_data_obj=tgfm_data)
+	# More hack: need to redo twas z
+	variant_z = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
+	new_gene_z = np.dot(tgfm_data['gene_eqtl_pmces'], variant_z)
+
+	tgfm_obj.nominal_twas_z = new_gene_z
 
 	# Create vector of concatenated z-scores
-	z_vec = np.hstack((tgfm_obj.nominal_twas_z,tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']))
+	z_vec = np.hstack((new_gene_z,variant_z))
 
 	# Create concatenated vector of prior probs
 	prior_probs = np.hstack((np.exp(gene_log_prior), np.exp(var_log_prior)))
@@ -289,7 +305,8 @@ for line in f:
 	var_log_prior, gene_log_prior = load_in_log_priors(log_prior_prob_file, tgfm_data['variants'], tgfm_data['genes'])
 
 	# Standardize eqtl PMCES
-	tgfm_data['gene_eqtl_pmces'] = standardize_eqtl_pmces(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])
+	tgfm_data['gene_eqtl_pmces'] = standardize_eqtl_pmces(tgfm_data['gene_eqtl_pmces'], tgfm_data['gene_variances'])
+	#tgfm_data['gene_eqtl_pmces'] = standardize_eqtl_pmces_old(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])
 
 	# Extract full ld between genes, variants, and gene-variants
 	gene_variant_full_ld = extract_full_gene_variant_ld(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])

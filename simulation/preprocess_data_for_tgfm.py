@@ -42,14 +42,33 @@ def create_dictionary_mapping_from_rsid_to_genomic_annotation_vector(annotation_
 
 	return dicti, np.asarray(variant_position_vec), np.asarray(rs_id_vec)
 
+def calculate_gene_variance_according_to_susie_distribution(susie_mu, susie_alpha, susie_mu_sd, ld):
+	gene_var = 0.0
+
+	# Component level eqtl effect sizes for this gene		
+	gene_component_effect_sizes = (susie_mu)*susie_alpha
+
+	# eQTL effect sizes for this gene
+	gene_eqtl_effect_sizes = np.sum(gene_component_effect_sizes,axis=0)
+
+
+	num_susie_components = susie_mu.shape[0]
+	for k_index in range(num_susie_components):
+		gene_var = gene_var + np.sum((np.square(susie_mu[k_index,:]) + np.square(susie_mu_sd[k_index,:]))*np.diag(ld)*susie_alpha[k_index,:])
+		eqtl_component_pmces = (susie_mu[k_index,:])*(susie_alpha[k_index,:])
+		gene_var = gene_var - np.dot(np.dot(eqtl_component_pmces,ld), eqtl_component_pmces)
+	gene_var = gene_var + np.dot(np.dot(gene_eqtl_effect_sizes,ld), gene_eqtl_effect_sizes)
+				
+	return gene_var
 
 
 
-def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, eqtl_sample_size, window_indices, simulated_gene_expression_dir):
+def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, eqtl_sample_size, window_indices, simulated_gene_expression_dir, ld_mat, eqtl_type):
 	# Initialize output vectors
 	gene_tissue_pairs = []
 	weight_vectors = []
 	gene_tss_arr = []
+	gene_variances = []
 
 	# Loop through genes (note: not gene tissue pairs)
 	f = open(gene_summary_file)
@@ -102,14 +121,31 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 				window_level_eqtl_effect_sizes = np.zeros(np.sum(window_indices))
 				window_level_eqtl_effect_sizes[cis_snp_indices[window_indices]] = gene_model_mat[tiss_iter,:]
 
+				# Compute variance of gene
+				if eqtl_type == 'susie_pmces':
+					gene_variance = np.dot(np.dot(gene_model_mat[tiss_iter,:], ld_mat[cis_snp_indices[window_indices],:][:,cis_snp_indices[window_indices]]), gene_model_mat[tiss_iter,:])
+				elif eqtl_type == 'susie_distr':
+					# Load in susie files for this gene
+					gene_susie_mu_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_mu.npy'
+					gene_susie_alpha_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_alpha.npy'
+					gene_susie_mu_var_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_mu_var.npy'
+					gene_susie_mu = np.load(gene_susie_mu_file)
+					gene_susie_alpha = np.load(gene_susie_alpha_file)
+					gene_susie_mu_var = np.load(gene_susie_mu_var_file)
+					gene_variance = calculate_gene_variance_according_to_susie_distribution(gene_susie_mu, gene_susie_alpha, np.sqrt(gene_susie_mu_var), ld_mat[cis_snp_indices[window_indices],:][:,cis_snp_indices[window_indices]])
+				else:
+					print('assumption erooror')
+					pdb.set_trace()
+
 				# Add info to arrays
 				weight_vectors.append(window_level_eqtl_effect_sizes)
 				gene_tss_arr.append(gene_tss)
 				gene_tissue_pairs.append(ensamble_id + '_' + 'tissue' + str(tiss_iter))
+				gene_variances.append(gene_variance)
 
 	f.close()
 
-	return np.asarray(gene_tissue_pairs), weight_vectors, np.asarray(gene_tss_arr)
+	return np.asarray(gene_tissue_pairs), weight_vectors, np.asarray(gene_tss_arr), np.asarray(gene_variances)
 
 
 def create_anno_matrix_for_set_of_rsids(rsid_to_genomic_annotation, window_rsids):
@@ -433,14 +469,15 @@ simulated_gene_expression_dir = sys.argv[9]
 simulated_learned_gene_models_dir = sys.argv[10]
 simulated_sldsc_results_dir = sys.argv[11]
 simulated_tgfm_input_data_dir = sys.argv[12]
+eqtl_type = sys.argv[13]
 
 # Load in SLDSC heritability model
-sldsc_tau_mean_file = simulated_sldsc_results_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_sldsc_results_mean_jacknifed_taus.txt'
-sldsc_tau_cov_file = simulated_sldsc_results_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_sldsc_results_covariance_jacknifed_taus.txt'
+sldsc_tau_mean_file = simulated_sldsc_results_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_sldsc_results_mean_jacknifed_taus.txt'
+sldsc_tau_cov_file = simulated_sldsc_results_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_sldsc_results_covariance_jacknifed_taus.txt'
 sldsc_tau_mean = np.loadtxt(sldsc_tau_mean_file)
 sldsc_tau_cov = np.loadtxt(sldsc_tau_cov_file)
 # Load in SLDSC sparse heritability model
-sldsc_sparse_tau_file = simulated_sldsc_results_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_sldsc_results_organized_0.5_sparse_ard_eqtl_coefficients_mv_update_res.txt'
+sldsc_sparse_tau_file = simulated_sldsc_results_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_sldsc_results_organized_0.5_sparse_ard_eqtl_coefficients_mv_update_res.txt'
 sparse_sldsc_tau_raw = np.loadtxt(sldsc_sparse_tau_file, dtype=str, delimiter='\t')
 sparse_sldsc_tau = sparse_sldsc_tau_raw[2:,1].astype(float)
 
@@ -449,7 +486,7 @@ rsid_to_genomic_annotation, variant_position_vec, rsids = create_dictionary_mapp
 
 
 # Open outputful summarizing TGFM input (one line for each window)
-tgfm_input_data_summary_file = simulated_tgfm_input_data_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_tgfm_input_data_summary.txt'
+tgfm_input_data_summary_file = simulated_tgfm_input_data_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_tgfm_input_data_summary.txt'
 t = open(tgfm_input_data_summary_file,'w')
 # Write header
 t.write('window_name\tLD_npy_file\tTGFM_input_pkl\tlog_prior_probability_file_stem\n')
@@ -460,6 +497,7 @@ t.write('window_name\tLD_npy_file\tTGFM_input_pkl\tlog_prior_probability_file_st
 # Now loop through windows
 f = open(simulation_window_list_file)
 head_count = 0
+
 for line in f:
 	line = line.rstrip()
 	data = line.split('\t')
@@ -470,6 +508,7 @@ for line in f:
 
 	# Extract relevent info for this window
 	window_name = data[0]
+	print(window_name)
 	window_start = int(data[1])
 	window_middle_start = int(data[2])
 	window_middle_end = int(data[3])
@@ -483,13 +522,13 @@ for line in f:
 	# Create annotation matrix for window rsids
 	window_anno_mat = create_anno_matrix_for_set_of_rsids(rsid_to_genomic_annotation, window_rsids)
 
-	# Extract gene-tissue pairs and fitted models in this window
-	gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
-	gene_tissue_pairs, gene_tissue_pair_weight_vectors, gene_tissue_pairs_tss = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, eqtl_sample_size, window_indices, simulated_gene_expression_dir)
-
 	# Extract LD
 	ld_mat_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_in_sample_ld.npy'
 	ld_mat = np.load(ld_mat_file)
+
+	# Extract gene-tissue pairs and fitted models in this window
+	gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
+	gene_tissue_pairs, gene_tissue_pair_weight_vectors, gene_tissue_pairs_tss, gene_variances = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, eqtl_sample_size, window_indices, simulated_gene_expression_dir,ld_mat, eqtl_type)
 
 	# Get middle variant indices and middle gene indices
 	middle_variant_indices = np.where((window_variant_position_vec >= window_middle_start) & (window_variant_position_vec < window_middle_end))[0]
@@ -502,7 +541,7 @@ for line in f:
 	beta_scaled, beta_se_scaled, XtX = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, n_gwas_individuals, ld_mat)
 
 	# Compute various ln(pi) and save to output # and save those results to output files
-	ln_pi_output_stem = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi'
+	ln_pi_output_stem = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size)+ '_' + eqtl_type + '_ln_pi'
 	# Uniform prior
 	n_window_elements = len(window_rsids) + len(gene_tissue_pairs)
 	uniform_pi = np.ones(n_window_elements)*(1.0/n_window_elements)
@@ -536,11 +575,12 @@ for line in f:
 	tgfm_data['gwas_beta_se'] = beta_se_scaled
 	tgfm_data['gwas_sample_size'] = n_gwas_individuals
 	tgfm_data['gene_eqtl_pmces'] = np.asarray(gene_tissue_pair_weight_vectors)
+	tgfm_data['gene_variances'] = gene_variances
 	tgfm_data['middle_gene_indices'] = middle_gene_indices
 	tgfm_data['middle_variant_indices'] = middle_variant_indices
 
 	# Save TGFM output data to pickle
-	window_pickle_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size) + '_tgfm_input_data.pkl'
+	window_pickle_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size)+ '_' + eqtl_type + '_tgfm_input_data.pkl'
 	g = open(window_pickle_output_file, "wb")
 	pickle.dump(tgfm_data, g)
 	g.close()

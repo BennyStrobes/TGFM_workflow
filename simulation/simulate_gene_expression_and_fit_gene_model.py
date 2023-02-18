@@ -222,7 +222,18 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 			else:
 				susie_components = np.asarray(susie_fitted.rx2('sets').rx2('cs_index')) - 1
 				pmces = np.sum(susie_fitted.rx2('alpha')*susie_fitted.rx2('mu'),axis=0)
-				# np.corrcoef(np.dot(gene_geno, sim_causal_eqtl_effect_sizes[:, tissue_iter]), np.dot(gene_geno, pmces))
+				# Also need to save individual data objects
+				# alpha
+				alpha_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_alpha.npy'
+				np.save(alpha_model_output_file, susie_fitted.rx2('alpha'))
+				# mu
+				mu_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu.npy'
+				np.save(mu_model_output_file, susie_fitted.rx2('mu'))
+				# mu_var
+				mu_var = susie_fitted.rx2('mu2') - np.square(susie_fitted.rx2('mu'))
+				mu_var_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu_var.npy'
+				np.save(mu_var_model_output_file, mu_var)
+
 			pmces_cross_tissues.append(pmces)
 		
 		# Convert pmces to numpy array
@@ -253,7 +264,7 @@ processed_genotype_data_dir = sys.argv[8]
 np.random.seed(simulation_number)
 
 # Define vector of eQTL sample sizes
-eqtl_sample_sizes = np.asarray([100,200,300,500,1000])
+eqtl_sample_sizes = np.asarray([100, 200, 300, 500,1000])
 
 # Fraction of genes cis heritable for a given tissue
 fraction_genes_cis_h2 = .5
