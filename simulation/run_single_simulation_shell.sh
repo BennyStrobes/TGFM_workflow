@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-24:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-29:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=18GB                         # Memory total in MiB (for all cores)
 
@@ -32,7 +32,7 @@ source ~/.bash_profile
 module load R/4.0.1
 echo "Simulation"$simulation_number
 date
-if false; then
+
 #######################################################
 # Step 1: Simulate gene expression and fit gene models
 #######################################################
@@ -177,7 +177,7 @@ for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
 	python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $simulation_window_list_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $eqtl_type
 done
-fi
+
 
 
 #######################################################

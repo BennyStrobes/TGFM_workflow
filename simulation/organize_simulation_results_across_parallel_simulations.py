@@ -27,7 +27,7 @@ def create_file_containing_total_h2_across_simulation_runs(simulated_sldsc_resul
 		arr = []
 		for simulation_run in simulation_runs:
 			# Extract per annotation mediated heritability file for this run
-			h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_sldsc_results_organized_mediated_h2.txt'
+			h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_distr' + '_sldsc_results_organized_mediated_h2.txt'
 			# Load in per anno med h2
 			h2_data_raw = np.loadtxt(h2_file, dtype=str, delimiter='\t')
 
@@ -52,7 +52,7 @@ def create_file_containing_fraction_expression_mediated_h2_across_simulation_run
 		arr = []
 		for simulation_run in simulation_runs:
 			# Extract per annotation mediated heritability file for this run
-			frac_h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_sldsc_results_h2_med.txt'
+			frac_h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_distr' + '_sldsc_results_h2_med.txt'
 			frac_h2_raw = np.loadtxt(frac_h2_file,dtype=str)
 			frac_h2 = frac_h2_raw[1,0]
 
@@ -117,7 +117,7 @@ def create_file_containing_mediated_h2_in_causal_and_non_causal_tissues_sparse_e
 		arr = []
 		for simulation_run in simulation_runs:
 			# Extract per annotation mediated heritability file for this run
-			h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_sldsc_results_organized_0.5_sparse_ard_eqtl_coefficients_mv_update_res.txt'
+			h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_distr' + '_sldsc_results_organized_0.5_sparse_ard_eqtl_coefficients_mv_update_res.txt'
 			# Load in per anno med h2
 			h2_data_raw = np.loadtxt(h2_file, dtype=str, delimiter='\t')
 			med_tau = h2_data_raw[-10:,1].astype(float)
@@ -146,7 +146,7 @@ def create_file_containing_mediated_h2_in_causal_and_non_causal_tissues(simulate
 		arr = []
 		for simulation_run in simulation_runs:
 			# Extract per annotation mediated heritability file for this run
-			h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_sldsc_results_organized_mediated_h2.txt'
+			h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_distr' + '_sldsc_results_organized_mediated_h2.txt'
 			# Load in per anno med h2
 			h2_data_raw = np.loadtxt(h2_file, dtype=str, delimiter='\t')
 			med_h2 = h2_data_raw[-10:,1].astype(float)
@@ -383,7 +383,7 @@ def create_file_containing_tgfm_high_pip_snp_power_per_component(global_simulati
 			for ln_pi_method in ln_pi_methods:
 				for initialization_version in initialization_versions:
 					discovered_pi_dicti = {}
-					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_tgfm_component_cs_summary.txt'
+					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_distr' + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_tgfm_component_cs_summary.txt'
 					f = open(cs_file)
 					head_count = 0
 					for line in f:
@@ -486,7 +486,7 @@ def create_file_containing_tgfm_cs_power_per_component(global_simulation_name_st
 			for ln_pi_method in ln_pi_methods:
 				for initialization_version in initialization_versions:
 					discovered_pi_dicti = {}
-					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_tgfm_component_cs_summary.txt'
+					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_distr' + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_tgfm_component_cs_summary.txt'
 					f = open(cs_file)
 					head_count = 0
 					for line in f:
@@ -896,7 +896,7 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp(global_simulatio
 				for initialization_version in initialization_versions:
 
 					# Credible set file for this run
-					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_tgfm_component_cs_summary.txt'
+					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_distr' + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_tgfm_component_cs_summary.txt'
 					# Loop through cs in cs file
 					head_count = 0
 					f = open(cs_file)
@@ -966,7 +966,7 @@ def create_file_containing_tgfm_cs_calibration_per_component(global_simulation_n
 				for initialization_version in initialization_versions:
 
 					# Credible set file for this run
-					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_tgfm_component_cs_summary.txt'
+					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_distr' + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_tgfm_component_cs_summary.txt'
 					# Loop through cs in cs file
 					head_count = 0
 					f = open(cs_file)
@@ -1174,6 +1174,7 @@ bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + chrom_num + '.
 
 # Used eQTL sample sizes
 eqtl_sample_sizes = np.asarray([100,200,300,500,1000, 'inf'])
+eqtl_sample_sizes = np.asarray([100,200,300,500,1000])
 
 
 # ln_pi methods used
@@ -1183,11 +1184,12 @@ ln_pi_methods = np.asarray(['uniform'])
 
 # Initialization methods
 initialization_versions = np.asarray(['null', 'variant_only', 'best'])
+initialization_versions = np.asarray(['best'])
 
 # Simulation runs
 # Currently hacky because had some failed simulations
 simulation_runs = np.arange(1,100)
-
+simulation_runs = np.delete(simulation_runs, [25,26,52])
 
 ##############################
 # Calculate number of of cis-heritable genes
@@ -1264,8 +1266,6 @@ type_1_error_output_file =  simulated_organized_results_dir + 'organized_simulat
 create_file_containing_mediated_h2_type_1_error(mediated_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes)
 
 
-
-
 ##################################
 # Fine-mapping evaluation metrics
 ##################################
@@ -1321,6 +1321,7 @@ for pip_threshold in pip_thresholds:
 	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods, initialization_versions)
 
 
+'''
 ##################################
 # Coverage/Calibration to detect snps with PIP > threshold in windows where causal genes are detected
 ##################################
@@ -1333,7 +1334,7 @@ for pip_threshold in pip_thresholds:
 
 	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_calibration_where_causal_gene_is_detected.txt'
 	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ln_pi_methods, initialization_versions)
-
+'''
 
 
 
