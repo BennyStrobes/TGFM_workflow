@@ -817,7 +817,7 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp_where_causal_gen
 				for initialization_version in initialization_versions:
 
 					# Credible set file for this run
-					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_tgfm_component_cs_summary.txt'
+					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size)+ '_susie_distr' + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_tgfm_component_cs_summary.txt'
 					# Loop through cs in cs file
 					head_count = 0
 					f = open(cs_file)
@@ -857,7 +857,7 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp_where_causal_gen
 						window_causal_genes = extract_causal_genes_in_window(simulated_gene_position_file, component_window_name, causal_genes)
 
 						# Get detected genes in this window
-						pkl_results_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_' + component_window_name + '_results.pkl'
+						pkl_results_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size)+ '_susie_distr' + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_' + component_window_name + '_results.pkl'
 						window_detected_genes = get_detected_genes_in_window_from_pkl_file(pkl_results_file)
 
 						# Skip components where we don't detect all causal genes in the region
@@ -1273,7 +1273,7 @@ create_file_containing_mediated_h2_type_1_error(mediated_pvalue_by_tissue_output
 # (ii) Power: the number of true causal variants identified (i.e., covered by a credible set)
 # (iii) Resolution: the size of credible sets and the number of fine-mapped variants with high confidence (e.g., PIP >95%);
 # These should be done for both genes and variants
-
+'''
 ##################################
 # Coverage/Calibration
 ##################################
@@ -1319,9 +1319,8 @@ for pip_threshold in pip_thresholds:
 
 	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_power.txt'
 	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods, initialization_versions)
-
-
 '''
+
 ##################################
 # Coverage/Calibration to detect snps with PIP > threshold in windows where causal genes are detected
 ##################################
@@ -1334,7 +1333,6 @@ for pip_threshold in pip_thresholds:
 
 	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_calibration_where_causal_gene_is_detected.txt'
 	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ln_pi_methods, initialization_versions)
-'''
 
 
 
