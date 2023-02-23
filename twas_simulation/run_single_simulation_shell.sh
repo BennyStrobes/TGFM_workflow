@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-4:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-9:00                         # Runtime in D-HH:MM format
 #SBATCH -p short                           # Partition to run in
 #SBATCH --mem=14GB                         # Memory total in MiB (for all cores)
 
@@ -20,6 +20,7 @@ simulated_gene_expression_dir="${11}"
 simulated_learned_gene_models_dir="${12}"
 simulated_trait_dir="${13}"
 simulated_gwas_dir="${14}"
+simulated_twas_dir="${15}"
 
 
 source ~/.bash_profile
@@ -35,7 +36,6 @@ echo "Simulation Step 1"
 python3 simulate_gene_expression_and_fit_gene_model.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir
 
 
-
 #######################################################
 # Step 2: Simulate trait values
 #######################################################
@@ -48,11 +48,14 @@ python3 simulate_trait_values.py $simulation_number $chrom_num $cis_window $simu
 # Step 3: Run GWAS on all snps
 #######################################################
 echo "Simulation Step 3"
-python3 run_gwas_on_simulated_trait_at_all_snps.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $simulated_gwas_dir
+python3 run_gwas_on_simulated_trait_at_all_snps.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $simulated_gwas_dir $simulated_gene_expression_dir
 
 
-
-
+#######################################################
+# Step 4: Run TWAS
+#######################################################
+echo "Simulation Step 4"
+python3 run_various_twas_methods.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_twas_dir
 
 
 

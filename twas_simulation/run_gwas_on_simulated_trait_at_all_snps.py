@@ -140,6 +140,40 @@ def run_gwas_on_hm3_rsids(hapmap3_rsids, trait_values_file, gwas_plink_stem, gwa
 	return
 
 
+def run_gwas_for_a_single_gene(genotype_obj, batch_rsids, batch_rsids2, gwas_trait_vector, gene_gwas_output_file):
+	# Open output file handle
+	t = open(gene_gwas_output_file,'w')
+	t.write('rsid\tbeta\tbeta_se\tz\n')
+
+	batch_variant_genotype = np.asarray(genotype_obj.sel(variant=batch_rsids))
+
+	# Loop through variants in batch
+	for batch_iter, batch_rsid in enumerate(np.asarray(batch_rsids)):
+		# Extract genotype data for this snp
+		variant_genotype = batch_variant_genotype[:,batch_iter]
+		std_variant_genotype = np.copy(variant_genotype)
+		# Mean impute genotype
+		nan_indices = np.isnan(variant_genotype)
+		non_nan_mean = np.mean(variant_genotype[nan_indices==False])
+		std_variant_genotype[nan_indices] = non_nan_mean
+		# Standardize genotype
+		std_variant_genotype = (std_variant_genotype - np.mean(std_variant_genotype))/np.std(std_variant_genotype)
+
+
+		# Now get effect size, standard erorr and z-score for association between standardized genotype and trait
+		# Fit model using statsmodels
+		mod = sm.OLS(gwas_trait_vector, std_variant_genotype)
+		res = mod.fit()
+		# Extract results
+		effect_size = res.params[0]
+		effect_size_se = res.bse[0]
+		effect_size_z = effect_size/effect_size_se
+
+		# Print to output file
+		t.write(batch_rsids2[batch_iter] + '\t' + str(effect_size) + '\t' + str(effect_size_se) + '\t' + str(effect_size_z) + '\n')
+	t.close()
+	return
+
 
 def run_gwas_on_all_rsids(trait_values_file, gwas_plink_stem, gwas_output_file, batch_size=1000):
 	# Load in trait vector
@@ -238,6 +272,17 @@ def run_gwas_on_all_rsids(trait_values_file, gwas_plink_stem, gwas_output_file, 
 	return
 
 
+def extract_gwas_trait_vector(gene_trait_value_file):
+	f = open(gene_trait_value_file)
+	arr = []
+	for line in f:
+		line = line.rstrip()
+		arr.append(float(line))
+	f.close()
+
+	return np.asarray(arr)
+
+
 
 ##############################
 # Command line argumemnts
@@ -248,17 +293,63 @@ simulation_name_string = sys.argv[3]
 processed_genotype_data_dir = sys.argv[4]
 simulated_trait_dir = sys.argv[5]
 simulated_gwas_dir = sys.argv[6]
-
-
+simulated_gene_expression_dir = sys.argv[7]
 
 
 ####################################################
-# Run GWAS on all snps
+# Extract genotype data
 ####################################################
-trait_values_file = simulated_trait_dir + simulation_name_string + '_trait_values.txt'  # Trait vector
+
 gwas_plink_stem = processed_genotype_data_dir + 'simulated_gwas_data_' + str(chrom_num)  # Genotype files
-gwas_output_file = simulated_gwas_dir + simulation_name_string + '_simualated_gwas_results_all_snps.txt'
-run_gwas_on_all_rsids(trait_values_file, gwas_plink_stem, gwas_output_file)
+
+# Load in ordered array of rsids
+genotype_bim = gwas_plink_stem + '.bim'
+ordered_rsids = load_in_ordered_array_of_rsids_from_bim_file(genotype_bim)
+ordered_variant_names = []
+for ii,rsid in enumerate(ordered_rsids):
+	ordered_variant_names.append('variant' + str(ii))
+ordered_variant_names = np.asarray(ordered_variant_names)
+
+# Load in genotype object
+genotype_obj = read_plink1_bin(gwas_plink_stem + '.bed', gwas_plink_stem + '.bim', gwas_plink_stem + '.fam', verbose=False)
+
+
+
+####################################################
+# Run GWAS on all snps (in each gene seperately)
+####################################################
+simulated_expression_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'  # This file contains a line for each gene, and we will use it to select which genes in which tissue are used
+f = open(simulated_expression_summary_file)
+head_count = 0
+gene_counter = 0
+for line in f:
+	line = line.rstrip()
+	data = line.split('\t')
+	if head_count == 0:
+		head_count = head_count + 1
+		continue
+	print(gene_counter)
+	# This corresponds to a single gene
+	# Extract relevent fields for this gene
+	gene_name = data[0]
+	causal_eqtl_effect_file = data[3]
+	eqtl_snp_id_file = data[4]
+	eqtl_snp_indices_file = data[5]
+	eqtl_snp_indices = np.load(eqtl_snp_indices_file)
+
+	# Extract trait file for this gene
+	gene_trait_value_file = simulated_trait_dir + simulation_name_string + '_expression_mediated_trait_values_' + gene_name + '.txt'  # Trait vector
+	gwas_trait_vector = extract_gwas_trait_vector(gene_trait_value_file)
+
+	# Run gwas for all rsids in this gene
+	gene_gwas_output_file = simulated_gwas_dir + simulation_name_string + '_simualated_gwas_results_' + gene_name +'.txt'
+	run_gwas_for_a_single_gene(genotype_obj, ordered_variant_names[eqtl_snp_indices], ordered_rsids[eqtl_snp_indices], gwas_trait_vector, gene_gwas_output_file)
+	gene_counter = gene_counter + 1
+
+
+f.close()
+
+
 
 
 

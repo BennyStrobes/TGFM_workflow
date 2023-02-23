@@ -7,7 +7,7 @@ import pdb
 import scipy.special
 import pickle
 import statsmodels.api as sm
-
+from sklearn.linear_model import LassoCV
 from pandas_plink import read_plink1_bin
 import rpy2
 import rpy2.robjects.numpy2ri as numpy2ri
@@ -180,7 +180,72 @@ def compute_marginal_regression_coefficients(sim_stand_expr, gene_geno):
 
 	return np.asarray(marginal_effects), np.asarray(marginal_effects_se)
 
+def extract_h2_from_greml_hsq_file(hsq_file):
+	f = open(hsq_file)
+	for line in f:
+		line = line.rstrip()
+		data = line.split()
+		if line.startswith('V(G)/Vp'):
+			hsq = float(data[1])
+			hsq_se = float(data[2])
+		if line.startswith('Pval'):
+			pval = float(data[1])
+	f.close()
+	return hsq, hsq_se, pval
 
+def run_greml_no_covariate_h2_analysis(chrom_num, gene_tss, expr_vec, genotype_stem, cis_window, expr_ind_ids, tmp_output_stem, cis_rsids):
+	gcta_path="/n/groups/price/tiffany/subpheno/fusion_twas-master/gcta_nr_robust"
+	# Create gene pheno file
+	gene_pheno_file = tmp_output_stem + 'gene_pheno'
+	n_samples = len(expr_vec)
+	#gene_pheno_data = np.hstack((np.zeros((n_samples,1)).astype(int).astype(str), expr_ind_ids.reshape(n_samples,1), expr_vec.astype(str).reshape(n_samples,1)))
+	gene_pheno_data = np.hstack((expr_ind_ids.reshape(n_samples,1), expr_ind_ids.reshape(n_samples,1), expr_vec.astype(str).reshape(n_samples,1)))
+	np.savetxt(gene_pheno_file, gene_pheno_data, fmt="%s", delimiter='\t')
+
+	# Run PLINK to get plink file specifically consisting of cis snps
+	start_pos = gene_tss - int(cis_window)
+	end_pos = gene_tss + int(cis_window)
+	plink_window_stem = tmp_output_stem + 'window_plink'
+	command_string = 'plink --bfile ' + genotype_stem + ' --keep-allele-order --pheno ' + gene_pheno_file + ' --make-bed --out ' + plink_window_stem + ' --keep ' + gene_pheno_file + ' --chr ' + chrom_num + ' --from-bp ' + str(start_pos) + ' --to-bp ' + str(end_pos) +' --allow-no-sex'
+	os.system(command_string)
+
+	# MAKE GRM WITH PLINK
+	command_string = 'plink --allow-no-sex --bfile ' + plink_window_stem + ' --make-grm-bin --out ' + plink_window_stem
+	os.system(command_string)
+
+	# estimate heritability with GREML
+	greml_h2_res_file = tmp_output_stem + 'h2_res' 
+	#arg = paste( gcta_path ," --grm ",temp_tissue_specific_stem," --pheno ",raw.pheno.file," --qcovar ",covariate_file," --out ",temp_tissue_specific_stem," --reml --reml-no-constrain --reml-lrt 1",sep='')
+	command_string = gcta_path + ' --grm ' + plink_window_stem + ' --pheno ' + gene_pheno_file + ' --out ' + greml_h2_res_file + ' --reml --reml-no-constrain --reml-lrt 1'
+	os.system(command_string)
+
+	# Now extract heritabilities
+	hsq, hsq_se, hsq_p = extract_h2_from_greml_hsq_file(greml_h2_res_file + '.hsq')
+
+	causal_effects = np.zeros(len(cis_rsids))
+	if hsq > 0 and hsq_p < .05:
+		command_string = 'plink --allow-no-sex --bfile ' + plink_window_stem + ' --keep-allele-order --lasso ' + str(hsq) + ' --out ' + plink_window_stem + 'lasso'
+		os.system(command_string)
+		f = open(plink_window_stem + 'lasso.lasso')
+		mapping = {}
+		head_count = 0
+		for line in f:
+			line = line.rstrip()
+			data = line.split('\t')
+			if head_count == 0:
+				head_count = head_count + 1
+				continue
+			mapping[data[1]] = float(data[3])
+		f.close()
+		for ii,snp_id in enumerate(cis_rsids):
+			if snp_id in mapping:
+				causal_effects[ii] = mapping[snp_id]
+
+
+	# Clear temporary files from directory
+	os.system('rm ' + tmp_output_stem + '*')
+
+	return hsq, hsq_se, hsq_p, causal_effects
 
 
 def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num):
@@ -196,6 +261,7 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 	G_obj_a1 = np.asarray(G_obj.a1)
 	# RSids
 	G_obj_rsids = np.asarray(G_obj.snp)
+	G_obj_sample_names = np.asarray(G_obj.sample)
 	# Snp ids
 	G_obj_snp_ids = 'chr' + G_obj_chrom + '_' + (G_obj_pos.astype(str)) + '_' + G_obj_a0 + '_' + G_obj_a1
 
@@ -215,6 +281,7 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 		# AT A SINGLE GENE
 		# Extract relevent information from the line
 		ensamble_id = data[0]
+		gene_tss = int(data[2])
 		gene_causal_eqtl_effect_file = data[3]
 		gene_cis_snp_indices_file = data[5]
 
@@ -224,6 +291,7 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 		# Extract indices of cis_snps
 		cis_snp_indices = np.load(gene_cis_snp_indices_file)
 		n_cis_snps = np.sum(cis_snp_indices)
+		cis_rsids = G_obj_rsids[cis_snp_indices]
 
 		# Quick error check
 		if np.sum(cis_snp_indices) < 10:
@@ -235,6 +303,7 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 
 		# Now loop through tissues (run simulation and gene-modeling seperately in each tissue)
 		n_tiss = sim_causal_eqtl_effect_sizes.shape[1]
+		fusion_pmces_cross_tissues = []
 		pmces_cross_tissues = []
 		marginal_effect_sizes_cross_tissues = []
 		marginal_effect_se_cross_tissues = []
@@ -244,12 +313,22 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 			# Standardize simulated gene expression
 			sim_stand_expr = (sim_expr - np.mean(sim_expr))/np.std(sim_expr)
 
+			# Run greml
+			tmp_output_stem = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size)  + '_tmp_h2_'
+			try:
+				hsq, hsq_se, hsq_p, causal_effects = run_greml_no_covariate_h2_analysis(str(chrom_num), gene_tss, sim_stand_expr, genotype_stem, 100000, G_obj_sample_names, tmp_output_stem, cis_rsids)
+			except:
+				causal_effects = np.zeros(len(cis_rsids))
+			fusion_pmces_cross_tissues.append(causal_effects)
+
+
 			marginal_effects, marginal_effects_se = compute_marginal_regression_coefficients(sim_stand_expr, gene_geno)
 			marginal_effect_sizes_cross_tissues.append(marginal_effects)
 			marginal_effect_se_cross_tissues.append(marginal_effects_se)
 
 			# Run eQTL variant fine-mapping with SuSiE
 			susie_fitted = susieR_pkg.susie(gene_geno, sim_stand_expr,L=10)
+			#susie_fitted2 = susieR_pkg.susie(gene_geno, sim_stand_expr,L=10, null_weight=.5,estimate_prior_variance=False)
 			
 			# Test whether there exist any identified susie components for this gene
 			if type(susie_fitted.rx2('sets').rx2('cs_index')) == rpy2.rinterface_lib.sexp.NULLType:
@@ -276,6 +355,11 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 		pmces_cross_tissues = np.asarray(pmces_cross_tissues)
 		marginal_effect_sizes_cross_tissues = np.asarray(marginal_effect_sizes_cross_tissues)
 		marginal_effect_se_cross_tissues = np.asarray(marginal_effect_se_cross_tissues)
+		fusion_pmces_cross_tissues = np.asarray(fusion_pmces_cross_tissues)
+
+		# Save gene-model PMCES across tissues to output
+		gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_fusion_lasso_pmces_gene_model.npy'
+		np.save(gene_model_output_file, fusion_pmces_cross_tissues)
 
 		# Save gene-model PMCES across tissues to output
 		gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_susie_pmces_gene_model.npy'
@@ -322,7 +406,7 @@ fraction_genes_cis_h2 = 1.0
 ############################
 # Create file to keep track of causal eqtl effect sizes across genes
 simulated_causal_eqtl_effect_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
-simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2)
+#simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2)
 
 
 ############################
