@@ -6,6 +6,7 @@ import os
 import pdb
 import scipy.special
 import pickle
+import susie_alt
 import statsmodels.api as sm
 from sklearn.linear_model import LassoCV
 from pandas_plink import read_plink1_bin
@@ -159,6 +160,17 @@ def simulate_gene_expression(G, sim_beta):
 	ge = np.random.normal(loc=genetic_pred_ge, scale=np.sqrt(1.0-gene_heritability))
 	return ge
 
+
+def run_susie_alt(gene_geno, sim_stand_expr, L=10):
+	beta, beta_se = compute_marginal_regression_coefficients(sim_stand_expr, gene_geno)
+	LD = np.corrcoef(np.transpose(gene_geno))
+	mod = susie_alt.SUSIE_ALT(L=10, estimate_prior_variance=False, estimate_prior_prob=True, alpha_0=.2)
+	mod.fit(beta, beta_se, LD)
+
+	pdb.set_trace()
+
+	return mod
+
 def compute_marginal_regression_coefficients(sim_stand_expr, gene_geno):
 	marginal_effects = []
 	marginal_effects_se = []
@@ -193,7 +205,7 @@ def extract_h2_from_greml_hsq_file(hsq_file):
 	f.close()
 	return hsq, hsq_se, pval
 
-def run_greml_no_covariate_h2_analysis(chrom_num, gene_tss, expr_vec, genotype_stem, cis_window, expr_ind_ids, tmp_output_stem, cis_rsids):
+def run_greml_no_covariate_h2_analysis_and_FUSION(chrom_num, gene_tss, expr_vec, genotype_stem, cis_window, expr_ind_ids, tmp_output_stem, cis_rsids, genotype_mat):
 	gcta_path="/n/groups/price/tiffany/subpheno/fusion_twas-master/gcta_nr_robust"
 	# Create gene pheno file
 	gene_pheno_file = tmp_output_stem + 'gene_pheno'
@@ -201,6 +213,9 @@ def run_greml_no_covariate_h2_analysis(chrom_num, gene_tss, expr_vec, genotype_s
 	#gene_pheno_data = np.hstack((np.zeros((n_samples,1)).astype(int).astype(str), expr_ind_ids.reshape(n_samples,1), expr_vec.astype(str).reshape(n_samples,1)))
 	gene_pheno_data = np.hstack((expr_ind_ids.reshape(n_samples,1), expr_ind_ids.reshape(n_samples,1), expr_vec.astype(str).reshape(n_samples,1)))
 	np.savetxt(gene_pheno_file, gene_pheno_data, fmt="%s", delimiter='\t')
+
+
+	pdb.set_trace()
 
 	# Run PLINK to get plink file specifically consisting of cis snps
 	start_pos = gene_tss - int(cis_window)
@@ -265,6 +280,7 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 	# Snp ids
 	G_obj_snp_ids = 'chr' + G_obj_chrom + '_' + (G_obj_pos.astype(str)) + '_' + G_obj_a0 + '_' + G_obj_a1
 
+	pdb.set_trace()
 	# Mean impute and standardize genotype
 	G_obj_geno_stand = mean_impute_and_standardize_genotype(G_obj_geno)
 	# Now loop through genes
@@ -313,10 +329,11 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 			# Standardize simulated gene expression
 			sim_stand_expr = (sim_expr - np.mean(sim_expr))/np.std(sim_expr)
 
-			# Run greml
+
+			# Run greml and FUSION
 			tmp_output_stem = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size)  + '_tmp_h2_'
 			try:
-				hsq, hsq_se, hsq_p, causal_effects = run_greml_no_covariate_h2_analysis(str(chrom_num), gene_tss, sim_stand_expr, genotype_stem, 100000, G_obj_sample_names, tmp_output_stem, cis_rsids)
+				hsq, hsq_se, hsq_p, causal_effects = run_greml_no_covariate_h2_analysis_and_FUSION(str(chrom_num), gene_tss, sim_stand_expr, genotype_stem, 100000, G_obj_sample_names, tmp_output_stem, cis_rsids, gene_geno)
 			except:
 				causal_effects = np.zeros(len(cis_rsids))
 			fusion_pmces_cross_tissues.append(causal_effects)
@@ -328,7 +345,7 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 
 			# Run eQTL variant fine-mapping with SuSiE
 			susie_fitted = susieR_pkg.susie(gene_geno, sim_stand_expr,L=10)
-			#susie_fitted2 = susieR_pkg.susie(gene_geno, sim_stand_expr,L=10, null_weight=.5,estimate_prior_variance=False)
+			
 			
 			# Test whether there exist any identified susie components for this gene
 			if type(susie_fitted.rx2('sets').rx2('cs_index')) == rpy2.rinterface_lib.sexp.NULLType:
@@ -406,7 +423,7 @@ fraction_genes_cis_h2 = 1.0
 ############################
 # Create file to keep track of causal eqtl effect sizes across genes
 simulated_causal_eqtl_effect_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
-#simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2)
+simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2)
 
 
 ############################

@@ -213,6 +213,25 @@ make_tgfm_pip_fdr_plot_varying_detected_gene_and_eqtl_sample_size <- function(ca
   }
 
 
+ make_tgfm_pip_fdr_plot_varying_twas_method_and_element_class <- function(df, pip_threshold, ln_pi_method, eqtl_sample_size, initialization_version) {
+ 	df <- df[(df$genetic_element_class)!="all",]
+	df$fdr = 1.0 - df$coverage
+	df$fdr_lb = 1.0 - df$coverage_ub
+	df$fdr_ub = 1.0 - df$coverage_lb
+	df$twas_method = factor(df$twas_method, levels=c("susie_pmces", "susie_distr"))
+
+	p<-ggplot(data=df, aes(x=twas_method, y=fdr, fill=genetic_element_class)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="", y="FDR", fill="", title=paste0("eqtl sample size: ", eqtl_sample_size))  +
+  		geom_hline(yintercept=(1.0-pip_threshold), linetype=2) +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) +
+  		 theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  	return(p)			
+ }
+
+
 make_tgfm_pip_fdr_plot_varying_initialization_and_element_class <- function(df, pip_threshold, ln_pi_method, eqtl_sample_size) {
 	df <- df[(df$genetic_element_class)!="all",]
 	df$fdr = 1.0 - df$coverage
@@ -229,6 +248,20 @@ make_tgfm_pip_fdr_plot_varying_initialization_and_element_class <- function(df, 
   		theme(plot.title = element_text(hjust = 0.5,size=12)) +
   		 theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
   	return(p)		
+}
+
+make_tgfm_pip_power_plot_varying_twas_method_and_element_class <- function(df, pip_threshold, ln_pi_method, eqtl_sample_size) {
+	df$twas_method = factor(df$twas_method, levels=c("susie_pmces", "susie_distr"))
+	p<-ggplot(data=df, aes(x=twas_method, y=power, fill=genetic_element_class)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="", y="Power", fill="", title=paste0("eqtl sample size: ", eqtl_sample_size))  +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) +
+  		theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+  	return(p)
 }
 
 make_tgfm_pip_power_plot_varying_initialization_and_element_class <- function(df, pip_threshold, ln_pi_method, eqtl_sample_size) {
@@ -420,6 +453,69 @@ ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
 #####################################################################
 
 #####################################################################
+# Calibration at PIP threshold of .9 at varying twas versions for variant and gene assuming single prior at fixed sample size
+#####################################################################
+ln_pi_method="uniform"
+eqtl_ss_arr <- c("100", "300", "500", "1000")
+plots <- list()
+for (eqtl_ss_iter in 1:length(eqtl_ss_arr)) {
+initialization_version="best"
+pip_threshold=0.9
+eqtl_sample_size = eqtl_ss_arr[eqtl_ss_iter]
+# Load in data
+calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_calibration.txt")
+calibration_df <- read.table(calibration_file, header=TRUE)
+calibration_df = calibration_df[as.character(calibration_df$ln_pi_method) == ln_pi_method,]
+calibration_df = calibration_df[as.character(calibration_df$eQTL_sample_size) == eqtl_sample_size,]
+calibration_df = calibration_df[as.character(calibration_df$initialization_version) == initialization_version,]
+# Make plot
+calibration_barplot <- make_tgfm_pip_fdr_plot_varying_twas_method_and_element_class(calibration_df, pip_threshold, ln_pi_method, eqtl_sample_size, initialization_version)
+plots[[eqtl_ss_iter]] = calibration_barplot
+}
+joint <- plot_grid(plotlist=plots, ncol=2)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_fdr_vary_twas_method_", ln_pi_method, "_prior_", pip_threshold, "_pip.pdf")
+ggsave(joint, file=output_file, width=7.2, height=6.7, units="in")
+
+#####################################################################
+# Power at PIP threshold of .9 at twas versions for variant and gene assuming single prior and fixed sample size
+#####################################################################
+
+pip_threshold=0.9
+ln_pi_method="uniform"
+initialization_version="best"
+plots <- list()
+
+eqtl_ss_arr <- c("100", "300", "500", "1000")
+plots <- list()
+for (eqtl_ss_iter in 1:length(eqtl_ss_arr)) {
+# Load in data
+eqtl_sample_size = eqtl_ss_arr[eqtl_ss_iter]
+
+power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_power.txt")
+power_df <- read.table(power_file, header=TRUE)
+power_df = power_df[as.character(power_df$ln_pi_method) == ln_pi_method,]
+power_df = power_df[as.character(power_df$eQTL_sample_size) == eqtl_sample_size,]
+power_df = power_df[as.character(power_df$initialization_version) == initialization_version,]
+
+
+
+# Make plot
+power_barplot <- make_tgfm_pip_power_plot_varying_twas_method_and_element_class(power_df, pip_threshold, ln_pi_method, eqtl_sample_size)
+plots[[eqtl_ss_iter]] = power_barplot
+
+
+}
+joint <- plot_grid(plotlist=plots, ncol=2)
+
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_power_vary_twas_method_with_", ln_pi_method, "_prior_", pip_threshold, "_pip.pdf")
+ggsave(joint, file=output_file, width=7.2, height=6.7, units="in")
+
+
+
+if (FALSE) {
+#####################################################################
 # Calibration at PIP threshold of .9 at varying eQTL sample sizes for variant and gene assuming single prior
 #####################################################################
 pip_thresholds = c(0.5, 0.9)
@@ -532,7 +628,7 @@ ggsave(calibration_barplot, file=output_file, width=7.2, height=3.7, units="in")
 
 
 
-
+}
 
 
 

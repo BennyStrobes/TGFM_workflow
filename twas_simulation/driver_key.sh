@@ -53,6 +53,11 @@ simulated_gwas_dir=$temp_output_root"simulated_gwas/"
 # Directory contaiing simulated twas results
 simulated_twas_dir=$temp_output_root"simulated_twas/"
 
+# Directory contaiing simulated twas results
+simulated_organized_results_dir=$temp_output_root"simulated_organized_results/"
+
+# Directory visualizing twas results
+visualize_twas_results_dir=$temp_output_root"simulated_visualization/"
 
 
 ############################
@@ -84,8 +89,6 @@ n_non_mediated_variants_per_gene="2"
 ## 2. Filter sites to be those in LDSC annotation file
 ## 3. Convert to plink bed files
 ############################
-# NOTE: THERE IS CURRENTLY A HACK IN HERE TO REMOVE 3 variants (out of 500000) on chrom 1 that have no variance across the 100-sample eqtl data set.
-############################
 if false; then
 sh prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir
 fi
@@ -96,7 +99,7 @@ fi
 # Limit to protein coding genes
 ############################
 simulated_gene_position_file=${simulated_gene_position_dir}"gene_positions_chr"${chrom_num}".txt"
-if false ;then
+if false; then
 sh prepare_simulated_gene_position_list.sh $chrom_num $gencode_gene_annotation_file $simulated_gene_position_file
 fi
 
@@ -108,7 +111,10 @@ fi
 ###########################
 simulation_number="1"
 simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
+if false; then
 sh run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $per_element_heritability $n_non_mediated_variants_per_gene $fraction_causal_genes $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_twas_dir
+fi
+
 
 if false; then
 for simulation_number in $(seq 2 100); do 
@@ -118,3 +124,22 @@ done
 fi
 
 
+############################
+# Organize simulation results
+###########################
+simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
+if false; then
+sh organize_simulated_twas_results.sh $simulated_twas_dir $simulated_organized_results_dir $simulation_name_string
+fi
+
+
+############################
+# Visualize simulation results
+###########################
+if false; then
+source ~/.bash_profile
+module load R/3.5.1
+fi
+if false; then
+Rscript visualize_simulation_twas.R $simulation_name_string $simulated_organized_results_dir $visualize_twas_results_dir
+fi

@@ -244,14 +244,14 @@ def lava_style_distribution_twas(marginal_eqtl_beta, marginal_eqtl_beta_se, eqtl
 	expected_total_genetic_var = genetic_gene_pmces_var + genetic_gene_noise_var
 
 	# RUN TWAS
-	alpha_stand = alpha/np.sqrt(expected_total_genetic_var)
-	expected_total_genetic_var_stand = expected_total_genetic_var/expected_total_genetic_var
-	
-	twas_z = np.dot(alpha_stand, gwas_gene_z_scores)/np.sqrt(expected_total_genetic_var_stand)
-	twas_coef_se = np.sqrt(np.square(np.mean(gene_gwas_s_vec))/expected_total_genetic_var_stand)
+	att_lambda = unbiased_genetic_gene_var_est/(genetic_gene_pmces_var+genetic_gene_noise_var)
+	print(att_lambda)
+	twas_z = np.dot(alpha, gwas_gene_z_scores)/np.sqrt(expected_total_genetic_var)
+	twas_coef_se = np.sqrt(np.square(np.mean(gene_gwas_s_vec))/((expected_total_genetic_var/unbiased_genetic_gene_var_est)))/att_lambda
 	twas_coef = twas_z*twas_coef_se
 	twas_p = scipy.stats.norm.sf(abs(twas_z))*2
 
+	# Attenuation bias correction
 	variance_ratio = genetic_gene_pmces_var/expected_total_genetic_var
 
 	return twas_coef, twas_z, twas_p, variance_ratio
@@ -310,6 +310,7 @@ def run_twas_shell(gene_name, simulation_name_string, twas_method_name, eqtl_ss,
 		marginal_eqtl_beta_se_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + gene_name + '_eqtlss_' + str(eqtl_ss) + '_marginal_effects_se_gene_model.npy'
 		marginal_eqtl_beta_se = np.load(marginal_eqtl_beta_se_file)[0,:]
 		twas_coef, twas_z, twas_p, variance_ratio = lava_style_distribution_twas(marginal_eqtl_beta, marginal_eqtl_beta_se, int(eqtl_ss), pruned_svd_Q, pruned_svd_lambda, ld_mat, gwas_gene_z_scores, gene_gwas_s_vec)
+		print(twas_coef)
 	elif twas_method_name == 'marginal_pmces':
 		# Load in data
 		marginal_eqtl_beta_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + gene_name + '_eqtlss_' + str(eqtl_ss) + '_marginal_effects_gene_model.npy'
@@ -363,9 +364,9 @@ simulated_twas_dir = sys.argv[9]
 method_names = []
 eqtl_sample_sizes = []
 #for eqtl_ss in [100,200,300,500,1000]:
-for eqtl_ss in [100, 200, 300, 500, 1000]:	
-	#for method in ['susie_pmces', 'susie_distr', 'marginal_pmces', 'marginal_distr']:
-	for method in ['susie_pmces', 'susie_distr', 'marginal_pmces', 'marginal_distr', 'fusion_lasso_pmces']:
+for eqtl_ss in [100]:	
+	for method in ['marginal_distr']:
+	#for method in ['susie_pmces', 'susie_distr', 'marginal_pmces', 'marginal_distr', 'fusion_lasso_pmces']:
 		method_names.append(method)
 		eqtl_sample_sizes.append(eqtl_ss)
 method_names.append('true_causal_effects')
@@ -403,6 +404,8 @@ for line in f:
 	print(gene_name)
 	sim_gene_name = sim_gene_names[gene_counter]
 	gene_causal_effect_size = simulated_causal_gene_effect_sizes[gene_counter]
+	print(gene_causal_effect_size)
+
 	causal_gene = 'True'
 	if gene_causal_effect_size == 0.0:
 		causal_gene = 'False'
@@ -415,6 +418,8 @@ for line in f:
 	if gene_name != sim_gene_name:
 		print('assumption error')
 		pdb.set_trace()
+	if np.abs(gene_causal_effect_size) == 0.0:
+		continue
 
 	# Extract data for this line
 	cis_snp_rsids = np.load(cis_snp_id_file, allow_pickle=True)[:,1]
