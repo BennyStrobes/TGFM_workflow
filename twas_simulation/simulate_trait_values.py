@@ -164,7 +164,7 @@ def simulate_non_mediated_variant_causal_effect_sizes(simulated_expression_summa
 	t.close()
 
 # Simulate mediated gene-expression causal effect sizes
-def simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_summary_file, per_element_heritability, fraction_causal_genes, expression_mediated_causal_effects_output):
+def simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_summary_file, per_element_heritability, fraction_causal_genes, gene_effect_version, expression_mediated_causal_effects_output):
 	# Extract list of ordered gene names
 	ordered_gene_names = extract_ordered_gene_names_from_gene_summary_file(simulated_expression_summary_file)
 	total_genes = len(ordered_gene_names)
@@ -182,7 +182,6 @@ def simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_s
 	total_n_causal_genes = int(np.round(total_genes*fraction_causal_genes))
 
 
-
 	# Initialize matrix of gene causal effect sizes
 	gene_causal_effect_sizes = np.zeros(total_genes)
 
@@ -190,7 +189,13 @@ def simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_s
 	cis_h2_genes = np.where(cis_h2_gene_boolean_matrix[:, 0] == 1.0)[0]
 	tissue_med_causal_gene_indices = np.random.choice(cis_h2_genes, size=total_n_causal_genes, replace=False)
 	# Randomly sample gene causal effect sizes at causal indices
-	gene_causal_effect_sizes[tissue_med_causal_gene_indices] = np.random.normal(loc=0.0, scale=np.sqrt(per_element_heritability),size=total_n_causal_genes)
+	if gene_effect_version == 'random':
+		gene_causal_effect_sizes[tissue_med_causal_gene_indices] = np.random.normal(loc=0.0, scale=np.sqrt(per_element_heritability),size=total_n_causal_genes)
+	elif gene_effect_version == 'fixed':
+		gene_causal_effect_sizes[tissue_med_causal_gene_indices] = np.ones(total_n_causal_genes)*.025
+	else:
+		print('error: ' + gene_effect_version + ' not currently implemented')
+		pdb.set_trace()
 
 	# Print to output file
 	t = open(expression_mediated_causal_effects_output,'w')
@@ -229,6 +234,11 @@ def compute_expression_mediated_trait_values_for_single_gene(genotype_obj, gene_
 
 	# Extract genotype matrix for these snps
 	eqtl_genotype = np.asarray(genotype_obj.sel(variant=eqtl_index_names))
+	# Quick error check
+	if np.sum(np.isnan(eqtl_genotype)) != 0.0:
+		print('assumption eroror')
+		pdb.set_trace()
+
 	stand_eqtl_genotype = mean_impute_and_standardize_genotype(eqtl_genotype)
 
 	# NOTE: THE FOLLOWING TWO VERSIONS GIVE EQUIVALENT RESULTS
@@ -451,6 +461,7 @@ fraction_causal_genes = float(sys.argv[9])
 simulated_trait_dir = sys.argv[10]  # Output dir
 n_gwas_individuals = int(sys.argv[11])
 processed_genotype_data_dir = sys.argv[12]
+gene_effect_version = sys.argv[13]
 
 
 
@@ -463,9 +474,8 @@ np.random.seed(simulation_number)
 # Simulate mediated gene-expression causal effect sizes
 ####################################################
 simulated_expression_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'  # This file contains a line for each gene, and we will use it to select which genes in which tissue are used
-expression_mediated_causal_effects_output = simulated_trait_dir + simulation_name_string + '_expression_mediated_gene_causal_effect_sizes.txt'
-simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_summary_file, per_element_heritability, fraction_causal_genes, expression_mediated_causal_effects_output)
-
+expression_mediated_causal_effects_output = simulated_trait_dir + simulation_name_string + '_expression_mediated_gene_' + gene_effect_version + '_causal_effect_sizes.txt'
+simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_summary_file, per_element_heritability, fraction_causal_genes, gene_effect_version, expression_mediated_causal_effects_output)
 
 
 ####################################################
@@ -473,9 +483,9 @@ simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_summa
 # And then simulate trait values
 ####################################################
 simulated_expression_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'  # This file contains a line for each gene, and also contains causal eqtl effect variant-to-gene effect sizes
-expression_mediated_causal_effects_file = simulated_trait_dir + simulation_name_string + '_expression_mediated_gene_causal_effect_sizes.txt'  # File containing gene-to-trait effect sizes
+expression_mediated_causal_effects_file = simulated_trait_dir + simulation_name_string + '_expression_mediated_gene_' + gene_effect_version + '_causal_effect_sizes.txt'  # File containing gene-to-trait effect sizes
 gwas_plink_stem = processed_genotype_data_dir + 'simulated_gwas_data_' + str(chrom_num)  # Genotype directory
-expression_mediated_trait_values_output_stem = simulated_trait_dir + simulation_name_string + '_expression_mediated_trait_values'  # Output file stem
+expression_mediated_trait_values_output_stem = simulated_trait_dir + simulation_name_string + '_expression_mediated_' + gene_effect_version + '_trait_values'  # Output file stem
 compute_expression_mediated_trait_values(simulated_expression_summary_file, expression_mediated_causal_effects_file, gwas_plink_stem, expression_mediated_trait_values_output_stem, n_gwas_individuals)
 
 

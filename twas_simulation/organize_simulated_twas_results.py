@@ -6,7 +6,7 @@ import pdb
 def extract_valid_simulation_numbers(simulated_twas_dir, simulation_name_string):
 	valid_sims = []
 	for sim_iter in range(200):
-		sim_file = simulated_twas_dir + 'simulation_' + str(sim_iter) + '_' + simulation_name_string + '_simualated_twas_results.txt'
+		sim_file = simulated_twas_dir + 'simulation_' + str(sim_iter) + '_' + simulation_name_string + '_random_simualated_twas_results.txt'
 		if os.path.isfile(sim_file):
 			valid_sims.append(sim_iter)
 
@@ -20,7 +20,7 @@ def create_file_summarizing_effect_of_modeling_gene_distribution(eqtl_sample_siz
 	ratio_dicti = {}
 	used = []
 	for sim_number in sim_numbers:
-		sim_file = simulated_twas_dir + 'simulation_' + str(sim_number) + '_' + simulation_name_string + '_simualated_twas_results.txt'
+		sim_file = simulated_twas_dir + 'simulation_' + str(sim_number) + '_' + simulation_name_string + '_random_simualated_twas_results.txt'
 		f = open(sim_file)
 		head_count = 0
 		for line in f:
@@ -70,7 +70,7 @@ def run_fdr_analysis(p_value_threshold, parameters, sim_numbers, simulated_twas_
 		fdr_numerator = 0.0
 		fdr_denominator = 0.0
 		for sim_number in sim_numbers:
-			sim_file = simulated_twas_dir + 'simulation_' + str(sim_number) + '_' + simulation_name_string + '_simualated_twas_results.txt'
+			sim_file = simulated_twas_dir + 'simulation_' + str(sim_number) + '_' + simulation_name_string + '_random_simualated_twas_results.txt'
 			f = open(sim_file)
 			head_count = 0
 			for line in f:
@@ -110,7 +110,7 @@ def run_power_analysis(p_value_threshold, parameters, sim_numbers, simulated_twa
 		power_numerator = 0.0
 		power_denominator = 0.0
 		for sim_number in sim_numbers:
-			sim_file = simulated_twas_dir + 'simulation_' + str(sim_number) + '_' + simulation_name_string + '_simualated_twas_results.txt'
+			sim_file = simulated_twas_dir + 'simulation_' + str(sim_number) + '_' + simulation_name_string + '_random_simualated_twas_results.txt'
 			f = open(sim_file)
 			head_count = 0
 			for line in f:
@@ -136,6 +136,41 @@ def run_power_analysis(p_value_threshold, parameters, sim_numbers, simulated_twa
 	t.close()
 	return
 
+def extract_average_absolute_difference_between_simulated_and_estimated_gene_snp_correlations(parameters, sim_numbers, simulated_expr_snp_corr_dir, simulation_name_string, output_file):
+	t = open(output_file,'w')
+	t.write('twas_model\teqtl_sample_size\tbias\tbias_lb\tbias_ub\n')
+	for parameter_tuple in parameters:
+		twas_model = parameter_tuple[0]
+		eqtl_ss = parameter_tuple[1]
+		bias_arr = []
+		for sim_number in sim_numbers:
+			print(sim_number)
+			sim_file = simulated_expr_snp_corr_dir + 'simulation_' + str(sim_number) + '_' + simulation_name_string + '_simualated_expr_snp_corr_results.txt'
+			f = open(sim_file)
+			head_count = 0
+			for line in f:
+				line = line.rstrip()
+				data = line.split('\t')
+				if head_count == 0:
+					head_count = head_count + 1
+					continue
+				if data[2] != eqtl_ss:
+					continue
+				if data[3] != twas_model:
+					continue
+				sim_corr = float(data[4])
+				pred_corr = float(data[5])
+				if sim_corr < 0.0:
+					sim_corr = sim_corr*-1.0
+					pred_corr = pred_corr*-1.0
+				bias = np.square(sim_corr) - np.square(pred_corr)
+				bias_arr.append(bias)
+			f.close()
+		bias_arr = np.asarray(bias_arr)
+		pdb.set_trace()
+
+
+
 def make_power_false_discovery_curve_input_data(parameters, sim_numbers, simulated_twas_dir, simulation_name_string, output_file):
 	t = open(output_file,'w')
 	t.write('twas_model\teqtl_sample_size\tp_value_thresh\tpower\tfdr\n')
@@ -146,7 +181,7 @@ def make_power_false_discovery_curve_input_data(parameters, sim_numbers, simulat
 		pvalues = []
 		labels = []
 		for sim_number in sim_numbers:
-			sim_file = simulated_twas_dir + 'simulation_' + str(sim_number) + '_' + simulation_name_string + '_simualated_twas_results.txt'
+			sim_file = simulated_twas_dir + 'simulation_' + str(sim_number) + '_' + simulation_name_string + '_random_simualated_twas_results.txt'
 			f = open(sim_file)
 			head_count = 0
 			for line in f:
@@ -189,11 +224,13 @@ def make_power_false_discovery_curve_input_data(parameters, sim_numbers, simulat
 simulated_twas_dir = sys.argv[1]
 simulated_organized_results_dir = sys.argv[2]
 simulation_name_string = sys.argv[3]
+simulated_expr_snp_corr_dir = sys.argv[4]
 
-
-
+# Extract valid simulations
 sim_numbers = extract_valid_simulation_numbers(simulated_twas_dir, simulation_name_string)
 
+'''
+# Get names of model parameters to investigate
 eqtl_sample_sizes = ['100', '200', '300', '500', '1000']
 model_types = ['susie_pmces', 'susie_distr', 'marginal_pmces', 'marginal_distr', 'fusion_lasso_pmces']
 parameters = []
@@ -210,17 +247,18 @@ for eqtl_sample_size in eqtl_sample_sizes:
 	for model_type in model_types:
 		output_file = simulated_organized_results_dir + simulation_name_string + '_organized_bf_comparison_' + model_type + '_' + eqtl_sample_size + '.txt'
 		create_file_summarizing_effect_of_modeling_gene_distribution(eqtl_sample_size, model_type, sim_numbers, simulated_twas_dir, output_file)
+
 #############################################
 # Power analysis
 #############################################
-p_value_thresholds = [.05, .01]
+p_value_thresholds = [.05, .01, .001, 1e-5]
 for p_value_threshold in p_value_thresholds:
 	output_file = simulated_organized_results_dir + simulation_name_string + '_statistical_power_p_' + str(p_value_threshold) + '.txt'
 	run_power_analysis(p_value_threshold, parameters, sim_numbers, simulated_twas_dir, simulation_name_string, output_file)
 #############################################
 # FDR analysis
 #############################################
-p_value_thresholds = [.05, .01]
+p_value_thresholds = [.05, .01, .001, 1e-5]
 for p_value_threshold in p_value_thresholds:
 	output_file = simulated_organized_results_dir + simulation_name_string + '_statistical_fdr_p_' + str(p_value_threshold) + '.txt'
 	run_fdr_analysis(p_value_threshold, parameters, sim_numbers, simulated_twas_dir, simulation_name_string, output_file)
@@ -230,5 +268,28 @@ for p_value_threshold in p_value_thresholds:
 #############################################
 output_file = simulated_organized_results_dir + simulation_name_string + '_power_false_discovery_curve_input.txt'
 make_power_false_discovery_curve_input_data(parameters, sim_numbers, simulated_twas_dir, simulation_name_string, output_file)
+'''
+
+
+
+
+
+
+
+# Get names of model parameters to investigate
+eqtl_sample_sizes = ['100', '200', '300', '500', '1000']
+model_types = ['susie_pmces', 'susie_distr', 'marginal_pmces', 'marginal_distr', 'fusion_lasso_pmces']
+parameters = []
+for eqtl_sample_size in eqtl_sample_sizes:
+	for model_type in model_types:
+		parameters.append((model_type, eqtl_sample_size))
+
+
+
+
+sim_numbers = np.arange(1,5)
+# Compute average difference from absolute correlation
+output_file = simulated_organized_results_dir + simulation_name_string + '_gene_snp_correlation_abs_bias.txt'
+extract_average_absolute_difference_between_simulated_and_estimated_gene_snp_correlations(parameters, sim_numbers, simulated_expr_snp_corr_dir, simulation_name_string, output_file)
 
 

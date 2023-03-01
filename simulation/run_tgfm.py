@@ -172,6 +172,9 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 	variant_z = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
 	new_gene_z = np.dot(tgfm_data['gene_eqtl_pmces'], variant_z)
 
+	#tgfm_obj_temp = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=10)
+	#tgfm_obj_temp.fit(twas_data_obj=tgfm_data)
+
 	tgfm_obj.nominal_twas_z = new_gene_z
 
 	# Create vector of concatenated z-scores
@@ -279,6 +282,9 @@ for line in f:
 	# Extract relevent fields
 	###############################
 	window_name = data[0]
+
+	if window_name != 'chr1_226734349_229734349':
+		continue
 
 	ld_file = data[1]
 	tgfm_input_pkl = data[2]

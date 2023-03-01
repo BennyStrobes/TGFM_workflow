@@ -50,7 +50,6 @@ plink --bfile ${processed_genotype_data_dir}"ukb_imp_chr_"${chrom_num} --keep ${
 eqtl_sample_size="100"
 plink --bfile ${processed_genotype_data_dir}"ukb_imp_chr_"${chrom_num} --keep ${eqtl_individual_stem}${eqtl_sample_size}".txt" --make-bed --fill-missing-a2 --threads 1 --keep-allele-order --out ${processed_genotype_data_dir}"simulated_eqtl_"${eqtl_sample_size}"_data_"${chrom_num}
 
-
 eqtl_sample_size="200"
 plink --bfile ${processed_genotype_data_dir}"ukb_imp_chr_"${chrom_num} --keep ${eqtl_individual_stem}${eqtl_sample_size}".txt" --make-bed --fill-missing-a2 --threads 1 --keep-allele-order --out ${processed_genotype_data_dir}"simulated_eqtl_"${eqtl_sample_size}"_data_"${chrom_num}
 

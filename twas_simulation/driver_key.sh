@@ -53,6 +53,9 @@ simulated_gwas_dir=$temp_output_root"simulated_gwas/"
 # Directory contaiing simulated twas results
 simulated_twas_dir=$temp_output_root"simulated_twas/"
 
+# Directory contaiing simulated predicted-expression snp correlation results
+simulated_expr_snp_corr_dir=$temp_output_root"simulated_expr_snp_corr/"
+
 # Directory contaiing simulated twas results
 simulated_organized_results_dir=$temp_output_root"simulated_organized_results/"
 
@@ -112,16 +115,16 @@ fi
 simulation_number="1"
 simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
 if false; then
-sh run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $per_element_heritability $n_non_mediated_variants_per_gene $fraction_causal_genes $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_twas_dir
+sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $per_element_heritability $n_non_mediated_variants_per_gene $fraction_causal_genes $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_twas_dir $simulated_expr_snp_corr_dir
 fi
-
 
 if false; then
-for simulation_number in $(seq 2 100); do 
+for simulation_number in $(seq 2 50); do 
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
-	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $per_element_heritability $n_non_mediated_variants_per_gene $fraction_causal_genes $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_twas_dir
+	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $per_element_heritability $n_non_mediated_variants_per_gene $fraction_causal_genes $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_twas_dir $simulated_expr_snp_corr_dir
 done
 fi
+
 
 
 ############################
@@ -129,7 +132,7 @@ fi
 ###########################
 simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
 if false; then
-sh organize_simulated_twas_results.sh $simulated_twas_dir $simulated_organized_results_dir $simulation_name_string
+sh organize_simulated_twas_results.sh $simulated_twas_dir $simulated_organized_results_dir $simulation_name_string $simulated_expr_snp_corr_dir
 fi
 
 

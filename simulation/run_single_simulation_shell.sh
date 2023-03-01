@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-29:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-20:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=18GB                         # Memory total in MiB (for all cores)
 
@@ -18,7 +18,7 @@ per_element_heritability="$9"
 total_heritability="${10}"
 fraction_expression_mediated_heritability="${11}"
 simulated_gene_expression_dir="${12}"
-simulated_learned_gene_models_dir="${13}"
+simulated_learned_gene_models_base_dir="${13}"
 simulated_trait_dir="${14}"
 simulated_gwas_dir="${15}"
 ldsc_weights_dir="${16}"
@@ -33,11 +33,18 @@ module load R/4.0.1
 echo "Simulation"$simulation_number
 date
 
+
+
+mkdir ${simulated_learned_gene_models_base_dir}"simulation_"${simulation_number}
+simulated_learned_gene_models_dir=${simulated_learned_gene_models_base_dir}"simulation_"${simulation_number}"/"
+
 #######################################################
 # Step 1: Simulate gene expression and fit gene models
 #######################################################
 echo "Simulation Step 1"
 python3 simulate_gene_expression_and_fit_gene_model.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir
+
+if false; then
 
 #######################################################
 # Step 2: Simulate trait values
@@ -228,8 +235,7 @@ do
 done
 
 
-
-
+fi
 
 
 

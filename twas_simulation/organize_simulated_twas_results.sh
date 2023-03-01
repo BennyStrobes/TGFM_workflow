@@ -9,9 +9,9 @@
 simulated_twas_dir="$1"
 simulated_organized_results_dir="$2"
 simulation_name_string="$3"
+simulated_expr_snp_corr_dir="$4"
 
 
 
 
-
-python3 organize_simulated_twas_results.py $simulated_twas_dir $simulated_organized_results_dir $simulation_name_string
+python3 organize_simulated_twas_results.py $simulated_twas_dir $simulated_organized_results_dir $simulation_name_string $simulated_expr_snp_corr_dir

@@ -294,6 +294,7 @@ processed_genotype_data_dir = sys.argv[4]
 simulated_trait_dir = sys.argv[5]
 simulated_gwas_dir = sys.argv[6]
 simulated_gene_expression_dir = sys.argv[7]
+gene_effect_version = sys.argv[8]
 
 
 ####################################################
@@ -338,11 +339,11 @@ for line in f:
 	eqtl_snp_indices = np.load(eqtl_snp_indices_file)
 
 	# Extract trait file for this gene
-	gene_trait_value_file = simulated_trait_dir + simulation_name_string + '_expression_mediated_trait_values_' + gene_name + '.txt'  # Trait vector
+	gene_trait_value_file = simulated_trait_dir + simulation_name_string + '_expression_mediated_' + gene_effect_version + '_trait_values_' + gene_name + '.txt'  # Trait vector
 	gwas_trait_vector = extract_gwas_trait_vector(gene_trait_value_file)
 
 	# Run gwas for all rsids in this gene
-	gene_gwas_output_file = simulated_gwas_dir + simulation_name_string + '_simualated_gwas_results_' + gene_name +'.txt'
+	gene_gwas_output_file = simulated_gwas_dir + simulation_name_string + '_' + gene_effect_version + '_simualated_gwas_results_' + gene_name +'.txt'
 	run_gwas_for_a_single_gene(genotype_obj, ordered_variant_names[eqtl_snp_indices], ordered_rsids[eqtl_snp_indices], gwas_trait_vector, gene_gwas_output_file)
 	gene_counter = gene_counter + 1
 

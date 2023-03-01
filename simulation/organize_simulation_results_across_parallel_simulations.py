@@ -749,6 +749,11 @@ def create_file_containing_tgfm_cs_calibration_given_best_tagged_genetic_element
 					# Check if cs contains at least one causal genetic element
 					causal_genetic_element_in_cs_boolean = check_if_at_least_one_causal_genetic_element_is_in_cs(cs_genetic_elements, causal_genetic_elements)
 					t.write(str(eqtl_sample_size) + '\t' + ln_pi_method + '\t' + str(simulation_number) + '\t' + component_window_name + '\t' + component_num + '\t' + genetic_element_name + '\t' + class_name  + '\t' + str(int(causal_genetic_element_in_cs_boolean)) + '\n')
+				
+					# DEBUGGING 
+					if class_name == 'gene' and causal_genetic_element_in_cs_boolean == 0.0:
+						pdb.set_trace()
+
 				f.close()
 		t.flush()
 	t.close()
@@ -833,6 +838,8 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp_where_causal_gen
 								continue
 							# Extract relevent fields
 							component_window_name = data[0]
+
+
 							component_num = data[1]
 							all_cs_genetic_elements = data[3].split(';')
 							cs_probs = np.asarray(data[4].split(';')).astype(float)
@@ -859,7 +866,7 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp_where_causal_gen
 
 							# Get causal genes in this window
 							window_causal_genes = extract_causal_genes_in_window(simulated_gene_position_file, component_window_name, causal_genes)
-
+							pdb.set_trace()
 							# Get detected genes in this window
 							pkl_results_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size)+ '_susie_distr' + '_ln_pi_' + ln_pi_method + '_init_' + initialization_version + '_' + component_window_name + '_results.pkl'
 							window_detected_genes = get_detected_genes_in_window_from_pkl_file(pkl_results_file)
@@ -875,6 +882,7 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp_where_causal_gen
 							# Check if cs contains at least one causal genetic element
 							causal_genetic_element_in_cs_boolean = check_if_at_least_one_causal_genetic_element_is_in_cs(cs_genetic_elements, causal_genetic_elements)
 							t.write(str(eqtl_sample_size) + '\t' + ln_pi_method + '\t' + initialization_version + '\t' + twas_method + '\t' + str(simulation_number) + '\t' + component_window_name + '\t' + component_num + '\t' + genetic_element_name + '\t' + class_name  + '\t' + str(int(causal_genetic_element_in_cs_boolean)) + '\n')
+
 						f.close()
 	t.close()
 	return
@@ -1292,7 +1300,7 @@ for pip_threshold in pip_thresholds:
 
 	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_calibration.txt'
 	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ln_pi_methods, initialization_versions, twas_methods)
-'''
+
 ##################################
 # Power to detect snps with PIP > threshold
 ##################################
@@ -1305,11 +1313,13 @@ for pip_threshold in pip_thresholds:
 
 	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_power.txt'
 	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods, initialization_versions,twas_methods)
-
+'''
 ##################################
 # Coverage/Calibration to detect snps with PIP > threshold in windows where causal genes are detected
 ##################################
 pip_thresholds = [.1, .3, .5, .9, .95, .99]
+pip_thresholds = [.9]
+
 # Vary ln_pi_method
 for pip_threshold in pip_thresholds:
 	# Create file with one line per cs (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, component_num, boolean_causal_variant_in_cs)
