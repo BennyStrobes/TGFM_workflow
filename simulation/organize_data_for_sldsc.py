@@ -173,7 +173,7 @@ reformat_gwas_summary_statistics_for_sldsc(genotype_bim_file, standard_gwas_resu
 ############################
 variant_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.ldscore.gz'  # Variant level ld-score (doesn't change as we vary expression data)
 # Loop through eqtl sample sizes
-eqtl_sample_sizes = np.asarray([100,200,300,500,1000, 'inf'])  # Various eqtl data sets
+eqtl_sample_sizes = np.asarray([100,300,500,1000, 'inf'])  # Various eqtl data sets
 
 for eqtl_sample_size in eqtl_sample_sizes:
 	# File containing gene ld scores for this data set
@@ -189,7 +189,7 @@ for eqtl_sample_size in eqtl_sample_sizes:
 ############################
 variant_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.ldscore.gz'  # Variant level ld-score (doesn't change as we vary expression data)
 # Loop through eqtl sample sizes
-eqtl_sample_sizes = np.asarray([100,200,300,500,1000])  # Various eqtl data sets
+eqtl_sample_sizes = np.asarray([100,300,500,1000])  # Various eqtl data sets
 
 for eqtl_sample_size in eqtl_sample_sizes:
 	# File containing gene ld scores for this data set
@@ -197,6 +197,23 @@ for eqtl_sample_size in eqtl_sample_sizes:
 	# Output file
 	joint_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_susie_distr_gene_ld_scores.l2.ldscore'
 	create_joint_ld_score_file(variant_ld_score_file, gene_ld_score_file, joint_ld_score_file)
+
+############################
+#  Generate Joint-variant-gene LD-score files for each of the eqtl sample sizes
+# Using unbiased marginal
+############################
+variant_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.ldscore.gz'  # Variant level ld-score (doesn't change as we vary expression data)
+# Loop through eqtl sample sizes
+eqtl_sample_sizes = np.asarray([100,300,500, 1000])  # Various eqtl data sets
+
+for eqtl_sample_size in eqtl_sample_sizes:
+	# File containing gene ld scores for this data set
+	gene_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_unbiased_marginal_gene_weighted_ld_scores_eqtlss_' + str(eqtl_sample_size) + '_ld_scores.txt'
+	# Output file
+	joint_ld_score_file = simulated_ld_scores_dir + simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_unbiased_marginal_gene_ld_scores.l2.ldscore'
+	create_joint_ld_score_file(variant_ld_score_file, gene_ld_score_file, joint_ld_score_file)
+
+
 
 
 ############################
@@ -207,7 +224,7 @@ variant_m_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.'
 variant_m_5_50_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.M_5_50'  # Variant level m file (doesn't change as we vary expression data)
 
 # Loop through eqtl sample sizes
-eqtl_sample_sizes = np.asarray([100,200,300,500,1000, 'inf'])  # Various eqtl data sets
+eqtl_sample_sizes = np.asarray([100,300,500,1000, 'inf'])  # Various eqtl data sets
 for eqtl_sample_size in eqtl_sample_sizes:
 	# File containing gene ld scores for this data set
 	gene_m_file = simulated_ld_scores_dir + simulation_name_string + '_gene_weighted_ld_scores_eqtlss_' + str(eqtl_sample_size) + '_M.txt'
@@ -227,7 +244,7 @@ variant_m_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.'
 variant_m_5_50_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.M_5_50'  # Variant level m file (doesn't change as we vary expression data)
 
 # Loop through eqtl sample sizes
-eqtl_sample_sizes = np.asarray([100,200,300,500,1000])  # Various eqtl data sets
+eqtl_sample_sizes = np.asarray([100,300,500,1000])  # Various eqtl data sets
 for eqtl_sample_size in eqtl_sample_sizes:
 	# File containing gene ld scores for this data set
 	gene_m_file = simulated_ld_scores_dir + simulation_name_string + '_susie_distr_gene_weighted_ld_scores_eqtlss_' + str(eqtl_sample_size) + '_M.txt'
@@ -238,6 +255,25 @@ for eqtl_sample_size in eqtl_sample_sizes:
 	joint_m_file = simulated_ld_scores_dir + simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_susie_distr_gene_ld_scores.l2.M'
 	create_joint_M_file(variant_m_file, gene_m_file, joint_m_file)
 
+
+############################
+#  Generate Joint-variant-gene M files for each of the eqtl sample sizes
+# Using unbiased marginal
+############################
+variant_m_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.M'  # Variant level m file (doesn't change as we vary expression data)
+variant_m_5_50_file = simulated_ld_scores_dir + simulation_name_string + '_baseline.' + chrom_num + '.l2.M_5_50'  # Variant level m file (doesn't change as we vary expression data)
+
+# Loop through eqtl sample sizes
+eqtl_sample_sizes = np.asarray([100,300,500, 1000])  # Various eqtl data sets
+for eqtl_sample_size in eqtl_sample_sizes:
+	# File containing gene ld scores for this data set
+	gene_m_file = simulated_ld_scores_dir + simulation_name_string + '_unbiased_marginal_gene_weighted_ld_scores_eqtlss_' + str(eqtl_sample_size) + '_M.txt'
+	# Output file
+	joint_m_5_50_file = simulated_ld_scores_dir + simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_unbiased_marginal_gene_ld_scores.l2.M_5_50'
+	create_joint_M_file(variant_m_5_50_file, gene_m_file, joint_m_5_50_file)
+	# Output file
+	joint_m_file = simulated_ld_scores_dir + simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_unbiased_marginal_gene_ld_scores.l2.M'
+	create_joint_M_file(variant_m_file, gene_m_file, joint_m_file)
 
 
 

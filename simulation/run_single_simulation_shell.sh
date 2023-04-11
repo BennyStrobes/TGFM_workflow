@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-20:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-44:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=18GB                         # Memory total in MiB (for all cores)
 
@@ -44,7 +44,6 @@ simulated_learned_gene_models_dir=${simulated_learned_gene_models_base_dir}"simu
 echo "Simulation Step 1"
 python3 simulate_gene_expression_and_fit_gene_model.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir
 
-if false; then
 
 #######################################################
 # Step 2: Simulate trait values
@@ -57,6 +56,7 @@ python3 simulate_trait_values.py $simulation_number $chrom_num $cis_window $simu
 #######################################################
 echo "Simulation Step 3"
 python3 run_gwas_on_simulated_trait_at_only_hapmap3_snps.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $ldsc_weights_dir $simulated_gwas_dir
+
 
 #######################################################
 # Step 4: Generate gene ld-scores
@@ -98,20 +98,21 @@ python ${ldsc_code_dir}ldsc.py\
 # Delete uncessary plink file
 rm ${simulated_ld_scores_dir}${simulation_name_string}"_100G_regression_snps_only."${chrom_num}*
 
- 
+
 #######################################################
 # Step 6: Organize data for tgfm-sldsc
 #######################################################
 echo "Simulation Step 6"
 source ~/.bash_profile
 python3 organize_data_for_sldsc.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $processed_genotype_data_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir 
+ 
 
 #######################################################
 # Step 7: Run TGFM-sldsc
 #######################################################
 echo "Simulation Step 7"
 # Use eQTL PMCES
-eqtl_sample_size_arr=( "100" "200" "300" "500" "1000" "inf")
+eqtl_sample_size_arr=( "100" "300" "500" "1000" "inf")
 
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
@@ -126,7 +127,7 @@ do
 done
 
 # Use susie distr eQTLS
-eqtl_sample_size_arr=( "100" "200" "300" "500" "1000")
+eqtl_sample_size_arr=( "100" "300" "500" "1000")
 
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
@@ -140,7 +141,26 @@ do
 	python3 organize_tgfm_sldsc_results.py ${simulated_sldsc_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_distr_sldsc_results" ${simulated_ld_scores_dir}${simulation_name_string}"_joint_baseline_variant_"${eqtl_sample_size}"_susie_distr_gene_ld_scores" $n_gwas_individuals
 done
 
+# Use susie distr eQTLS
+eqtl_sample_size_arr=( "100" "300" "500" "1000")
 
+for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
+do
+	source /n/groups/price/ben/environments/sldsc/bin/activate
+	module load python/2.7.12
+	trait_file=${simulated_ld_scores_dir}${simulation_name_string}"_ldsc_ready_summary_statistics.txt"
+	python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --n-blocks 200 --chisq-max 1000 --ref-ld ${simulated_ld_scores_dir}${simulation_name_string}"_joint_baseline_variant_"${eqtl_sample_size}"_unbiased_marginal_gene_ld_scores" --w-ld ${simulated_ld_scores_dir}${simulation_name_string}"_regression_weights."${chrom_num} --print-delete-vals --print-coefficients --out ${simulated_sldsc_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_unbiased_marginal_sldsc_results"
+
+	# Organize sldsc results
+	source ~/.bash_profile
+	python3 organize_tgfm_sldsc_results.py ${simulated_sldsc_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_unbiased_marginal_sldsc_results" ${simulated_ld_scores_dir}${simulation_name_string}"_joint_baseline_variant_"${eqtl_sample_size}"_unbiased_marginal_gene_ld_scores" $n_gwas_individuals
+done
+
+
+
+
+
+if false; then
 #######################################################
 # Step 8: Randomly select chromosome windows to run tgfm on
 #######################################################

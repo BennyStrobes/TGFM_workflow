@@ -409,6 +409,84 @@ def generate_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sa
 
 	return
 
+def generate_unbiased_marginal_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, simulated_gene_expression_dir, gene_weighted_ld_score_output_root):
+	# Create dictionary of regression_snp_names
+	regression_snp_names_set = create_regression_snp_names_dictionary(regression_snp_names)
+
+	# Extract boolean vector of regression snps
+	regression_snp_indices = extract_regression_snp_indices(genotype_obj['rsid'], regression_snp_names_set)
+
+	# Initialize gene_weighted_ld_scores matrix and num_genes_counters for various eqtl data sets
+	n_regression_snps = len(regression_snp_names)
+	gene_weighted_ld_scores_across_eqtl_data_sets = []
+	num_genes_across_eqtl_data_sets = []
+	# Loop through eqtl data sets to initialize matrix for each data set
+	for eqtl_sample_size in eqtl_sample_sizes:
+		gene_weighted_ld_scores_across_eqtl_data_sets.append(np.zeros((n_regression_snps, 10)))
+		num_genes_across_eqtl_data_sets.append(np.zeros(10))
+
+	# Get ordered list of gene names and gene-index files
+	gene_names,gene_tss_positions,gene_indices_files = get_ordered_list_of_gene_names_and_gene_indices_files_from_gene_summary_file(gene_summary_file)
+
+	# Number of reference panel samples
+	n_ref_panel_samples = genotype_obj['G'].shape[0]
+
+	# Loop through genes
+	for gene_iter, gene_name in enumerate(gene_names):
+		# Extract other relevent information for this gene
+		gene_tss = gene_tss_positions[gene_iter]
+		gene_snp_index_file = gene_indices_files[gene_iter]
+
+		# Extract indices of snps nearby gene used for eQTL calling
+		eqtl_snp_indices = np.load(gene_snp_index_file)
+
+		# Extract indices of snps within 1CM of gene start and end
+		gene_window_snp_indices = extract_gene_window_snp_indices(genotype_obj['position'], genotype_obj['cm'], eqtl_snp_indices)
+		n_gene_window_snps = np.sum(gene_window_snp_indices)
+
+		# Extract gene window LD
+		#gene_window_ld = extract_gene_window_ld(genotype_obj['G'], gene_window_snp_indices)
+
+		# Get regression snp indices corresponding to this gene window
+		gene_window_regression_snp_indices = regression_snp_indices[gene_window_snp_indices]
+		# Skip windows with no regression snps 
+		if np.sum(gene_window_regression_snp_indices) == 0:
+			continue
+
+		# Subloop through eqtl sample sizes
+		for eqtl_sample_size_iter, eqtl_sample_size in enumerate(eqtl_sample_sizes):
+			# Extract unbiased r-squared
+			gene_eqtl_unbiased_r_squared_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + gene_name + '_eqtlss_' + str(eqtl_sample_size) + '_unbiased_r_squared.npy'
+			gene_eqtl_unbiased_r_squared = np.load(gene_eqtl_unbiased_r_squared_file)
+
+			# Extract boolean whether gene model exists for each tissue
+			#gene_model_boolean_cross_tissues = extract_boolean_on_whether_gene_model_exists(gene_eqtl_pmces)
+			num_genes_across_eqtl_data_sets[eqtl_sample_size_iter] = num_genes_across_eqtl_data_sets[eqtl_sample_size_iter] + 1.0
+
+
+			gene_window_adj_ld = np.zeros((n_gene_window_snps, 10))
+			gene_window_adj_ld[eqtl_snp_indices[gene_window_snp_indices], :] = np.transpose(gene_eqtl_unbiased_r_squared)
+
+			# Update global ld scores
+			gene_weighted_ld_scores_across_eqtl_data_sets[eqtl_sample_size_iter][gene_window_snp_indices[regression_snp_indices], :] = gene_weighted_ld_scores_across_eqtl_data_sets[eqtl_sample_size_iter][gene_window_snp_indices[regression_snp_indices], :] + gene_window_adj_ld[gene_window_regression_snp_indices,:]
+
+
+
+	# Save everything to output
+	for eqtl_sample_size_iter, eqtl_sample_size in enumerate(eqtl_sample_sizes):
+		# Extract relevent info for this data set
+		gene_weighted_ld_scores = gene_weighted_ld_scores_across_eqtl_data_sets[eqtl_sample_size_iter]
+		num_genes = num_genes_across_eqtl_data_sets[eqtl_sample_size_iter]
+
+		# Print
+		gene_weighted_ld_score_output_file = gene_weighted_ld_score_output_root + '_eqtlss_' + str(eqtl_sample_size) + '_ld_scores.txt'
+		print_gene_weighted_ld_scores_to_output(gene_weighted_ld_scores, regression_snp_names, gene_weighted_ld_score_output_file)
+		num_genes_output_file = gene_weighted_ld_score_output_root + '_eqtlss_' + str(eqtl_sample_size) + '_M.txt'
+		np.savetxt(num_genes_output_file, num_genes, fmt="%s", delimiter='\t')
+
+	return
+
+
 
 ##############################
 # Command line argumemnts
@@ -446,14 +524,20 @@ genotype_obj = load_in_genotype_data(genotype_stem)
 # Generate gene-weighted ld scores
 ####################################################
 gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'  # names of genes
-eqtl_sample_sizes = np.asarray([100,200,300,500,1000,'inf'])  # Various eqtl data sets
+eqtl_sample_sizes = np.asarray([100,300,500,1000,'inf'])  # Various eqtl data sets
 
 gene_weighted_ld_score_output_root = simulated_ld_scores_dir + simulation_name_string + '_gene_weighted_ld_scores'  # output root
 generate_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,simulated_gene_expression_dir, gene_weighted_ld_score_output_root)
 
 
-eqtl_sample_sizes = np.asarray([100, 200, 300, 500, 1000])  # Various eqtl data sets
+eqtl_sample_sizes = np.asarray([100, 300, 500, 1000])  # Various eqtl data sets
 susie_distr_gene_weighted_ld_score_output_root = simulated_ld_scores_dir + simulation_name_string + '_susie_distr_gene_weighted_ld_scores'  # output root
 generate_susie_distr_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,simulated_gene_expression_dir, susie_distr_gene_weighted_ld_score_output_root)
+
+
+eqtl_sample_sizes = np.asarray([100, 300, 500, 1000])  # Various eqtl data sets
+unbiased_marginal_gene_weighted_ld_score_output_root = simulated_ld_scores_dir + simulation_name_string + '_unbiased_marginal_gene_weighted_ld_scores'  # output root
+generate_unbiased_marginal_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,simulated_gene_expression_dir, unbiased_marginal_gene_weighted_ld_score_output_root)
+
 
 

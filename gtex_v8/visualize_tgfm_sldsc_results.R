@@ -552,7 +552,40 @@ for (trait_iter in 1:length(trait_names)) {
 
 }
 
+# Extract trait names
+trait_df <- read.table(independent_trait_names_file, header=TRUE, sep="\t")
+trait_names <- as.character(trait_df$study_name)
 
+tissue_versions <- c("non_sex_tissues")
+gene_versions <- c( "cis_heritable_gene")
+annotation_versions <- c( "baseline_no_qtl")
+gene_tau_df <- load_in_per_tissue_tau_df(trait_names, tissue_versions, gene_versions, annotation_versions, tgfm_sldsc_results_dir)
+
+
+
+tissue_version <- "non_sex_tissues"
+for (annotation_version_iter in 1:length(annotation_versions)) {
+	for (trait_iter in 1:length(trait_names)) {
+		annotation_version <- annotation_versions[annotation_version_iter]
+		subset_df <-gene_tau_df[as.character(gene_tau_df$annotation_model)==annotation_version,]
+
+		trait_name <- trait_names[trait_iter]
+		print(trait_name)
+		subset_df <- subset_df[as.character(subset_df$trait)==trait_name,]
+		subset_trait_df <- subset_df[as.character(subset_df$tissue_version)==tissue_version,]
+
+		plot_title=paste0(trait_name, " ", annotation_version)
+		p <- make_per_tissue_tau_barplot_stratefied_by_gene_models(subset_trait_df, plot_title)
+		output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_per_tissue_tau_gene_stratefied_barplot_", trait_name, "_", annotation_version,"_final.pdf")
+		ggsave(p, file=output_file, width=7.2, height=4.5, units="in")
+	}
+}
+
+
+
+
+
+if (FALSE) {
 ############################################
 # Per-tissue tau estimates for single model 
 
@@ -647,7 +680,7 @@ ggsave(z_score_heatmap, file=output_file, width=7.2, height=7.5, units="in")
 
 
 
-
+}
 
 
 

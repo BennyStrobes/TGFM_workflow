@@ -7,11 +7,8 @@
 
 #############################
 # Simulation of:
-####### 1. TGFM-SLDSC
-####### 2. TGFM fine-mapping
+####### 1. TGFM fine-mapping
 ##############################
-
-
 
 
 ############################
@@ -52,8 +49,7 @@ ldsc_summary_stats_dir="/n/groups/price/ldsc/sumstats_formatted_2021/"
 # Output directories
 ############################
 # Output roots (one temporary on scratch and one permanent)
-temp_output_root="/n/scratch3/users/b/bes710/causal_eqtl_gwas/simulation/"
-perm_output_root="/n/groups/price/ben/causal_eqtl_gwas/simulation/"
+temp_output_root="/n/scratch3/users/b/bes710/causal_eqtl_gwas/tgfm_inf_simulation/"
 
 # Directory containing processed genotype data
 ldsc_real_data_results_dir=$temp_output_root"ldsc_real_data_results/"
@@ -76,24 +72,17 @@ simulated_trait_dir=$temp_output_root"simulated_trait/"
 # Directory contaiing simulated gwas results
 simulated_gwas_dir=$temp_output_root"simulated_gwas/"
 
-# Directory containing simulated ld scores
-simulated_ld_scores_dir=$temp_output_root"simulated_ld_scores/"
-
-# Directory containing simulated sldsc results
-simulated_sldsc_results_dir=$temp_output_root"simulated_sldsc_results/"
-
-# Directory containing organized simulation results
-simulated_organized_results_dir=$temp_output_root"simulated_organized_results/"
-
 # Directory containing simulated tgfm input data
 simulated_tgfm_input_data_dir=$temp_output_root"simulated_tgfm_input/"
 
 # Directory containing simulated tgfm results
 simulated_tgfm_results_dir=$temp_output_root"simulated_tgfm_results/"
 
+# Directory containing organized simulation results
+simulated_organized_results_dir=$temp_output_root"simulated_organized_results/"
+
 # Directory containing visualizations of simulated results
 visualize_simulated_results_dir=$temp_output_root"visualize_simulated_results/"
-
 
 
 ############################
@@ -117,8 +106,8 @@ total_heritability="0.3"
 # Fraction of heritability mediated by gene expression
 fraction_expression_mediated_heritability="0.1"
 
-
-
+# Extract number of windows per simulations
+num_windows_per_sim="20"
 
 ############################
 # Run S-LDSC on real data.
@@ -140,6 +129,7 @@ if false; then
 sh prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir
 fi
 
+
 ############################
 # Prepare gene file for simulation:
 # Genes are defined by actual tss
@@ -152,33 +142,32 @@ sh prepare_simulated_gene_position_list.sh $chrom_num $gencode_gene_annotation_f
 fi
 
 
-
-
 ############################
 # Run single simulation
 ############################
-# cis window arround genes to define eQTLs
-cis_window="100000"
-# Iteration of simulation (also works as seed)
+simulation_number="25"
+simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
 if false; then
-for simulation_number in $(seq 1 50); do 
-	# Simulation string used for output file
+sh run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $num_windows_per_sim $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir
+fi
+
+if false; then
+for simulation_number in $(seq 1 100); do 
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
-	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir
+	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $num_windows_per_sim $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir
 done
 fi
 
-if false; then
-simulation_number="1"
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
-sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir
-fi
 
-if false; then
+
+
+
 # Organize simulation results across parallel simulations
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
-sh organize_simulation_results_across_parallel_simulations.sh $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_sldsc_results_dir $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $simulated_gene_position_file $processed_genotype_data_dir
+if false; then
+sh organize_simulation_results_across_parallel_simulations.sh $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $simulated_gene_position_file $processed_genotype_data_dir
 fi
+
 
 
 ############################
@@ -188,11 +177,9 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
-
-if false; then
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
 Rscript visualize_single_simulation.R $global_simulation_name_string $simulated_organized_results_dir $visualize_simulated_results_dir
-fi
+
 
 
 
