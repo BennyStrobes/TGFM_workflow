@@ -134,7 +134,7 @@ def run_susie_debug(tgfm_obj, gene_variant_full_ld,tgfm_data):
 	susie_alpha = susie_variant_obj_orig.rx2('alpha')
 	pdb.set_trace()
 
-def temp_elbo_calc(z_vec, LD, samp_size, alpha, mu, mu2, KL_terms):
+def elbo_calc(z_vec, LD, samp_size, alpha, mu, mu2, KL_terms):
 	bb = alpha*mu
 	b_bar = np.sum(bb,axis=0)
 	postb2 = alpha*mu2
@@ -174,16 +174,24 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 	variant_z = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
 	new_gene_z = np.dot(tgfm_data['gene_eqtl_pmces'], variant_z)
 
-	#tgfm_obj_temp = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=10)
+	#tgfm_obj_temp = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-8, max_iter=10)
 	#tgfm_obj_temp.fit(twas_data_obj=tgfm_data)
 
 	tgfm_obj.nominal_twas_z = new_gene_z
 
 	# Create vector of concatenated z-scores
 	z_vec = np.hstack((new_gene_z,variant_z))
+	#tgfm_obj_temp_elbo = elbo_calc(z_vec, gene_variant_full_ld, tgfm_data['gwas_sample_size'], np.hstack((tgfm_obj_temp.alpha_phi, tgfm_obj_temp.beta_phi)), np.hstack((tgfm_obj_temp.alpha_mu, tgfm_obj_temp.beta_mu)), np.square(np.hstack((tgfm_obj_temp.alpha_mu, tgfm_obj_temp.beta_mu))) + np.hstack((tgfm_obj_temp.alpha_var, tgfm_obj_temp.beta_var)), tgfm_obj_temp.KL_terms)
+
 
 	# Create concatenated vector of prior probs
 	prior_probs = np.hstack((np.exp(gene_log_prior), np.exp(var_log_prior)))
+
+
+
+	#susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
+
+	#elbo = temp_elbo_calc(z_vec, gene_variant_full_ld, tgfm_data['gwas_sample_size'], susie_null_init.rx2('alpha'), susie_null_init.rx2('mu'), susie_null_init.rx2('mu2'), susie_null_init.rx2('KL'))
 
 	if init_method == 'best':
 		rpy2.robjects.r['options'](warn=1)
@@ -193,16 +201,22 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 		p_var_only = p_var_only/np.sum(p_var_only)
 		susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=p_var_only.reshape((len(p_var_only),1)), estimate_residual_variance=est_resid_var_bool)
 	
+		#elbo = temp_elbo_calc(z_vec, LD, tgfm_data['gwas_sample_size'], susie_variant_only.rx2('alpha'), susie_variant_only.rx2('mu'), susie_variant_only.rx2('mu2'), susie_variant_only.rx2('KL'))
+
+
 		# Run susie with variant initialization
 		init_obj = {'alpha':susie_variant_only.rx2('alpha'), 'mu':susie_variant_only.rx2('mu'),'mu2':susie_variant_only.rx2('mu2')}
 		init_obj2 = ro.ListVector(init_obj)
 		init_obj2.rclass = rpy2.robjects.StrVector(("list", "susie"))
 		susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
+		#elbo1 = elbo_calc(z_vec, gene_variant_full_ld, tgfm_data['gwas_sample_size'], susie_variant_init.rx2('alpha'), susie_variant_init.rx2('mu'), susie_variant_init.rx2('mu2'), susie_variant_init.rx2('KL'))
+
 		#susie_variant_init2 = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool, refine=True)
 
 		# Run susie with null initialization
 		susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
 		#susie_null_init2 = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool, refine=True)
+		#elbo2 = elbo_calc(z_vec, gene_variant_full_ld, tgfm_data['gwas_sample_size'], susie_null_init.rx2('alpha'), susie_null_init.rx2('mu'), susie_null_init.rx2('mu2'), susie_null_init.rx2('KL'))
 
 		# Select model with largest elbo
 		susie_null_init_elbo = susie_null_init.rx2('elbo')[-1]

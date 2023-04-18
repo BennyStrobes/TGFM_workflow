@@ -39,6 +39,10 @@ def calculate_distance_between_two_vectors(vec1, vec2):
 	return dist
 
 
+def fill_in_causal_effect_size_matrix(null_mat, bs_eqtls_pmces_sparse):
+	null_mat[bs_eqtls_pmces_sparse[:,0].astype(int), bs_eqtls_pmces_sparse[:,1].astype(int)] = bs_eqtls_pmces_sparse[:,2]
+	return null_mat
+
 
 
 
@@ -55,7 +59,7 @@ class TGFM(object):
 		self.gene_init_log_pi = gene_init_log_pi
 		self.variant_init_log_pi = variant_init_log_pi
 		self.single_variance_component = single_variance_component
-	def fit(self, twas_data_obj):
+	def fit(self, twas_data_obj, phi_init=None, mu_init=None, mu_var_init=None):
 		""" Fit the model.
 			Args:
 			twas_data_obj
@@ -67,7 +71,7 @@ class TGFM(object):
 
 		#####################
 		# Initialize variables
-		self.initialize_variables(twas_data_obj)
+		self.initialize_variables(twas_data_obj, phi_init, mu_init, mu_var_init)
 
 		print('Initialization complete')
 		self.iter = 0
@@ -79,6 +83,13 @@ class TGFM(object):
 			self.residual_incl_alpha.append(twas_data_obj['gwas_beta'])
 		self.residual = np.asarray(self.residual)
 		self.residual_incl_alpha = np.asarray(self.residual_incl_alpha)
+
+		# Remove initialized non-mediated effects
+		# Currently not implemented to remove initialized mediated efffects (but will return an  errror if we try to)
+		for l_index in range(self.L - 1):
+			component_non_med_pred = self.beta_mus[l_index]*self.beta_phis[l_index]
+			self.residual = self.residual - np.dot(component_non_med_pred, self.srs_inv)
+			self.residual_incl_alpha = self.residual_incl_alpha - np.dot(component_non_med_pred, self.srs_inv)
 
 
 		# BEGIN CAVI
@@ -114,9 +125,11 @@ class TGFM(object):
 
 
 	def update_susie_effects(self, expected_log_pi, expected_log_variant_pi, alpha_component_variances, beta_component_variances):
+		# Initialize array to keep track of causal eqtl effect sizes across bootstraps
+		gene_eqtl_pmces = np.zeros((self.G, self.K))
 		# Loop through components
 		for l_index in range(self.L):
-			print(l_index)
+			#print(l_index)
 
 			if l_index == 0:
 				prev_l_index = self.L - 1
@@ -130,7 +143,10 @@ class TGFM(object):
 
 			for bs_iter in range(self.n_bs):
 				# Load in gene eQTL PMCES for this bootstrap
-				gene_eqtl_pmces = np.load(self.pmces_files[bs_iter])
+				gene_eqtl_pmces = gene_eqtl_pmces*0.0
+				bs_eqtls_pmces_sparse = np.load(self.pmces_files[bs_iter])
+				gene_eqtl_pmces = fill_in_causal_effect_size_matrix(gene_eqtl_pmces, bs_eqtls_pmces_sparse)
+				#gene_eqtl_pmces = np.load(self.pmces_files[bs_iter])
 
 				#################
 				# Alpha effects
@@ -162,17 +178,31 @@ class TGFM(object):
 
 				normalizing_term = scipy.special.logsumexp(np.hstack((un_normalized_lv_alpha_weights, un_normalized_lv_beta_weights)))
 
+
 				# Update agg_gene_trait pt 1
 				self.agg_gene_trait[bs_iter] = self.agg_gene_trait[bs_iter] - (self.alpha_mus[l_index][bs_iter,:]*self.alpha_phis[l_index][bs_iter,:])
 
 				# Save results to global model parameters
-				self.alpha_phis[l_index][bs_iter,:] = np.exp(un_normalized_lv_alpha_weights-normalizing_term)
+				mixture_alpha_phi = np.exp(un_normalized_lv_alpha_weights-normalizing_term)
+				self.alpha_phis[l_index][bs_iter,:] = mixture_alpha_phi
 				self.alpha_mus[l_index][bs_iter,:] = mixture_alpha_mu
 				self.alpha_vars[l_index][bs_iter,:] = mixture_alpha_var
 
-				self.beta_phis[l_index][bs_iter,:] = np.exp(un_normalized_lv_beta_weights-normalizing_term)
+				mixture_beta_phi = np.exp(un_normalized_lv_beta_weights-normalizing_term)
+				self.beta_phis[l_index][bs_iter,:] = mixture_beta_phi
 				self.beta_mus[l_index][bs_iter,:] = mixture_beta_mu
 				self.beta_vars[l_index][bs_iter,:] = mixture_beta_var
+
+
+				# Update KL Terms
+				lbf = np.hstack((un_normalized_lv_alpha_weights-expected_log_pi, un_normalized_lv_beta_weights-expected_log_variant_pi))
+				maxlbf = np.max(lbf)
+				ww = np.exp(lbf - maxlbf)
+				ww_weighted = ww*np.exp(np.hstack((expected_log_pi, expected_log_variant_pi)))
+				kl_term1 = -(np.log(np.sum(ww_weighted)) + maxlbf) # THIS TERM IS CORRECT
+				kl_term2 = np.sum((mixture_beta_mu*mixture_beta_phi)*variant_b_terms) + np.sum((mixture_alpha_mu*mixture_alpha_phi)*b_terms)
+				kl_term3 = -.5*(np.sum((self.NN - 1)*mixture_beta_phi*(np.square(mixture_beta_mu) + mixture_beta_var)) + np.sum((self.NN - 1)*mixture_alpha_phi*(np.square(mixture_alpha_mu) + mixture_alpha_var)))
+				self.KL_terms[l_index][bs_iter] = kl_term1 + kl_term2 + kl_term3
 
 				# Update agg_gene_trait pt 2
 				self.agg_gene_trait[bs_iter] = self.agg_gene_trait[bs_iter] + (self.alpha_mus[l_index][bs_iter,:]*self.alpha_phis[l_index][bs_iter,:])
@@ -229,13 +259,15 @@ class TGFM(object):
 			self.nominal_twas_rss_alpha_var[g_index] = alpha_var
 
 
-	def initialize_variables(self, twas_data_obj):
+	def initialize_variables(self, twas_data_obj, phi_init, mu_init, mu_var_init):
 		# Number of genes
 		self.G = len(twas_data_obj['genes'])
 		# Number of variants
 		self.K = len(twas_data_obj['variants'])
 		# Gene names
 		self.genes = twas_data_obj['genes']
+		# GWAS sample size
+		self.NN = twas_data_obj['gwas_sample_size']
 
 		if self.variant_init_log_pi is None:
 			gene_pi = np.ones(self.G)/(self.G + self.K)
@@ -249,6 +281,7 @@ class TGFM(object):
 
 
 		# Generate S matrix
+		self.gwas_variant_z = twas_data_obj['gwas_beta']/twas_data_obj['gwas_beta_se']
 		s_squared_vec = np.square(twas_data_obj['gwas_beta_se']) + (np.square(twas_data_obj['gwas_beta'])/twas_data_obj['gwas_sample_size'])
 		s_vec = np.sqrt(s_squared_vec)
 		S_mat = np.diag(s_vec)
@@ -275,9 +308,13 @@ class TGFM(object):
 
 		self.component_variances = []
 		self.agg_gene_trait = []
+		self.nominal_twas_z = []
 
+		bs_eqtls_pmces = np.zeros((self.G, self.K))
 		for bs_iter in range(self.n_bs):
-			bs_eqtls_pmces = np.load(twas_data_obj['bs_gene_eqtl_pmces_files'][bs_iter])
+			bs_eqtls_pmces = bs_eqtls_pmces*0.0
+			bs_eqtls_pmces_sparse = np.load(twas_data_obj['bs_gene_eqtl_pmces_files'][bs_iter])
+			bs_eqtls_pmces = fill_in_causal_effect_size_matrix(bs_eqtls_pmces, bs_eqtls_pmces_sparse)
 			bs_precomputed_gene_gene_terms = -np.dot(np.dot(bs_eqtls_pmces,D_mat), np.transpose(bs_eqtls_pmces))
 			bs_precomputed_a_terms = .5*np.diag(bs_precomputed_gene_gene_terms)
 			self.precomputed_a_terms.append(bs_precomputed_a_terms)
@@ -286,6 +323,20 @@ class TGFM(object):
 			self.component_variances.append(np.ones(self.L)*1e4)
 			self.agg_gene_trait.append(np.zeros(self.G))
 
+			# Compute nominal twas zs
+			'''
+			temp_arr = []
+			for gene_iter in range(self.G):
+				weights = bs_eqtls_pmces[gene_iter,:]
+				#twas_z = np.dot(weights, gwas_z)/np.sqrt(np.dot(np.dot(weights, twas_data_obj['reference_ld']), weights))
+				twas_z = np.dot(weights, gwas_z) # Don't need denominator because weights are already standardized
+				temp_arr.append(twas_z)
+			temp_arr = np.asarray(temp_arr)
+			'''
+			bs_nominal_twas_z = np.dot(bs_eqtls_pmces, self.gwas_variant_z)
+			self.nominal_twas_z.append(bs_nominal_twas_z)
+
+
 		self.alpha_mus = []
 		self.alpha_vars = []
 		self.alpha_phis = []
@@ -293,20 +344,48 @@ class TGFM(object):
 		self.beta_vars = []
 		self.beta_phis = []
 		self.gene_trait_pred = []
-		for l_iter in range(self.L):
-			# Initialize variational distributions defining alphas (the causal effect of genetically-predicted expression in each gene on the trait)
-			# Currently using null intitialization
-			self.alpha_mus.append(np.zeros((self.n_bs, self.G)))
-			self.alpha_vars.append(np.ones((self.n_bs, self.G)))
-			self.alpha_phis.append(np.ones((self.n_bs, self.G))/(self.G + self.K))
+		self.KL_terms = []
 
-			# Initialize variational distribution defining betas (the causal effect of pleiotropic genotype on the trait)
-			self.beta_mus.append(np.zeros((self.n_bs, self.K)))
-			self.beta_vars.append(np.ones((self.n_bs, self.K)))
-			self.beta_phis.append(np.ones((self.n_bs, self.K))/(self.G + self.K))
+		if phi_init is not None and mu_init is not None and mu_var_init is not None:
+			# Pre-specified initialization
+			print('pre-specified')
+			for l_iter in range(self.L):
+				# Initialize variational distributions defining alphas (the causal effect of genetically-predicted expression in each gene on the trait)
+				self.alpha_mus.append(np.repeat(np.reshape(mu_init[l_iter,:],(1, mu_init.shape[1])),self.n_bs,axis=0)[:,:self.G])
+				self.alpha_vars.append(np.repeat(np.reshape(mu_var_init[l_iter,:],(1, mu_var_init.shape[1])),self.n_bs,axis=0)[:,:self.G])
+				self.alpha_phis.append(np.repeat(np.reshape(phi_init[l_iter,:],(1, phi_init.shape[1])),self.n_bs,axis=0)[:,:self.G])
 
-			# Initialize quantity to keep track of predicted gene-trait effects
-			self.gene_trait_pred.append(np.zeros((self.n_bs, self.K)))
+				# Initialize variational distribution defining betas (the causal effect of pleiotropic genotype on the trait)
+				self.beta_mus.append(np.repeat(np.reshape(mu_init[l_iter,:],(1, mu_init.shape[1])),self.n_bs,axis=0)[:,self.G:])
+				self.beta_vars.append(np.repeat(np.reshape(mu_var_init[l_iter,:],(1, mu_var_init.shape[1])),self.n_bs,axis=0)[:,self.G:])
+				self.beta_phis.append(np.repeat(np.reshape(phi_init[l_iter,:],(1, phi_init.shape[1])),self.n_bs,axis=0)[:,self.G:])
+				
+				# Initialize quantity to keep track of predicted gene-trait effects
+				self.gene_trait_pred.append(np.zeros((self.n_bs, self.K)))
+				if np.sum(np.sum(np.repeat(np.reshape(mu_init[l_iter,:],(1, mu_init.shape[1])),self.n_bs,axis=0)[:,:self.G])) != 0.0:
+					print('assumption erroror: non-zedro initialized gene effect')
+					pdb.set_trace()
+
+				# Initialize KL terms
+				self.KL_terms.append(np.zeros(self.n_bs))
+		else:
+			for l_iter in range(self.L):
+				# Initialize variational distributions defining alphas (the causal effect of genetically-predicted expression in each gene on the trait)
+				# Currently using null intitialization
+				self.alpha_mus.append(np.zeros((self.n_bs, self.G)))
+				self.alpha_vars.append(np.ones((self.n_bs, self.G)))
+				self.alpha_phis.append(np.ones((self.n_bs, self.G))/(self.G + self.K))
+
+				# Initialize variational distribution defining betas (the causal effect of pleiotropic genotype on the trait)
+				self.beta_mus.append(np.zeros((self.n_bs, self.K)))
+				self.beta_vars.append(np.ones((self.n_bs, self.K)))
+				self.beta_phis.append(np.ones((self.n_bs, self.K))/(self.G + self.K))
+
+				# Initialize quantity to keep track of predicted gene-trait effects
+				self.gene_trait_pred.append(np.zeros((self.n_bs, self.K)))
+
+				# Initialize KL terms
+				self.KL_terms.append(np.zeros(self.n_bs))
 
 
 		self.pmces_files = twas_data_obj['bs_gene_eqtl_pmces_files']

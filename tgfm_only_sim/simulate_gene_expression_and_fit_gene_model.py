@@ -433,7 +433,6 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 			head_count = head_count + 1
 			continue
 		counter = counter + 1
-		print(counter)
 		# AT A SINGLE GENE
 		# Extract relevent information from the line
 		ensamble_id = data[0]
@@ -460,21 +459,21 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 		gene_geno = G_obj_geno_stand[:, cis_snp_indices]
 
 		# Reduce dimensionality of genotype data
-		pruned_svd_lambda, pruned_svd_Q = reduce_dimensionality_of_genotype_data_with_pca(gene_geno)
-		pruned_svd_ld_inv_mat = np.dot(np.dot(pruned_svd_Q, np.diag(1.0/pruned_svd_lambda)), np.transpose(pruned_svd_Q))
+		#pruned_svd_lambda, pruned_svd_Q = reduce_dimensionality_of_genotype_data_with_pca(gene_geno)
+		#pruned_svd_ld_inv_mat = np.dot(np.dot(pruned_svd_Q, np.diag(1.0/pruned_svd_lambda)), np.transpose(pruned_svd_Q))
 
 		# Now loop through tissues (run simulation and gene-modeling seperately in each tissue)
 		n_tiss = sim_causal_eqtl_effect_sizes.shape[1]
 		pmces_cross_tissues = []
-		marginal_effect_sizes_cross_tissues = []
-		marginal_effect_se_cross_tissues = []
-		fusion_pmces_cross_tissues = []
-		greml_h2_cross_tissues = []
-		greml_h2_se_cross_tissues = []
-		unbiased_r_squared_cross_tissues = []
-		print(np.sum(sim_causal_eqtl_effect_sizes,axis=0))
+		#marginal_effect_sizes_cross_tissues = []
+		#marginal_effect_se_cross_tissues = []
+		#fusion_pmces_cross_tissues = []
+		#greml_h2_cross_tissues = []
+		#greml_h2_se_cross_tissues = []
+		#unbiased_r_squared_cross_tissues = []
+		#print(np.sum(sim_causal_eqtl_effect_sizes,axis=0))
+
 		for tissue_iter in range(n_tiss):
-			tissue_iter = 1
 			# Simulate gene expression in this gene, tissue pair
 			sim_expr = simulate_gene_expression(gene_geno, sim_causal_eqtl_effect_sizes[:, tissue_iter])
 			# Standardize simulated gene expression
@@ -500,6 +499,7 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 				mu_var = susie_fitted.rx2('mu2') - np.square(susie_fitted.rx2('mu'))
 				mu_var_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu_var.npy'
 				np.save(mu_var_model_output_file, mu_var)
+			'''
 			# Run greml and FUSION
 			tmp_output_stem = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size)  + '_tmp_h2_'
 			try:
@@ -521,33 +521,33 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 
 			marginal_effects, marginal_effects_se = compute_marginal_regression_coefficients(sim_stand_expr, gene_geno)
 			boostrapped_marginal_effects = bootstrap_marginal_regression_coefficients(sim_stand_expr, gene_geno, n_bootstraps=1000)
-			marginal_bootstrapped_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_marginal_effects_bootstrapped.npy'
-			np.save(marginal_bootstrapped_output_file, boostrapped_marginal_effects)
+			'''
+
+			#marginal_bootstrapped_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_marginal_effects_bootstrapped.npy'
+			#np.save(marginal_bootstrapped_output_file, boostrapped_marginal_effects)
 
 			# Extract unbiased r_squared
-			unbiased_r_squared_res = unbiased_r_squared(marginal_effects, boostrapped_marginal_effects, pruned_svd_ld_inv_mat, pruned_svd_lambda, pruned_svd_Q, eqtl_sample_size)
-			unbiased_r_squared_cross_tissues.append(unbiased_r_squared_res)
+			#unbiased_r_squared_res = unbiased_r_squared(marginal_effects, boostrapped_marginal_effects, pruned_svd_ld_inv_mat, pruned_svd_lambda, pruned_svd_Q, eqtl_sample_size)
+			#unbiased_r_squared_cross_tissues.append(unbiased_r_squared_res)
 
-			marginal_effect_sizes_cross_tissues.append(marginal_effects)
-			marginal_effect_se_cross_tissues.append(marginal_effects_se)
+			#marginal_effect_sizes_cross_tissues.append(marginal_effects)
+			#marginal_effect_se_cross_tissues.append(marginal_effects_se)
 			pmces_cross_tissues.append(pmces)
 
 		# Convert pmces to numpy array
 		pmces_cross_tissues = np.asarray(pmces_cross_tissues)
-		marginal_effect_sizes_cross_tissues = np.asarray(marginal_effect_sizes_cross_tissues)
-		marginal_effect_se_cross_tissues = np.asarray(marginal_effect_se_cross_tissues)
-		unbiased_r_squared_cross_tissues = np.asarray(unbiased_r_squared_cross_tissues)
-		fusion_pmces_cross_tissues = np.asarray(fusion_pmces_cross_tissues)
-		greml_h2_cross_tissues = np.asarray(greml_h2_cross_tissues)
-		greml_h2_se_cross_tissues = np.asarray(greml_h2_se_cross_tissues)
-
-		pdb.set_trace()
-
+		#marginal_effect_sizes_cross_tissues = np.asarray(marginal_effect_sizes_cross_tissues)
+		#marginal_effect_se_cross_tissues = np.asarray(marginal_effect_se_cross_tissues)
+		#unbiased_r_squared_cross_tissues = np.asarray(unbiased_r_squared_cross_tissues)
+		#fusion_pmces_cross_tissues = np.asarray(fusion_pmces_cross_tissues)
+		#greml_h2_cross_tissues = np.asarray(greml_h2_cross_tissues)
+		#greml_h2_se_cross_tissues = np.asarray(greml_h2_se_cross_tissues)
 
 		# Save gene-model PMCES across tissues to output
 		gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
 		np.save(gene_model_output_file, pmces_cross_tissues)
 
+		'''
 		# Save gene-model marginal effects across tissues to output
 		gene_model_marg_effects_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_marginal_effects_gene_model.npy'
 		np.save(gene_model_marg_effects_output_file, marginal_effect_sizes_cross_tissues)
@@ -567,6 +567,7 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 		# Save greml estimates to output
 		greml_estimate_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_greml_estimates.npy'
 		np.save(greml_estimate_output_file, np.vstack((greml_h2_cross_tissues,greml_h2_se_cross_tissues)))
+		'''
 
 	f.close()
 	return
@@ -598,6 +599,7 @@ simulated_gene_expression_dir = sys.argv[6]
 simulated_learned_gene_models_dir = sys.argv[7]
 simulation_name_string = sys.argv[8]
 processed_genotype_data_dir = sys.argv[9]
+n_causal_genetic_elements = sys.argv[10]
 
 
 # Set seed
@@ -605,7 +607,7 @@ np.random.seed(simulation_number)
 
 # Define vector of eQTL sample sizes
 eqtl_sample_sizes = np.asarray([100, 300, 500,1000])
-eqtl_sample_sizes = np.asarray([500])
+eqtl_sample_sizes = np.asarray([300, 500,1000])
 
 
 # Fraction of genes cis heritable for a given tissue
@@ -615,21 +617,19 @@ fraction_genes_cis_h2 = .5
 gene_model_genes = extract_dictionary_list_of_genes_to_make_gene_models_for(simulated_revised_gene_position_file)
 
 
-############################
-# Simulate causal eQTL effect sizes across tissues
-############################
-# Create file to keep track of causal eqtl effect sizes across genes
+
+# File summarizing simulated causal eqtl effects
 simulated_causal_eqtl_effect_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
-#simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2)
 
 
+new_simulation_name_string = simulation_name_string + '_' + n_causal_genetic_elements
 ############################
 # Simulate Gene expression and fit gene models for each data-set (eqtl sample-size), tissue
 ############################
 # Do seperately in each data set (eqtl sample size) because genotypes are different
 for eqtl_sample_size in eqtl_sample_sizes:
 	print(eqtl_sample_size)
-	simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num, gene_model_genes)
+	simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, new_simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num, gene_model_genes)
 
 
 

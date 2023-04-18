@@ -214,7 +214,7 @@ def sample_eqtl_effects_from_susie_distribution(gene_susie_mu, gene_susie_alpha,
 	return sampled_eqtl_effects
 
 
-def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, eqtl_sample_size, window_indices, simulated_gene_expression_dir, ld_mat, eqtl_type, genotype_obj, n_bs):
+def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, n_causal_genetic_elements_str, eqtl_sample_size, window_indices, simulated_gene_expression_dir, ld_mat, eqtl_type, genotype_obj, n_bs):
 	# Initialize output vectors
 	gene_tissue_pairs = []
 	weight_vectors = []
@@ -249,21 +249,21 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 
 			# Fitted gene file
 			if eqtl_type == 'marginal_distr':
-				fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_marginal_effects_gene_model.npy'
+				fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_marginal_effects_gene_model.npy'
 				marginal_effects_mat = np.load(fitted_gene_file)
 				# Extract sparse genotype for this
 				pruned_svd_lambda, pruned_svd_Q, pruned_svd_ld_inv_mat = extract_sparse_genotype_matrix_for_this_gene_from_ld(ld_mat[cis_snp_indices[window_indices],:][:,cis_snp_indices[window_indices]], float(eqtl_sample_size))
 				#pruned_svd_lambda2, pruned_svd_Q2, pruned_svd_ld_inv_mat2 = extract_sparse_genotype_matrix_for_this_gene(genotype_obj, cis_snp_indices, float(eqtl_sample_size))
 				gene_model_mat = np.transpose(np.dot(pruned_svd_ld_inv_mat, np.transpose(marginal_effects_mat)))
 			elif eqtl_type == 'sparse_marginal_distr':
-				fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_marginal_effects_gene_model.npy'
+				fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_marginal_effects_gene_model.npy'
 				marginal_effects_mat = np.load(fitted_gene_file)
 				# Extract sparse genotype for this
 				pruned_svd_lambda, pruned_svd_Q, pruned_svd_ld_inv_mat = extract_sparse_genotype_matrix_for_this_gene_from_ld(ld_mat[cis_snp_indices[window_indices],:][:,cis_snp_indices[window_indices]], float(eqtl_sample_size))
 				#pruned_svd_lambda2, pruned_svd_Q2, pruned_svd_ld_inv_mat2 = extract_sparse_genotype_matrix_for_this_gene(genotype_obj, cis_snp_indices, float(eqtl_sample_size))
 				gene_model_mat = np.transpose(np.dot(pruned_svd_ld_inv_mat, np.transpose(marginal_effects_mat)))
 			elif eqtl_type == 'susie_distr':
-				fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
+				fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
 				gene_model_mat = np.load(fitted_gene_file)
 
 			# Relevent info
@@ -283,7 +283,7 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 
 				# Compute variance of gene
 				if eqtl_type == 'marginal_distr':
-					bs_marginal_effects_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_marginal_effects_bootstrapped.npy'
+					bs_marginal_effects_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_marginal_effects_bootstrapped.npy'
 					bs_marginal_effects = np.load(bs_marginal_effects_file)[:n_bs,:]
 					bs_alpha_effects = np.dot(pruned_svd_ld_inv_mat, np.transpose(bs_marginal_effects))
 					bs_gene_variances = np.diag(np.dot(np.dot(np.transpose(bs_alpha_effects), ld_mat[cis_snp_indices[window_indices],:][:,cis_snp_indices[window_indices]]), bs_alpha_effects))
@@ -291,7 +291,7 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 					bs_arr.append((bs_std_alpha_effects, cis_snp_indices[window_indices]))
 					#gene_variance = calculate_gene_variance_according_to_marginal_distribution(marginal_effects_mat[tiss_iter,:], pruned_svd_ld_inv_mat, pruned_svd_lambda, pruned_svd_Q, float(eqtl_sample_size))
 				elif eqtl_type == 'sparse_marginal_distr':
-					bs_marginal_effects_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_marginal_effects_bootstrapped.npy'
+					bs_marginal_effects_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_marginal_effects_bootstrapped.npy'
 					bs_marginal_effects = np.load(bs_marginal_effects_file)[:n_bs,:]
 					bs_alpha_effects = np.dot(pruned_svd_ld_inv_mat, np.transpose(bs_marginal_effects))
 					bs_gene_variances = np.diag(np.dot(np.dot(np.transpose(bs_alpha_effects), ld_mat[cis_snp_indices[window_indices],:][:,cis_snp_indices[window_indices]]), bs_alpha_effects))
@@ -307,9 +307,9 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 					sparse_bs_std_alpha_effects = sparse_bs_alpha_effects/np.sqrt(sparse_bs_gene_variances)
 					bs_arr.append((sparse_bs_std_alpha_effects, cis_snp_indices[window_indices]))
 				elif eqtl_type == 'susie_distr':
-					gene_susie_mu_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_mu.npy'
-					gene_susie_alpha_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_alpha.npy'
-					gene_susie_mu_var_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_mu_var.npy'
+					gene_susie_mu_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_mu.npy'
+					gene_susie_alpha_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_alpha.npy'
+					gene_susie_mu_var_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_mu_var.npy'
 					gene_susie_mu = np.load(gene_susie_mu_file)
 					gene_susie_alpha = np.load(gene_susie_alpha_file)
 					gene_susie_mu_var = np.load(gene_susie_mu_var_file)
@@ -660,6 +660,8 @@ simulated_learned_gene_models_dir = sys.argv[10]
 simulated_tgfm_input_data_dir = sys.argv[11]
 eqtl_type = sys.argv[12]
 processed_genotype_data_dir = sys.argv[13]
+n_causal_genetic_elements_str = sys.argv[14]
+
 
 n_bs = 100
 
@@ -674,7 +676,7 @@ rsid_to_genomic_annotation, variant_position_vec, rsids = create_dictionary_mapp
 
 
 # Open outputful summarizing TGFM input (one line for each window)
-tgfm_input_data_summary_file = simulated_tgfm_input_data_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_bootstrapped_tgfm_input_data_summary.txt'
+tgfm_input_data_summary_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_bootstrapped_tgfm_input_data_summary.txt'
 t = open(tgfm_input_data_summary_file,'w')
 # Write header
 t.write('window_name\tLD_npy_file\tTGFM_input_pkl\tlog_prior_probability_file_stem\n')
@@ -709,38 +711,59 @@ for line in f:
 	window_anno_mat = create_anno_matrix_for_set_of_rsids(rsid_to_genomic_annotation, window_rsids)
 
 	# Extract LD
-	ld_mat_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_in_sample_ld.npy'
+	ld_mat_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + window_name + '_in_sample_ld.npy'
 	ld_mat = np.load(ld_mat_file)
 
 	# Extract gene-tissue pairs and fitted models in this window
 	gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
-	gene_tissue_pairs, bs_eqtl_arr, gene_tissue_pairs_tss = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, eqtl_sample_size, window_indices, simulated_gene_expression_dir,ld_mat, eqtl_type, genotype_obj, n_bs)
 
+	gene_tissue_pairs, bs_eqtl_arr, gene_tissue_pairs_tss = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, n_causal_genetic_elements_str,  eqtl_sample_size, window_indices, simulated_gene_expression_dir,ld_mat, eqtl_type, genotype_obj, n_bs)
+
+	'''
 	bs_gene_eqtl_files = []
 	for bs_iter in range(n_bs):
 		eqtl_mat = np.zeros((ld_mat.shape[0], len(gene_tissue_pairs)))
 		for gene_itera, bs_eqtl_tuple in enumerate(bs_eqtl_arr):
 			eqtl_gene_window = bs_eqtl_tuple[0][:, bs_iter]
 			eqtl_mat[bs_eqtl_tuple[1],gene_itera] = eqtl_gene_window
-			#eqtl_mat.append(bs_eqtl_tuple[0][:, bs_iter])
-		bs_eqtl_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_' + window_name + '_' + str(bs_iter) + '.npy'
+		bs_eqtl_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_' + window_name + '_' + str(bs_iter) + '.npy'
 		np.save(bs_eqtl_output_file, np.transpose(eqtl_mat))
 		bs_gene_eqtl_files.append(bs_eqtl_output_file)
 	bs_gene_eqtl_files = np.asarray(bs_gene_eqtl_files)
+	'''
+	# Option to save some memory
+	bs_gene_eqtl_files = []
+	for bs_iter in range(n_bs):
+		eqtl_mat = []
+		for gene_itera, bs_eqtl_tuple in enumerate(bs_eqtl_arr):
+			eqtl_gene_window = bs_eqtl_tuple[0][:, bs_iter]
+			boolean_indices = bs_eqtl_tuple[1]
+			eqtl_indices = np.arange(len(boolean_indices))[boolean_indices]
+			for ii, eqtl_effect in enumerate(eqtl_gene_window):
+				if eqtl_effect == 0.0:
+					continue
+				eqtl_index = eqtl_indices[ii]
+				eqtl_mat.append(np.asarray([gene_itera, eqtl_index, eqtl_effect]))
+		eqtl_mat = np.asarray(eqtl_mat)
+		bs_eqtl_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_' + window_name + '_' + str(bs_iter) + '.npy'
+		np.save(bs_eqtl_output_file, eqtl_mat)
+		bs_gene_eqtl_files.append(bs_eqtl_output_file)
+	bs_gene_eqtl_files = np.asarray(bs_gene_eqtl_files)
+
 
 	# Get middle variant indices and middle gene indices
 	middle_variant_indices = np.where((window_variant_position_vec >= window_middle_start) & (window_variant_position_vec < window_middle_end))[0]
 	middle_gene_indices = np.where((gene_tissue_pairs_tss >= window_middle_start) & (gene_tissue_pairs_tss < window_middle_end))[0]
 
 	# Load in GWAS betas and standard errors
-	window_gwas_summary_file = simulated_gwas_dir + simulation_name_string + '_simualated_gwas_results_window_' + window_name + '.txt'
+	window_gwas_summary_file = simulated_gwas_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_simualated_gwas_results_window_' + window_name + '.txt'
 	gwas_beta, gwas_beta_se = load_in_window_gwas_betas_and_ses(window_gwas_summary_file, window_rsids)
 	# Standardize gwas beta and se
 	beta_scaled, beta_se_scaled, XtX = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, n_gwas_individuals, ld_mat)
 
 
 	# Compute various ln(pi) and save to output # and save those results to output files
-	ln_pi_output_stem = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size)+ '_' + eqtl_type + '_ln_pi'
+	ln_pi_output_stem = simulated_tgfm_input_data_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size)+ '_' + eqtl_type + '_ln_pi'
 	# Uniform prior
 	n_window_elements = len(window_rsids) + len(gene_tissue_pairs)
 	uniform_pi = np.ones(n_window_elements)*(1.0/n_window_elements)
@@ -759,7 +782,7 @@ for line in f:
 	tgfm_data['middle_variant_indices'] = middle_variant_indices
 
 	# Save TGFM output data to pickle
-	window_pickle_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size)+ '_' + eqtl_type + '_tgfm_input_data.pkl'
+	window_pickle_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size)+ '_' + eqtl_type + '_tgfm_input_data.pkl'
 	g = open(window_pickle_output_file, "wb")
 	pickle.dump(tgfm_data, g)
 	g.close()

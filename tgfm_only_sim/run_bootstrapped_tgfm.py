@@ -60,11 +60,11 @@ def standardize_eqtl_pmces(eqtl_pmces, gene_variances, reference_ld):
 
 
 def extract_full_gene_variant_ld(standardized_eqtl_effects, variant_ld):
-	expression_covariance = np.dot(np.dot(standardized_eqtl_effects, variant_ld), np.transpose(standardized_eqtl_effects))
+	gene_variant_ld = np.dot(standardized_eqtl_effects,variant_ld) # Ngenes X n_variants
+	expression_covariance = np.dot(gene_variant_ld, np.transpose(standardized_eqtl_effects))
 	np.fill_diagonal(expression_covariance, 1.0)
 	dd = np.diag(1.0/np.sqrt(np.diag(expression_covariance)))
 	ge_ld = np.dot(np.dot(dd, expression_covariance),dd)
-	gene_variant_ld = np.dot(standardized_eqtl_effects,variant_ld) # Ngenes X n_variants
 	top = np.hstack((ge_ld, gene_variant_ld))
 	bottom = np.hstack((np.transpose(gene_variant_ld), variant_ld))
 	full_ld = np.vstack((top,bottom))
@@ -182,87 +182,141 @@ def update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_obj):
 	return tgfm_obj
 
 
+def elbo_calc(z_vec, LD, samp_size, alpha, mu, mu2, KL_terms):
+	bb = alpha*mu
+	b_bar = np.sum(bb,axis=0)
+	postb2 = alpha*mu2
+	elbo_term1 = samp_size -1
+	elbo_term2 = -2.0*np.sum(np.sqrt(samp_size-1)*b_bar*z_vec)
+	elbo_term3 = np.sum(b_bar*np.dot((samp_size-1.0)*LD, b_bar))
+	elbo_term4 = - np.sum(np.dot(bb, (samp_size-1.0)*LD)*bb)
+	elbo_term5 = np.sum(np.dot(np.diag(LD*(samp_size-1)), np.transpose(postb2)))
+	elbo_term7 = (-samp_size/2.0)*np.log(2.0*np.pi)
+
+	elbo = elbo_term7 - .5*(elbo_term1 + elbo_term2 + elbo_term3 + elbo_term4 + elbo_term5) - np.sum(KL_terms)
+	return elbo
+
+def fill_in_causal_effect_size_matrix(null_mat, bs_eqtls_pmces_sparse):
+	null_mat[bs_eqtls_pmces_sparse[:,0].astype(int), bs_eqtls_pmces_sparse[:,1].astype(int)] = bs_eqtls_pmces_sparse[:,2]
+	return null_mat
+
+def extract_susie_obj_from_this_bootstrap(alpha_phis, beta_phis, bs_iter, num_genes, num_snps, num_components):
+	final = np.zeros((num_components, num_genes+num_snps))
+	for l_iter in range(num_components):
+		final[l_iter,:] = np.hstack((alpha_phis[l_iter][bs_iter,:], beta_phis[l_iter][bs_iter,:]))
+	return final
+
+def extract_susie_kl_terms_from_this_bootstrap(KL_terms, bs_iter, num_components):
+	final = []
+	for l_iter in range(num_components):
+		final.append(KL_terms[l_iter][bs_iter])
+	return np.asarray(final)
+
+
+def compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj, variant_z_vec, variant_ld_mat, gwas_sample_size):
+	elbos = []
+	for bs_iter in range(tgfm_obj.n_bs):
+		# Extract causal eqtl effects for this bootstrap
+		bs_eqtls_pmces = np.zeros((tgfm_obj.G, tgfm_obj.K))
+		bs_eqtls_pmces_sparse = np.load(tgfm_obj.pmces_files[bs_iter])
+		bs_eqtls_pmces = fill_in_causal_effect_size_matrix(bs_eqtls_pmces, bs_eqtls_pmces_sparse)
+
+		gene_variant_z_vec = np.hstack((tgfm_obj.nominal_twas_z[bs_iter], tgfm_obj.gwas_variant_z))
+
+		gene_variant_full_ld = extract_full_gene_variant_ld(bs_eqtls_pmces, tgfm_data['reference_ld'])
+
+		bs_phi = extract_susie_obj_from_this_bootstrap(tgfm_obj.alpha_phis, tgfm_obj.beta_phis, bs_iter, tgfm_obj.G, tgfm_obj.K, tgfm_obj.L)
+		bs_mu = extract_susie_obj_from_this_bootstrap(tgfm_obj.alpha_mus, tgfm_obj.beta_mus, bs_iter, tgfm_obj.G, tgfm_obj.K, tgfm_obj.L)
+		bs_var = extract_susie_obj_from_this_bootstrap(tgfm_obj.alpha_vars, tgfm_obj.beta_vars, bs_iter, tgfm_obj.G, tgfm_obj.K, tgfm_obj.L)
+		bs_mu2 = np.square(bs_mu) + bs_var
+		bs_kl = extract_susie_kl_terms_from_this_bootstrap(tgfm_obj.KL_terms, bs_iter, tgfm_obj.L)
+
+		elbo = elbo_calc(gene_variant_z_vec, gene_variant_full_ld, gwas_sample_size, bs_phi, bs_mu, bs_mu2, bs_kl)
+		elbos.append(elbo)
+	return np.asarray(elbos)
+
+def merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj2, variant_z_vec, variant_ld_mat, gwas_sample_size):
+	for bs_iter in range(tgfm_obj.n_bs):
+		# Extract causal eqtl effects for this bootstrap
+		bs_eqtls_pmces = np.zeros((tgfm_obj.G, tgfm_obj.K))
+		bs_eqtls_pmces_sparse = np.load(tgfm_obj.pmces_files[bs_iter])
+		bs_eqtls_pmces = fill_in_causal_effect_size_matrix(bs_eqtls_pmces, bs_eqtls_pmces_sparse)
+		gene_variant_z_vec = np.hstack((tgfm_obj.nominal_twas_z[bs_iter], tgfm_obj.gwas_variant_z))
+		gene_variant_full_ld = extract_full_gene_variant_ld(bs_eqtls_pmces, tgfm_data['reference_ld'])
+
+		# Compute ELBO for object 1
+		bs_phi = extract_susie_obj_from_this_bootstrap(tgfm_obj.alpha_phis, tgfm_obj.beta_phis, bs_iter, tgfm_obj.G, tgfm_obj.K, tgfm_obj.L)
+		bs_mu = extract_susie_obj_from_this_bootstrap(tgfm_obj.alpha_mus, tgfm_obj.beta_mus, bs_iter, tgfm_obj.G, tgfm_obj.K, tgfm_obj.L)
+		bs_var = extract_susie_obj_from_this_bootstrap(tgfm_obj.alpha_vars, tgfm_obj.beta_vars, bs_iter, tgfm_obj.G, tgfm_obj.K, tgfm_obj.L)
+		bs_mu2 = np.square(bs_mu) + bs_var
+		bs_kl = extract_susie_kl_terms_from_this_bootstrap(tgfm_obj.KL_terms, bs_iter, tgfm_obj.L)
+		elbo = elbo_calc(gene_variant_z_vec, gene_variant_full_ld, gwas_sample_size, bs_phi, bs_mu, bs_mu2, bs_kl)
+
+		# Compute ELBO for object 1
+		bs_phi_2 = extract_susie_obj_from_this_bootstrap(tgfm_obj2.alpha_phis, tgfm_obj2.beta_phis, bs_iter, tgfm_obj2.G, tgfm_obj2.K, tgfm_obj2.L)
+		bs_mu_2 = extract_susie_obj_from_this_bootstrap(tgfm_obj2.alpha_mus, tgfm_obj2.beta_mus, bs_iter, tgfm_obj2.G, tgfm_obj2.K, tgfm_obj2.L)
+		bs_var_2 = extract_susie_obj_from_this_bootstrap(tgfm_obj2.alpha_vars, tgfm_obj2.beta_vars, bs_iter, tgfm_obj2.G, tgfm_obj2.K, tgfm_obj2.L)
+		bs_mu2_2 = np.square(bs_mu_2) + bs_var_2
+		bs_kl_2 = extract_susie_kl_terms_from_this_bootstrap(tgfm_obj2.KL_terms, bs_iter, tgfm_obj2.L)
+		elbo_2 = elbo_calc(gene_variant_z_vec, gene_variant_full_ld, gwas_sample_size, bs_phi_2, bs_mu_2, bs_mu2_2, bs_kl_2)
+
+		# Only need to update tgfm_obj if this is the case
+		if elbo_2 > elbo:
+			for l_iter in range(tgfm_obj.L):
+				# Update Phi
+				tgfm_obj.alpha_phis[l_iter][bs_iter, :] = np.copy(tgfm_obj2.alpha_phis[l_iter][bs_iter, :])
+				tgfm_obj.beta_phis[l_iter][bs_iter, :] = np.copy(tgfm_obj2.beta_phis[l_iter][bs_iter, :])
+				# Update mu
+				tgfm_obj.alpha_mus[l_iter][bs_iter, :] = np.copy(tgfm_obj2.alpha_mus[l_iter][bs_iter, :])
+				tgfm_obj.beta_mus[l_iter][bs_iter, :] = np.copy(tgfm_obj2.beta_mus[l_iter][bs_iter, :])
+				# Update mu_var
+				tgfm_obj.alpha_vars[l_iter][bs_iter, :] = np.copy(tgfm_obj2.alpha_vars[l_iter][bs_iter, :])
+				tgfm_obj.beta_vars[l_iter][bs_iter, :] = np.copy(tgfm_obj2.beta_vars[l_iter][bs_iter, :])
+	# Recompute PIPs
+	tgfm_obj.compute_pips()
+
+	return tgfm_obj
+
+
+
+
 def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method):
-	tgfm_obj = bootstrapped_tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=10)
-	tgfm_obj.fit(twas_data_obj=tgfm_data)
+	if init_method == 'null':
+		tgfm_obj = bootstrapped_tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=10)
+		tgfm_obj.fit(twas_data_obj=tgfm_data)
+	elif init_method == 'best':
+		# Run susie with only variants
+		z_vec = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
 
+		# Now run tgfm sampler with null init
+		tgfm_obj = bootstrapped_tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=10)
+		tgfm_obj.fit(twas_data_obj=tgfm_data)
+		#elbo_null_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
+
+		if np.max(np.max(tgfm_obj.expected_alpha_pips)) > .5:
+			# Create initialization alpha, mu, and mu_var
+			susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=ld_mat, n=tgfm_data['gwas_sample_size'], L=20, estimate_residual_variance=False)
+
+			num_snps = len(z_vec)
+			num_genes = len(tgfm_data['genes'])
+			alpha_init = np.zeros((20, num_genes + num_snps))
+			mu_init = np.zeros((20, num_genes + num_snps))
+			mu_var_init = np.zeros((20, num_genes + num_snps))
+			alpha_init[:, num_genes:] = susie_variant_only.rx2('alpha')
+			mu_init[:, num_genes:] = susie_variant_only.rx2('mu')
+			variant_only_mu_var = susie_variant_only.rx2('mu2') - np.square(susie_variant_only.rx2('mu'))
+			mu_var_init[:, num_genes:] = variant_only_mu_var
+
+			# Run tgfm sampler with variant init
+			tgfm_obj_variant_init = bootstrapped_tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=10)
+			tgfm_obj_variant_init.fit(twas_data_obj=tgfm_data, phi_init=alpha_init, mu_init=mu_init, mu_var_init=mu_var_init)
+			#elbo_variant_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj_variant_init, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
+
+			tgfm_obj = merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj_variant_init, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
+		
 	return tgfm_obj
 
 
-def tgfm_inference_shell_old(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld, init_method, attenuated_gene_variances):
-	# Hacky: Initialize old TGFM object using only one iter of optimization
-	tgfm_obj = tgfm.TGFM(L=20, estimate_prior_variance=False, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
-	tgfm_obj.fit(twas_data_obj=tgfm_data)
-	# More hack: need to redo twas z
-	variant_z = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
-	new_gene_z = np.dot(tgfm_data['gene_eqtl_pmces'], variant_z)
-
-
-	#tgfm_obj_temp = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=10, single_variance_component=False)
-	#tgfm_obj_temp.fit(twas_data_obj=tgfm_data)
-
-	tgfm_obj.nominal_twas_z = new_gene_z
-
-	# Create vector of concatenated z-scores
-	z_vec = np.hstack((new_gene_z,variant_z))
-
-	# Create concatenated vector of prior probs
-	prior_probs = np.hstack((np.exp(gene_log_prior), np.exp(var_log_prior)))
-
-	pdb.set_trace()
-	temp_se = np.ones(len(z_vec))/np.sqrt(100000.0)
-	temp_se[:len(new_gene_z)] = temp_se[:len(new_gene_z)]*(1.0/np.sqrt(attenuated_gene_variances))
-	susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), shat=temp_se.reshape((len(temp_se), 1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=False)
-
-
-
-	if init_method == 'best':
-		# Run susie with only variants
-		p_var_only = np.ones(len(z_vec))
-		p_var_only[:len(tgfm_obj.nominal_twas_z)] = 0.0
-		p_var_only = p_var_only/np.sum(p_var_only)
-		susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=p_var_only.reshape((len(p_var_only),1)), estimate_residual_variance=False)
-	
-		# Run susie with variant initialization
-		init_obj = {'alpha':susie_variant_only.rx2('alpha'), 'mu':susie_variant_only.rx2('mu'),'mu2':susie_variant_only.rx2('mu2')}
-		init_obj2 = ro.ListVector(init_obj)
-		init_obj2.rclass = rpy2.robjects.StrVector(("list", "susie"))
-		susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=False)
-
-		# Run susie with null initialization
-		susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=False)
-
-		# Select model with largest elbo
-		susie_null_init_elbo = susie_null_init.rx2('elbo')[-1]
-		susie_variant_init_elbo = susie_variant_init.rx2('elbo')[-1]
-
-		if susie_variant_init_elbo > susie_null_init_elbo:
-			# Variant init wins
-			tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_variant_init)
-		else:
-			# Null init wins
-			tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
-	elif init_method == 'null':
-		# Run susie with null initialization
-		susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=False)
-		tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
-	elif init_method == 'variant_only':
-		# Run susie with only variants
-		p_var_only = np.ones(len(z_vec))
-		p_var_only[:len(tgfm_obj.nominal_twas_z)] = 0.0
-		p_var_only = p_var_only/np.sum(p_var_only)
-		susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=p_var_only.reshape((len(p_var_only),1)), estimate_residual_variance=False)
-	
-		# Run susie with variant initialization
-		init_obj = {'alpha':susie_variant_only.rx2('alpha'), 'mu':susie_variant_only.rx2('mu'),'mu2':susie_variant_only.rx2('mu2')}
-		init_obj2 = ro.ListVector(init_obj)
-		init_obj2.rclass = rpy2.robjects.StrVector(("list", "susie"))
-		susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=False)
-		tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_variant_init)
-	else:
-		print('assumption errror: susie initialization method ' + init_method + ' not recognized')
-		pdb.set_trace()
-	return tgfm_obj
 
 ######################
 # Command line args
