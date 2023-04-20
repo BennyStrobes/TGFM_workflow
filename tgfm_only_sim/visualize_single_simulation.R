@@ -436,6 +436,39 @@ make_tgfm_pip_fdr_plot_varying_n_causal_elements_and_twas_method <- function(df,
   	return(p)		
 }
 
+make_gene_pip_twas_method_comparison_colored_by_causal_status <- function(df, eqtl_ss) {
+	indices = df$bootstrapped_susie_distr_pip > .9
+	print(sum(indices))
+	tp = sum(as.character(df$causal_gene[indices]) == "TRUE")
+	print(tp/sum(indices))
+
+	indices = df$susie_pmces_pip > .9
+	tp = sum(as.character(df$causal_gene[indices]) == "TRUE")
+	print(tp/sum(indices))
+
+	df$causal_gene = factor(df$causal_gene, levels=c("TRUE", "FALSE"))
+
+	p <- ggplot(df, aes(x=susie_pmces_pip, y=bootstrapped_susie_distr_pip,color=causal_gene)) +
+  		geom_point(size=.65) +
+  		figure_theme() +
+  		labs(x="TGFM_PCMES Gene PIP", y="TGFM_sampler Gene Pip", color="Gene causal", title=paste0("eqtl sample size: ", eqtl_ss))
+  	return(p)
+}
+
+make_gene_pip_twas_method_comparison_colored_by_gene_variance <- function(df, eqtl_ss) {
+	df$gene_variance_ratio[df$gene_variance_ratio > 1.3] = 1.3
+
+	df$causal_gene = factor(df$causal_gene, levels=c("TRUE", "FALSE"))
+
+	p <- ggplot(df, aes(x=susie_pmces_pip, y=bootstrapped_susie_distr_pip,color=gene_variance_ratio)) +
+  		geom_point(size=.65) +
+  		figure_theme() +
+  		scale_color_gradient(low = "yellow", high = "red", na.value = NA) +
+  		labs(x="TGFM_PCMES Gene PIP", y="TGFM_sampler Gene Pip", color="Gene variance ratio", title=paste0("eqtl sample size: ", eqtl_ss))
+  	return(p)
+}
+
+
 
 #######################
 # Command line args
@@ -451,6 +484,30 @@ visualize_simulated_results_dir = args[3]
 #####################################################################
 # TGFM
 #####################################################################
+
+#####################################################################
+# Scatter plot comparing methods
+#####################################################################
+eqtl_sample_size_arr <- c("300", "500", "1000")
+
+for (eqtl_ss_iter in 1:length(eqtl_sample_size_arr)) {
+	eqtl_ss <- eqtl_sample_size_arr[eqtl_ss_iter]
+	file_name <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_tgfm_eqtl_ss_", eqtl_ss, "_gene_pip_twas_method_comparison.txt")
+	df <- read.table(file_name, header=TRUE, sep="\t")
+	
+	scatterplot <- make_gene_pip_twas_method_comparison_colored_by_causal_status(df, eqtl_ss)
+	# Save to output
+	output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_pip_twas_method_comparison_eqtl_ss_", eqtl_ss, "_scatterplot.pdf")
+	ggsave(scatterplot, file=output_file, width=7.2, height=4.5, units="in")
+
+	scatterplot <- make_gene_pip_twas_method_comparison_colored_by_gene_variance(df, eqtl_ss)
+	# Save to output
+	output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_pip_twas_method_comparison_eqtl_ss_", eqtl_ss, "_colored_by_gene_variance_scatterplot.pdf")
+	ggsave(scatterplot, file=output_file, width=7.2, height=4.5, units="in")
+
+
+}
+
 
 #####################################################################
 # Calibration at varying pip thresholds while just showing gene FDR stratefied by sample size and n_causal-genetic elements

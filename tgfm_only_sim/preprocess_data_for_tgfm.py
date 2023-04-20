@@ -209,6 +209,7 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 	weight_vectors = []
 	gene_tss_arr = []
 	gene_variances = []
+	full_gene_variances = []
 
 	# Loop through genes (note: not gene tissue pairs)
 	f = open(gene_summary_file)
@@ -281,6 +282,17 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 				# Compute variance of gene
 				if eqtl_type == 'susie_pmces':
 					gene_variance = np.dot(np.dot(gene_model_mat[tiss_iter,:], ld_mat[cis_snp_indices[window_indices],:][:,cis_snp_indices[window_indices]]), gene_model_mat[tiss_iter,:])
+					if eqtl_sample_size == 'inf':
+						full_gene_variance = gene_variance + 0.0
+					else:
+						# Load in susie files for this gene
+						gene_susie_mu_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_mu.npy'
+						gene_susie_alpha_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_alpha.npy'
+						gene_susie_mu_var_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_mu_var.npy'
+						gene_susie_mu = np.load(gene_susie_mu_file)
+						gene_susie_alpha = np.load(gene_susie_alpha_file)
+						gene_susie_mu_var = np.load(gene_susie_mu_var_file)
+						full_gene_variance = calculate_gene_variance_according_to_susie_distribution(gene_susie_mu, gene_susie_alpha, np.sqrt(gene_susie_mu_var), ld_mat[cis_snp_indices[window_indices],:][:,cis_snp_indices[window_indices]])
 				elif eqtl_type == 'susie_distr':
 					# Load in susie files for this gene
 					gene_susie_mu_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + n_causal_genetic_elements_str + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_mu.npy'
@@ -303,10 +315,11 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 				gene_tss_arr.append(gene_tss)
 				gene_tissue_pairs.append(ensamble_id + '_' + 'tissue' + str(tiss_iter))
 				gene_variances.append(gene_variance)
+				full_gene_variances.append(full_gene_variance)
 
 	f.close()
 
-	return np.asarray(gene_tissue_pairs), weight_vectors, np.asarray(gene_tss_arr), np.asarray(gene_variances)
+	return np.asarray(gene_tissue_pairs), weight_vectors, np.asarray(gene_tss_arr), np.asarray(gene_variances), np.asarray(full_gene_variances)
 
 
 def create_anno_matrix_for_set_of_rsids(rsid_to_genomic_annotation, window_rsids):
@@ -685,7 +698,7 @@ for line in f:
 
 	# Extract gene-tissue pairs and fitted models in this window
 	gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
-	gene_tissue_pairs, gene_tissue_pair_weight_vectors, gene_tissue_pairs_tss, gene_variances = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, n_causal_genetic_elements_str, eqtl_sample_size, window_indices, simulated_gene_expression_dir,ld_mat, eqtl_type, genotype_obj)
+	gene_tissue_pairs, gene_tissue_pair_weight_vectors, gene_tissue_pairs_tss, gene_variances, full_gene_variances = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string, n_causal_genetic_elements_str, eqtl_sample_size, window_indices, simulated_gene_expression_dir,ld_mat, eqtl_type, genotype_obj)
 
 	# Get middle variant indices and middle gene indices
 	middle_variant_indices = np.where((window_variant_position_vec >= window_middle_start) & (window_variant_position_vec < window_middle_end))[0]
@@ -715,6 +728,7 @@ for line in f:
 	tgfm_data['gwas_sample_size'] = n_gwas_individuals
 	tgfm_data['gene_eqtl_pmces'] = np.asarray(gene_tissue_pair_weight_vectors)
 	tgfm_data['gene_variances'] = gene_variances
+	tgfm_data['full_gene_variances'] = full_gene_variances
 	tgfm_data['middle_gene_indices'] = middle_gene_indices
 	tgfm_data['middle_variant_indices'] = middle_variant_indices
 

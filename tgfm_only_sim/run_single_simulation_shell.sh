@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-15:00                         # Runtime in D-HH:MM format
-#SBATCH -p medium                           # Partition to run in
+#SBATCH -t 0-1:00                         # Runtime in D-HH:MM format
+#SBATCH -p short                           # Partition to run in
 #SBATCH --mem=22GB                         # Memory total in MiB (for all cores)
 
 
@@ -118,6 +118,7 @@ do
 	simulation_window_list_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_"${n_causal_genetic_elements}"_tgfm_windows.txt"
 	annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
 	eqtl_sample_size_arr=( "300" "500" "1000" "inf" )
+
 	eqtl_type="susie_pmces"
 	echo $eqtl_type
 	if false; then
