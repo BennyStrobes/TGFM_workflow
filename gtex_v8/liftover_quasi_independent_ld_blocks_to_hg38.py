@@ -112,11 +112,11 @@ create_hg19_bed_file_from_chrom_specific_input_files(quasi_independent_dir, hg19
 # Run liftover
 liftover_output_file = quasi_independent_ld_blocks_hg38_dir + '_liftover_output.txt'
 liftover_missing_file = quasi_independent_ld_blocks_hg38_dir + '_liftover_missing.txt'
-# run_liftover(hg19_bed_file, liftover_output_file, liftover_missing_file, liftover_directory)
+run_liftover(hg19_bed_file, liftover_output_file, liftover_missing_file, liftover_directory)
 
 # create ld blocks bed file hg38
 hg38_bed_file = quasi_independent_ld_blocks_hg38_dir + 'quasi_independent_ld_blocks_hg38_bed.txt'
-#create_hg38_bed_file_from_liftover_output(liftover_output_file, hg38_bed_file)
+create_hg38_bed_file_from_liftover_output(liftover_output_file, hg38_bed_file)
 
 # create large ld blocks bed file hg38
 large_hg38_bed_file = quasi_independent_ld_blocks_hg38_dir + 'large_10_quasi_independent_ld_blocks_hg38_bed.txt'

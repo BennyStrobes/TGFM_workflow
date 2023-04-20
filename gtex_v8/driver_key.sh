@@ -92,7 +92,7 @@ quasi_independent_ld_blocks_hg38_dir=$output_root"quasi_independent_ld_blocks_hg
 misc_dir=$output_root"misc/"
 
 # Directory containing UKBB sumstats for genome-wide susie
-ukbb_preprocessed_for_genome_wide_susie_dir=$output_root"ukbb_preprocessed_for_genome_wide_susie/"
+ukbb_preprocessed_for_genome_wide_susie_dir=$perm_output_root"ukbb_preprocessed_for_genome_wide_susie/"
 
 # Directory containing hg38 GTEx preprocessed for Susie
 gtex_gene_set_dir_dir=$output_root"gtex_gene_sets/"
@@ -176,9 +176,8 @@ fi
 ########################################
 # Preprocess data for UKBB genome-wide Susie Analysis
 ########################################
-if false; then
 sh preprocess_data_for_genome_wide_ukbb_susie_analysis.sh $ukbb_sumstats_hg38_dir $gtex_genotype_dir $ref_1kg_genotype_dir $ukbb_preprocessed_for_genome_wide_susie_dir $ukbb_sumstats_hg19_dir $ukbb_in_sample_ld_dir $ukbb_in_sample_genotype_dir
-fi
+
 
 
 ########################################
@@ -334,10 +333,11 @@ fi
 ########################################
 # Visualize results
 ########################################
+if false; then
 source ~/.bash_profile
 module load R/3.5.1
 Rscript visualize_tgfm_sldsc_results.R $independent_trait_names_file $tgfm_sldsc_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_sldsc_dir
-
+fi
 
 if false; then
 Rscript visualize_tgfm_results.R $independent_trait_names_file $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_dir

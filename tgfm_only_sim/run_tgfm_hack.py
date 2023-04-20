@@ -447,6 +447,7 @@ ordered_tissue_names = np.asarray(ordered_tissue_names)
 
 
 # Open cs output file handle
+'''
 component_cs_output_file = tgfm_output_stem + '_tgfm_component_cs_summary.txt'
 t_cs = open(component_cs_output_file,'w')
 t_cs.write('window_name\tcomponent_index\tgene_mediated_probability\tinclusion_elements\tinclusion_probabilities\n')
@@ -461,6 +462,7 @@ t_tiss.write('\n')
 component_gene_output_file = tgfm_output_stem + '_tgfm_component_gene_prob_summary.txt'
 t_gene = open(component_gene_output_file,'w')
 t_gene.write('window_name\tcomponent_index\tgene_names\tn_components_per_gene\tgene_mediated_probability\n')
+'''
 
 # Open PIP file handle
 pip_output_file = tgfm_output_stem + '_tgfm_pip_summary.txt'
@@ -485,6 +487,7 @@ for line in f:
 	# Extract relevent fields
 	###############################
 	window_name = data[0]
+	print(window_name)
 
 	ld_file = data[1]
 	tgfm_input_pkl = data[2]
@@ -493,49 +496,61 @@ for line in f:
 	##############################
 	# Load in Data
 	###############################
+	'''
 	# Load in LD
 	ld_mat = np.load(ld_file)
+	'''
 	# Load in tgfm input data
 	g = open(tgfm_input_pkl, "rb")
 	tgfm_data = pickle.load(g)
 	g.close()
+	'''
 	# Add ld to tgfm_data obj
 	tgfm_data['reference_ld'] = ld_mat
+	'''
 
 	# Skip windows with no genes
 	if len(tgfm_data['genes']) == 0:
 		continue
+	'''
 
 	# Load in log_priors
 	var_log_prior, gene_log_prior = load_in_log_priors(log_prior_prob_file, tgfm_data['variants'], tgfm_data['genes'])
+	'''
 
 	# Standardize eqtl PMCES
 	#tgfm_data['gene_eqtl_pmces'] = standardize_eqtl_pmces(tgfm_data['gene_eqtl_pmces'], tgfm_data['gene_variances'], tgfm_data['reference_ld'])
+	'''
 	tgfm_data['gene_eqtl_pmces'] = standardize_eqtl_pmces_old(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])
-
+	'''
 	# Extract full ld between genes, variants, and gene-variants
-	gene_variant_full_ld = extract_full_gene_variant_ld(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])
+	#gene_variant_full_ld = extract_full_gene_variant_ld(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])
 
 	##############################
 	# Run TGFM
 	###############################
-	tmp_output_file = tgfm_output_stem + '_' + window_name + '_temp_output_'
-	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld, init_method, est_resid_var_bool, tmp_output_file)
+	#tmp_output_file = tgfm_output_stem + '_' + window_name + '_temp_output_'
+	#tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld, init_method, est_resid_var_bool, tmp_output_file)
 
 	##############################
 	# Organize TGFM data and print to results
 	###############################
-	# Extract components that pass purity filter
-	valid_tgfm_components = extract_valid_joint_susie_components_from_full_ld(tgfm_obj.alpha_phi, tgfm_obj.beta_phi, gene_variant_full_ld, .5)
 	# Extract names of genetic elements
 	genetic_element_names = np.hstack((tgfm_data['genes'], tgfm_data['variants']))
 	# Extract dictionary list of genetic elements in the middel of this window
 	middle_genetic_elements = extract_middle_genetic_elements(tgfm_data['genes'], tgfm_data['middle_gene_indices'], tgfm_data['variants'], tgfm_data['middle_variant_indices'])
 
+	# Write pickle file
+	window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
+	# Load in tgfm input data
+	g = open(window_tgfm_output_file, "rb")
+	tgfm_res = pickle.load(g)
+	g.close()
+
 
 	# First print PIP results and then print component results
 	# Extract genetic element pips
-	genetic_element_pips = np.hstack((tgfm_obj.alpha_pip, tgfm_obj.beta_pip))
+	genetic_element_pips = compute_pips(np.hstack((tgfm_res['alpha_phi'], tgfm_res['beta_phi'])))
 
 	# Extract genetic elements and pips only corresponding to middle genetic elements
 	middle_pips = []
@@ -563,62 +578,8 @@ for line in f:
 	t_pip.flush()
 
 
-	# Now output component level results
-	# loop through TGFM components for this window
-	for tgfm_component in valid_tgfm_components:
-		# Get probability component is mediated by gene expression in any cis tissue, gene
-		mediated_probability = np.sum(tgfm_obj.alpha_phi[tgfm_component,:])
-		# Get probability coming from each tissue
-		tissue_mediated_probabilities = get_probability_coming_from_each_tissue(ordered_tissue_names, tissue_to_position_mapping, tgfm_data['genes'], tgfm_obj.alpha_phi[tgfm_component,:])
-		# Get probability of each element (concatenated across genes and variants)
-		element_probabilities = np.hstack((tgfm_obj.alpha_phi[tgfm_component,:], tgfm_obj.beta_phi[tgfm_component,:]))
-		# Get indices of each element included in 95% cs
-		cs_element_indices = get_credible_set_genes(element_probabilities, .95)
-		# Get probabilities of each element in 95% cs
-		cs_element_prob = element_probabilities[cs_element_indices]
-		# Get cs genetic element names
-		cs_element_names = genetic_element_names[cs_element_indices]
-		# Get top element
-		top_element_name = cs_element_names[0]
-		# Ignore components for this window not in middle
-		if top_element_name not in middle_genetic_elements:
-			continue
-		# Write to credible set output
-		t_cs.write(window_name + '\t' + str(tgfm_component) + '\t' + str(mediated_probability) + '\t')
-		t_cs.write(';'.join(cs_element_names) + '\t')
-		t_cs.write(';'.join(cs_element_prob.astype(str)) + '\n')
-		# Write to tissue output
-		t_tiss.write(window_name + '\t' + str(tgfm_component) + '\t' + str(mediated_probability) + '\t')
-		t_tiss.write('\t'.join(tissue_mediated_probabilities.astype(str)) + '\n')
-		# Write to gene output
-		t_gene.write(window_name + '\t' + str(tgfm_component) + '\t' + ';'.join(tgfm_data['genes']) + '\t' + 'NaN' + '\t' + ';'.join(tgfm_obj.alpha_phi[tgfm_component,:].astype(str)) + '\n')
-		t_cs.flush()
-		t_tiss.flush()
-		t_gene.flush()
-	# Save all TGFM results to pkl
-	tgfm_results = {}
-	tgfm_results['variants'] = tgfm_data['variants']
-	tgfm_results['genes'] = tgfm_data['genes']
-	tgfm_results['alpha_phi'] = tgfm_obj.alpha_phi
-	tgfm_results['beta_phi'] = tgfm_obj.beta_phi
-	tgfm_results['alpha_mu'] = tgfm_obj.alpha_mu
-	tgfm_results['beta_mu'] = tgfm_obj.beta_mu
-	tgfm_results['alpha_var'] = tgfm_obj.alpha_var
-	tgfm_results['beta_var'] = tgfm_obj.beta_var
-	tgfm_results['alpha_pip'] = tgfm_obj.alpha_pip
-	tgfm_results['beta_pip'] = tgfm_obj.beta_pip
-	tgfm_results['component_variances'] = tgfm_obj.component_variances
-
-	# Write pickle file
-	window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
-	g = open(window_tgfm_output_file, "wb")
-	pickle.dump(tgfm_results, g)
-	g.close()
-
 f.close()
 
 # Close file handles
-t_cs.close()
-t_gene.close()
-t_tiss.close()
+
 t_pip.close()

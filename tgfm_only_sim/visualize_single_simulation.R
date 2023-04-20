@@ -366,7 +366,12 @@ make_gene_causal_element_ld_score_fp_strat_histogram <- function(df) {
 }
 
 
-make_tgfm_pip_fdr_plot_varying_sample_size_and_method <- function(df, pip_threshold, n_causal_bin) {
+make_tgfm_pip_fdr_plot_varying_sample_size_and_method <- function(df, pip_threshold, n_causal_bin,title_n_causal=TRUE) {
+	if (title_n_causal) {
+		titler = paste0("PIP: ", pip_threshold, "\n n_causal: ", n_causal_bin)
+	} else {
+		titler = paste0("PIP: ", pip_threshold)
+	}
 	df$fdr = 1.0 - df$coverage
 	df$fdr_lb = 1.0 - df$coverage_ub
 	df$fdr_ub = 1.0 - df$coverage_lb
@@ -380,12 +385,35 @@ make_tgfm_pip_fdr_plot_varying_sample_size_and_method <- function(df, pip_thresh
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.4, position=position_dodge(.9))  +
   		figure_theme() +
-  		labs(x="eQTL sample size", y="FDR", fill="", title=paste0("PIP: ", pip_threshold, "\n n_causal: ", n_causal_bin))  +
+  		labs(x="eQTL sample size", y="FDR", fill="", title=titler)  +
   		geom_hline(yintercept=(1.0-as.numeric(pip_threshold)), linetype=2) +
   		theme(plot.title = element_text(hjust = 0.5,size=12)) +
   		 theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
   	return(p)	
 }
+
+make_tgfm_pip_power_plot_varying_sample_size_and_method <- function(df, pip_threshold, n_causal_bin,title_n_causal=TRUE) {
+	if (title_n_causal) {
+		titler = paste0("PIP: ", pip_threshold, "\n n_causal: ", n_causal_bin)
+	} else {
+		titler = paste0("PIP: ", pip_threshold)
+	}
+
+	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(300,500,1000))
+
+
+	df$twas_method = factor(df$twas_method, levels=c("susie_pmces", "bootstrapped_susie_distr"))
+
+	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=power, fill=twas_method)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="eQTL sample size", y="Power", fill="", title=titler)  +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) +
+  		 theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  	return(p)	
+}
+
 
 
 make_tgfm_pip_fdr_plot_varying_n_causal_elements_and_twas_method <- function(df, pip_threshold, eqtl_sample_size) {
@@ -522,6 +550,85 @@ joint2 <- plot_grid(joint, legender, ncol=1, rel_heights=c(.9,.1))
 # Save to output
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_distribution_tgfm_gene_fdr_vary_sample_size_and_n_causal_elements_and_method.pdf")
 ggsave(joint2, file=output_file, width=7.2, height=7.7, units="in")
+
+
+#####################################################################
+# Calibration at varying pip thresholds while just showing gene FDR stratefied by sample size and n_causal-genetic elements and method
+#####################################################################
+ln_pi_method="uniform"
+initialization_version="best"
+resid_var_method="False"
+pip_threshold_arr <- c("0.5", "0.7", "0.9", "0.95")
+n_causal_bins <- c("all")
+plots <- list()
+counter = 1
+for (pip_iter in 1:length(pip_threshold_arr)) {
+	pip_threshold=pip_threshold_arr[pip_iter]
+	for (bin_iter in 1:length(n_causal_bins)) {
+		n_causal_bin = n_causal_bins[bin_iter]
+		# Load in data
+		calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_aggregate_n_causal_distribution_calibration.txt")
+		calibration_df <- read.table(calibration_file, header=TRUE)
+		calibration_df = calibration_df[as.character(calibration_df$ln_pi_method) == ln_pi_method,]
+		calibration_df = calibration_df[as.character(calibration_df$initialization_version) == initialization_version,]
+		calibration_df = calibration_df[as.character(calibration_df$residual_variance) == resid_var_method,]
+		calibration_df = calibration_df[as.character(calibration_df$genetic_element_class) == "gene",]
+		calibration_df = calibration_df[as.character(calibration_df$n_causal_bin) == n_causal_bin,]
+
+		# Make plot
+		calibration_barplot <- make_tgfm_pip_fdr_plot_varying_sample_size_and_method(calibration_df, pip_threshold, n_causal_bin, title_n_causal=FALSE)
+		legender <- get_legend(calibration_barplot)
+		plots[[counter]] = calibration_barplot + theme(legend.position="none")
+		counter = counter +1
+	}
+}
+joint <- plot_grid(plotlist=plots, ncol=2)
+joint2 <- plot_grid(joint, legender, ncol=1, rel_heights=c(.85,.15))
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_distribution_tgfm_gene_fdr_vary_sample_size_and_method.pdf")
+ggsave(joint2, file=output_file, width=7.2, height=5.7, units="in")
+
+
+
+
+#####################################################################
+# Calibration at varying pip thresholds while just showing gene FDR stratefied by sample size and n_causal-genetic elements and method
+#####################################################################
+ln_pi_method="uniform"
+initialization_version="best"
+resid_var_method="False"
+pip_threshold_arr <- c("0.5", "0.7", "0.9", "0.95")
+n_causal_bins <- c("all")
+plots <- list()
+counter = 1
+for (pip_iter in 1:length(pip_threshold_arr)) {
+	pip_threshold=pip_threshold_arr[pip_iter]
+	for (bin_iter in 1:length(n_causal_bins)) {
+		n_causal_bin = n_causal_bins[bin_iter]
+		# Load in data
+		power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_aggregate_n_causal_distribution_power.txt")
+		power_df <- read.table(power_file, header=TRUE)
+		power_df = power_df[as.character(power_df$ln_pi_method) == ln_pi_method,]
+		power_df = power_df[as.character(power_df$initialization_version) == initialization_version,]
+		power_df = power_df[as.character(power_df$residual_variance) == resid_var_method,]
+		power_df = power_df[as.character(power_df$genetic_element_class) == "gene",]
+		power_df = power_df[as.character(power_df$n_causal_bin) == n_causal_bin,]
+
+		# Make plot
+		power_barplot <- make_tgfm_pip_power_plot_varying_sample_size_and_method(power_df, pip_threshold, n_causal_bin, title_n_causal=FALSE)
+		legender <- get_legend(power_barplot)
+		plots[[counter]] = power_barplot + theme(legend.position="none")
+		counter = counter +1
+	}
+}
+joint <- plot_grid(plotlist=plots, ncol=2)
+joint2 <- plot_grid(joint, legender, ncol=1, rel_heights=c(.85,.15))
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_distribution_tgfm_gene_power_vary_sample_size_and_method.pdf")
+ggsave(joint2, file=output_file, width=7.2, height=5.7, units="in")
+
+
+
 
 
 

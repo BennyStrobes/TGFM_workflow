@@ -474,6 +474,8 @@ def extract_ld_mat_from_in_sample_ld(sample_ld_variant_indices, ukbb_in_sample_l
 	for file_name in os.listdir(ukbb_in_sample_ld_dir):
 		if file_name.startswith('ukb_imp_v3.c' + chrom_num + '_') == False:
 			continue
+		if file_name.endswith('.compute_ld.sbatch.log'):
+			continue
 		full_file_name = ukbb_in_sample_ld_dir + file_name
 
 		file_info = file_name.split('_')
