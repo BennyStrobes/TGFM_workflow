@@ -17,9 +17,10 @@ gtex_susie_gene_models_dir="$7"
 preprocessed_tgfm_sldsc_data_dir="$8"
 gene_type="${9}"
 
+chrom_num="21"
+
 num_chrom="22"
 
-chrom_num="21"
 
 
 for chrom_num in $(seq 1 $(($num_chrom))); do 
