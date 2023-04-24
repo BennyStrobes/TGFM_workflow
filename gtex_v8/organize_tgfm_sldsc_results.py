@@ -108,6 +108,96 @@ def extract_expression_mediated_h2(jacknifed_taus, eqtl_start_index, m_vec):
 	
 	return mean_expr_med_h2, jacknifed_se
 
+
+def jacknife_mean_and_se(veccy):
+	mean_veccy = np.mean(veccy)
+
+	diff = veccy - mean_veccy
+	num_jacknife_samples = veccy.shape[0]
+
+	jacknifed_se = np.sqrt(np.dot(np.transpose(diff),diff)*(num_jacknife_samples-1.0)/num_jacknife_samples)
+
+
+	return mean_veccy, jacknifed_se
+
+
+def print_average_per_snp_and_per_gene_tissue_h2_for_sparse_model(taus, eqtl_start_index, m_vec, output_file, anno_names):
+	# Compute per snp h2
+	per_snp_h2 = np.sum((m_vec[:eqtl_start_index])*(taus[:eqtl_start_index]))/(m_vec[0])
+
+	tissue_names = anno_names[eqtl_start_index:]
+	n_gene_tiss = m_vec[eqtl_start_index:]
+
+	per_gene_tissue_h2 = taus[eqtl_start_index:]
+
+	# Print to output
+	t = open(output_file,'w')
+	t.write('genetic_element_name\tper_genetic_element_h2\tper_genetic_element_h2_se\n')
+	t.write('variant\t' + str(per_snp_h2) + '\t' + str('NA') + '\n')
+	for tissue_iter, tissue_name in enumerate(tissue_names):
+		t.write(tissue_name + '\t' + str(per_gene_tissue_h2[tissue_iter]) + '\t' + str('NA') + '\n')
+	t.close()
+	return
+
+
+
+
+def print_average_per_snp_and_per_gene_tissue_h2(jacknifed_taus, eqtl_start_index, m_vec, output_file, anno_names):
+	# Compute total heritability going through snps and through gene expression
+	jacknifed_med_h2 = jacknifed_taus*m_vec
+	jacknifed_geno_h2 = np.sum(jacknifed_med_h2[:,:eqtl_start_index],axis=1)
+	jacknifed_tiss_expr_h2 = jacknifed_med_h2[:,eqtl_start_index:]
+
+	# Get number of snps
+	n_snps = m_vec[0]
+	n_gene_tiss = m_vec[eqtl_start_index:]
+	tissue_names = anno_names[eqtl_start_index:]
+
+	# Per snp and per-gene h2 across jacknifed samples
+	per_snp_h2 = jacknifed_geno_h2/n_snps
+	per_gene_tissue_h2 = jacknifed_tiss_expr_h2/n_gene_tiss
+
+	# Get mean and se from jacknife samples
+	avg_per_snp_h2, avg_per_snp_h2_se = jacknife_mean_and_se(per_snp_h2)
+
+	# Print to output
+	t = open(output_file,'w')
+	t.write('genetic_element_name\tper_genetic_element_h2\tper_genetic_element_h2_se\n')
+	t.write('variant\t' + str(avg_per_snp_h2) + '\t' + str(avg_per_snp_h2_se) + '\n')
+	for tissue_iter, tissue_name in enumerate(tissue_names):
+		avg_per_gene_h2, avg_per_gene_h2_se = jacknife_mean_and_se(per_gene_tissue_h2[:, tissue_iter])
+		t.write(tissue_name + '\t' + str(avg_per_gene_h2) + '\t' + str(avg_per_gene_h2_se) + '\n')
+	t.close()
+	return
+
+
+def print_average_per_snp_and_per_gene_h2(jacknifed_taus, eqtl_start_index, m_vec, output_file):
+	# Compute total heritability going through snps and through gene expression
+	jacknifed_med_h2 = jacknifed_taus*m_vec
+	jacknifed_geno_h2 = np.sum(jacknifed_med_h2[:,:eqtl_start_index],axis=1)
+	jacknifed_expr_h2 = np.sum(jacknifed_med_h2[:,eqtl_start_index:],axis=1)
+
+	# Get number of snps
+	n_snps = m_vec[0]
+	n_genes = np.sum(m_vec[eqtl_start_index:])
+
+	# Per snp and per-gene h2 across jacknifed samples
+	per_snp_h2 = jacknifed_geno_h2/n_snps
+	per_gene_h2 = jacknifed_expr_h2/n_genes
+
+	# Get mean and se from jacknife samples
+	avg_per_snp_h2, avg_per_snp_h2_se = jacknife_mean_and_se(per_snp_h2)
+	avg_per_gene_h2, avg_per_gene_h2_se = jacknife_mean_and_se(per_gene_h2)
+
+	# Print to output
+	t = open(output_file,'w')
+	t.write('genetic_element_name\tper_genetic_element_h2\tper_genetic_element_h2_se\n')
+	t.write('variant\t' + str(avg_per_snp_h2) + '\t' + str(avg_per_snp_h2_se) + '\n')
+	t.write('gene\t' + str(avg_per_gene_h2) + '\t' + str(avg_per_gene_h2_se) + '\n')
+	t.close()
+	return
+
+
 def print_organized_h2_mediated(output_file_name, h2_med, h2_med_se):
 	t = open(output_file_name,'w')
 	t.write('h2_med\th2_med_se\n')
@@ -177,10 +267,17 @@ eqtl_start_index = np.min(eqtl_annotations)
 # Jacknife expression mediated h2
 h2_med, h2_med_se = extract_expression_mediated_h2(jacknifed_taus, eqtl_start_index-1, m_vec)
 h2_5_50_med, h2_5_50_med_se = extract_expression_mediated_h2(jacknifed_taus, eqtl_start_index-1, m_5_50_vec)
-
 print_organized_h2_mediated(sldsc_output_root + 'h2_med.txt', h2_med, h2_med_se)
 print_organized_h2_mediated(sldsc_output_root + 'h2_5_50_med.txt', h2_5_50_med, h2_5_50_med_se)
 
+
+# Compute average per-snp and per-gene h2
+print_average_per_snp_and_per_gene_h2(jacknifed_taus, eqtl_start_index-1, m_vec, sldsc_output_root + 'avg_per_snp_and_gene_h2.txt')
+print_average_per_snp_and_per_gene_h2(jacknifed_taus, eqtl_start_index-1, m_5_50_vec, sldsc_output_root + 'avg_per_snp_and_gene_h2_5_50.txt')
+
+# Compute average per-snp and per-gene-tissue h2
+print_average_per_snp_and_per_gene_tissue_h2(jacknifed_taus, eqtl_start_index-1, m_vec, sldsc_output_root + 'avg_per_snp_and_gene_tissue_h2.txt', anno_names[1:])
+print_average_per_snp_and_per_gene_tissue_h2(jacknifed_taus, eqtl_start_index-1, m_5_50_vec, sldsc_output_root + 'avg_per_snp_and_gene_tissue_h2_5_50.txt', anno_names[1:])
 
 # TEMP HACK
 #jacknifed_tau_mean2 = np.loadtxt(sldsc_output_root + 'coef_estimate.txt')
@@ -217,23 +314,21 @@ for reg_param in [5e-1]:
 
 
 	non_eqtl_annotations_include_intercept = np.hstack([non_eqtl_annotations])
-	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(max_iter=10000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
+	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(max_iter=20000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
 	sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=non_eqtl_annotations_include_intercept)
 	model_beta_mu = sparse_sldsc_obj.beta_mu
 	model_beta_var = np.diag(sparse_sldsc_obj.beta_cov)
-	#print_organized_summary_file(sldsc_output_root + 'organized_' + str(reg_param) + '_sparse_ard_eqtl_coefficients_mv_update_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
-
-	#eqtl_coef = (model_beta_mu/annotation_sdev)[eqtl_annotations]
-	eqtl_coef=(model_beta_mu[eqtl_annotations])/annotation_sdev[eqtl_annotations]
-	print(np.sort(eqtl_coef))
-	print(anno_names[eqtl_annotations][np.argsort(eqtl_coef)])
-	pdb.set_trace()
+	print_organized_summary_file(sldsc_output_root + 'organized_' + str(reg_param) + '_sparse_ard_eqtl_coefficients_mv_update_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
+	# Compute average per-snp and per-gene-tissue h2 for sparse model
+	print_average_per_snp_and_per_gene_tissue_h2_for_sparse_model((model_beta_mu/annotation_sdev)[1:], eqtl_start_index-1, m_vec, sldsc_output_root + str(reg_param) + '_sparse_ard_eqtl_coefficients_mv_update_avg_per_snp_and_gene_tissue_h2.txt', anno_names[1:])
 
 	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(max_iter=20000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
 	sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=np.asarray([]))
 	model_beta_mu = sparse_sldsc_obj.beta_mu
 	model_beta_var = np.diag(sparse_sldsc_obj.beta_cov)
 	print_organized_summary_file(sldsc_output_root + 'organized_' + str(reg_param) + '_sparse_ard_all_coefficients_mv_update_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
+	# Compute average per-snp and per-gene-tissue h2 for sparse model
+	print_average_per_snp_and_per_gene_tissue_h2_for_sparse_model((model_beta_mu/annotation_sdev)[1:], eqtl_start_index-1, m_vec, sldsc_output_root + str(reg_param) + '_sparse_ard_all_coefficients_mv_update_avg_per_snp_and_gene_tissue_h2.txt', anno_names[1:])
 
 
 

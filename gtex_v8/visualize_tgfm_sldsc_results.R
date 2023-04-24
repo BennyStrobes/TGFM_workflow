@@ -414,14 +414,14 @@ trait_names <- as.character(trait_df$study_name)
 ## 2. component_gene vs cis_heritable_gene
 ## 3. Annotation models: 'genotype_intercept', 'baseline_no_qtl' 'baselineLD_no_qtl' 
 
+if (FALSE) {
 
 ############################################
 # Total expression mediated h2 across traits
 #############################################
-if (FALSE) {
 # Load in data
-tissue_versions <- c("all_tissues", "non_sex_tissues")
-gene_versions <- c("component_gene", "cis_heritable_gene")
+tissue_versions <- c("no_testis")
+gene_versions <- c("component_gene")
 annotation_versions <- c("genotype_intercept", "baseline_no_qtl", "LDanno_only", "baselineLD_no_qtl")
 all_trait_names <- c(trait_names, "pigment_HAIR", "body_BALDING1", "bmd_HEEL_TSCOREz")
 total_expression_mediated_h2_df <- load_in_total_expression_mediated_h2_df(all_trait_names, tissue_versions, gene_versions, annotation_versions, tgfm_sldsc_results_dir)
@@ -461,18 +461,17 @@ for (annotation_version_iter in 1:length(annotation_versions)) {
 
 
 
-
 ############################################
 # Per-tissue tau estimates
 #############################################
 # Load in data
-tissue_versions <- c("all_tissues", "non_sex_tissues")
-gene_versions <- c("component_gene", "cis_heritable_gene")
+tissue_versions <- c("no_testis")
+gene_versions <- c("component_gene")
 annotation_versions <- c("genotype_intercept", "baseline_no_qtl", "baselineLD_no_qtl")
 gene_tau_df <- load_in_per_tissue_tau_df(trait_names, tissue_versions, gene_versions, annotation_versions, tgfm_sldsc_results_dir)
 
 
-subset_df <- gene_tau_df[as.character(gene_tau_df$tissue_version)=="non_sex_tissues",]
+subset_df <- gene_tau_df[as.character(gene_tau_df$tissue_version)=="no_testis",]
 subset_df <- subset_df[as.character(subset_df$gene_version)=="component_gene",]
 subset_df <- subset_df[as.character(subset_df$annotation_model)=="baseline_no_qtl",]
 
@@ -505,7 +504,7 @@ for (tissue_version_iter in 1:length(tissue_versions)) {
 }
 
 # Make barplot showing per-tissue tau stratefied by different gene and tissue models for (seperate for each other parameters and traits)
-tissue_version <- "non_sex_tissues"
+tissue_version <- "no_testis"
 for (annotation_version_iter in 1:length(annotation_versions)) {
 	for (trait_iter in 1:length(trait_names)) {
 		annotation_version <- annotation_versions[annotation_version_iter]
@@ -527,10 +526,10 @@ for (annotation_version_iter in 1:length(annotation_versions)) {
 
 
 models <- c("ard_all_coefficients_mv_update", "ard_eqtl_coefficients_mv_update")
-regularization_weights <- c("0.1","0.5", "1.0")
+regularization_weights <- c("0.5")
 annotation_version <- "baseline_no_qtl"
 gene_version <- "component_gene"
-tissue_version <- "non_sex_tissues"
+tissue_version <- "no_testis"
 
 
 for (trait_iter in 1:length(trait_names)) {
@@ -550,20 +549,18 @@ for (trait_iter in 1:length(trait_names)) {
 }
 
 
-}
+
 
 # Extract trait names
 trait_df <- read.table(independent_trait_names_file, header=TRUE, sep="\t")
 trait_names <- as.character(trait_df$study_name)
 
-tissue_versions <- c("non_sex_tissues")
-gene_versions <- c( "cis_heritable_gene")
+tissue_versions <- c("no_testis")
+gene_versions <- c( "component_gene")
 annotation_versions <- c( "baseline_no_qtl")
 gene_tau_df <- load_in_per_tissue_tau_df(trait_names, tissue_versions, gene_versions, annotation_versions, tgfm_sldsc_results_dir)
 
-
-
-tissue_version <- "non_sex_tissues"
+tissue_version <- "no_testis"
 for (annotation_version_iter in 1:length(annotation_versions)) {
 	for (trait_iter in 1:length(trait_names)) {
 		annotation_version <- annotation_versions[annotation_version_iter]
@@ -581,17 +578,14 @@ for (annotation_version_iter in 1:length(annotation_versions)) {
 	}
 }
 
-
-
-
+}
 
 if (FALSE) {
 ############################################
 # Per-tissue tau estimates for single model 
-
 #############################################
 # Load in data for sparse modell
-tissue_version <- "non_sex_tissues"
+tissue_version <- "no_testis"
 gene_version <- "component_gene"
 annotation_version <- "baseline_no_qtl"
 reg_param <- "0.5"
@@ -602,7 +596,7 @@ tau_heatmap <- make_coef_heatmap(sparse_gene_tau_df) + theme(legend.position="ri
 output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_sparse_coef_heatmap_", tissue_version, "_", gene_version, "_", annotation_version, "_", reg_param,".pdf")
 ggsave(tau_heatmap, file=output_file, width=8.0, height=7.5, units="in")	
 
-tissue_version <- "all_tissues"
+tissue_version <- "no_testis"
 gene_version <- "component_gene"
 annotation_version <- "baseline_no_qtl"
 reg_param <- "0.5"
@@ -612,31 +606,6 @@ sparse_gene_tau_df <- load_in_per_tissue_sparse_tau_df(trait_names, tissue_versi
 tau_heatmap <- make_coef_heatmap(sparse_gene_tau_df) + theme(legend.position="right")
 output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_sparse_coef_heatmap_", tissue_version, "_", gene_version, "_", annotation_version, "_", reg_param,".pdf")
 ggsave(tau_heatmap, file=output_file, width=8.0, height=7.5, units="in")	
-
-
-# Load in data for sparse modell
-tissue_version <- "non_sex_tissues"
-gene_version <- "component_gene"
-annotation_version <- "baselineLD_no_qtl"
-reg_param <- "0.5"
-sparse_model_name <- "ard_eqtl_coefficients_mv_update"
-sparse_gene_tau_df <- load_in_per_tissue_sparse_tau_df(trait_names, tissue_version, gene_version, annotation_version, reg_param, sparse_model_name, tgfm_sldsc_results_dir)
-
-tau_heatmap <- make_coef_heatmap(sparse_gene_tau_df) + theme(legend.position="right")
-output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_sparse_coef_heatmap_", tissue_version, "_", gene_version, "_", annotation_version, "_", reg_param,".pdf")
-ggsave(tau_heatmap, file=output_file, width=8.0, height=7.5, units="in")	
-
-tissue_version <- "all_tissues"
-gene_version <- "component_gene"
-annotation_version <- "baselineLD_no_qtl"
-reg_param <- "0.5"
-sparse_model_name <- "ard_eqtl_coefficients_mv_update"
-sparse_gene_tau_df <- load_in_per_tissue_sparse_tau_df(trait_names, tissue_version, gene_version, annotation_version, reg_param, sparse_model_name, tgfm_sldsc_results_dir)
-
-tau_heatmap <- make_coef_heatmap(sparse_gene_tau_df) + theme(legend.position="right")
-output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_sparse_coef_heatmap_", tissue_version, "_", gene_version, "_", annotation_version, "_", reg_param,".pdf")
-ggsave(tau_heatmap, file=output_file, width=8.0, height=7.5, units="in")	
-
 
 
 
@@ -644,13 +613,13 @@ ggsave(tau_heatmap, file=output_file, width=8.0, height=7.5, units="in")
 
 #############################################
 # Load in data for non-sparse modell
-tissue_versions <- c("all_tissues", "non_sex_tissues")
-gene_versions <- c("component_gene", "cis_heritable_gene")
+tissue_versions <- c("no_testis")
+gene_versions <- c("component_gene")
 annotation_versions <- c("genotype_intercept", "baseline_no_qtl", "baselineLD_no_qtl")
 gene_tau_df <- load_in_per_tissue_tau_df(trait_names, tissue_versions, gene_versions, annotation_versions, tgfm_sldsc_results_dir)
 
 # Filter to single model
-tissue_version <- "non_sex_tissues"
+tissue_version <- "no_testis"
 gene_version <- "component_gene"
 annotation_version <- "baseline_no_qtl"
 gene_tau_df2 <- gene_tau_df[as.character(gene_tau_df$tissue_version)==tissue_version,]
@@ -665,9 +634,23 @@ ggsave(z_score_heatmap, file=output_file, width=7.2, height=7.5, units="in")
 
 
 # Filter to single model
-tissue_version <- "all_tissues"
+tissue_version <- "no_testis"
 gene_version <- "component_gene"
-annotation_version <- "baseline_no_qtl"
+annotation_version <- "baselineLD_no_qtl"
+gene_tau_df2 <- gene_tau_df[as.character(gene_tau_df$tissue_version)==tissue_version,]
+gene_tau_df2 <- gene_tau_df2[as.character(gene_tau_df2$gene_version)==gene_version,]
+gene_tau_df2 <- gene_tau_df2[as.character(gene_tau_df2$annotation_model)==annotation_version,]
+
+
+# Make heatmap showing z-scores of multivariable approach across traits
+z_score_heatmap <- make_coef_z_score_heatmap(gene_tau_df2)
+output_file <- paste0(visualize_tgfm_sldsc_dir, "tgfm_sldsc_coef_z_score_heatmap_", tissue_version, "_", gene_version, "_", annotation_version,".pdf")
+ggsave(z_score_heatmap, file=output_file, width=7.2, height=7.5, units="in")		
+
+# Filter to single model
+tissue_version <- "no_testis"
+gene_version <- "component_gene"
+annotation_version <- "genotype_intercept"
 gene_tau_df2 <- gene_tau_df[as.character(gene_tau_df$tissue_version)==tissue_version,]
 gene_tau_df2 <- gene_tau_df2[as.character(gene_tau_df2$gene_version)==gene_version,]
 gene_tau_df2 <- gene_tau_df2[as.character(gene_tau_df2$annotation_model)==annotation_version,]
@@ -681,6 +664,67 @@ ggsave(z_score_heatmap, file=output_file, width=7.2, height=7.5, units="in")
 
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

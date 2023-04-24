@@ -706,9 +706,9 @@ for line in f:
 	# Reference Genotype
 	ref_geno_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_ref_1kg_genotype.txt'
 	np.savetxt(ref_geno_file, gene_reference_genotype[:, valid_window_indices], fmt="%s", delimiter='\t')
-	# In sample genotype
-	in_sample_ld_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_ukbb_in_sample_ld.txt'
-	np.savetxt(in_sample_ld_file, ukbb_in_sample_ld_mat, fmt="%s", delimiter='\t')
+	# In sample LD
+	in_sample_ld_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_ukbb_in_sample_ld.npy'
+	np.save(in_sample_ld_file, ukbb_in_sample_ld_mat)
 	# Sample sizes
 	sample_size_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_study_sample_sizes.txt'
 	np.savetxt(sample_size_file, window_sample_sizes, fmt="%s", delimiter='\t')

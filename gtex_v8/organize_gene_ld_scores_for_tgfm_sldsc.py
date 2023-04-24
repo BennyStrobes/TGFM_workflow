@@ -299,12 +299,13 @@ pseudotissue_names = get_pseudotissue_names(gtex_pseudotissue_file, tissue_versi
 n_genes_per_chromosome_per_tissue = get_n_genes_per_chromosome_per_tissue(pseudotissue_names, gtex_susie_gene_models_dir, gene_type)
 
 # Generate gene weights files
+'''
 variant_model = 'baselineLD_no_qtl'  # Simply using this to get rs-ids (could also use baseline or intercept)
 gene_model ='pmces_gene_weights'
 for chrom_num in range(1,23):
 	print(chrom_num)
 	make_gene_weight_input_file(chrom_num, pseudotissue_names, variant_model, gene_model, preprocessed_tgfm_sldsc_data_dir, gene_type, tissue_version)
-
+'''
 
 # Various iterations to run over
 #variant_models = ['baselineLD_no_qtl']

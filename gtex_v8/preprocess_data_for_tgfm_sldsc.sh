@@ -25,7 +25,7 @@ num_chrom="22"
 
 for chrom_num in $(seq 1 $(($num_chrom))); do 
 	echo $chrom_num
-
+	if false; then
 	##################################
 	# Create variant annotation files
 	###################################
@@ -98,6 +98,26 @@ for chrom_num in $(seq 1 $(($num_chrom))); do
 		--annot ${preprocessed_tgfm_sldsc_data_dir}LDanno_only.${chrom_num}.annot\
 		--out ${preprocessed_tgfm_sldsc_data_dir}LDanno_only.${chrom_num}\
 		--print-snps ${hapmap3_rsid_file}
+
+	fi
+
+	source ~/.bash_profile
+	# Filter genotype data to just regression snps in 1KG
+	plink2 --bfile ${ref_1kg_genotype_dir}"1000G.EUR.hg38."${chrom_num} --extract ${hapmap3_rsid_file} --threads 1 --make-bed --keep-allele-order --out ${preprocessed_tgfm_sldsc_data_dir}"_100G_regression_snps_only."${chrom_num}
+	# Create regression snp weights
+	source /n/groups/price/ben/environments/sldsc/bin/activate
+	module load python/2.7.12
+	python ${ldsc_code_dir}ldsc.py\
+		--l2\
+		--bfile ${preprocessed_tgfm_sldsc_data_dir}"_100G_regression_snps_only."${chrom_num}\
+		--ld-wind-cm 1\
+		--out ${preprocessed_tgfm_sldsc_data_dir}"regression_weights".${chrom_num}\
+		--print-snps ${hapmap3_rsid_file}
+
+	# Delete uncessary plink file
+	rm ${preprocessed_tgfm_sldsc_data_dir}"_100G_regression_snps_only."${chrom_num}*
+
+
 done
 
 

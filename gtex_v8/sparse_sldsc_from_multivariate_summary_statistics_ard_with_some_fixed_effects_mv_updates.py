@@ -68,7 +68,7 @@ class SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(object):
 			self.convergence_tracker.append(diff)
 			self.prev_beta_mu = np.copy(self.beta_mu)
 			self.iter = self.iter + 1
-			print(diff)
+			#print(diff)
 			#if diff <= self.convergence_thresh:
 				#self.converged = True
 				#break
