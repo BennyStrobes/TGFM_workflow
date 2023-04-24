@@ -12,7 +12,7 @@ import gzip
 
 
 
-def get_pseudotissue_names(gtex_pseudotissue_file):
+def get_pseudotissue_names(gtex_pseudotissue_file, remove_testis=False):
 	f = open(gtex_pseudotissue_file)
 	arr = []
 	head_count = 0
@@ -21,6 +21,8 @@ def get_pseudotissue_names(gtex_pseudotissue_file):
 		data = line.split('\t')
 		if head_count == 0:
 			head_count = head_count + 1
+			continue
+		if remove_testis and data[0] == 'Testis':
 			continue
 		arr.append(data[0])
 	f.close()
@@ -955,6 +957,117 @@ def create_mapping_from_short_variant_name_to_annotation_vec(used_chrom_arr, ann
 			dicti_mapping[short_variant_name] = annotation_vec
 	return dicti_mapping
 
+def extract_uniform_log_prior_probabilities(gene_names, variant_names, study_names, tgfm_sldsc_results_dir):
+	# General info
+	n_genes = len(gene_names)
+	n_variants = len(variant_names)
+	n_studies = len(study_names)
+
+	# Initialize prior mats
+	gene_prior = np.zeros((n_studies, n_genes))
+	variant_prior = np.zeros((n_studies, n_variants))
+
+	# Calculate prior prob for each element under uniform prior
+	prior_prob = 1.0/(n_genes + n_variants)
+
+	gene_prior = gene_prior + prior_prob
+	variant_prior = variant_prior + prior_prob
+
+	return np.log(gene_prior), np.log(variant_prior)
+
+def extract_sparse_variant_gene_tissue_log_prior_probabilities(gene_names, variant_names, study_names, tgfm_sldsc_results_dir):
+	# General info
+	n_genes = len(gene_names)
+	n_variants = len(variant_names)
+	n_studies = len(study_names)
+
+	# Initialize prior mats
+	gene_prior = np.zeros((n_studies, n_genes))
+	variant_prior = np.zeros((n_studies, n_variants))
+
+	for study_iter, study_name in enumerate(study_names):
+		# Extract per gene and per variant h2
+		tglr_results_file = tgfm_sldsc_results_dir + study_name + '_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_0.5_sparse_ard_eqtl_coefficients_mv_update_avg_per_snp_and_gene_tissue_h2.txt'
+		tmp = np.loadtxt(tglr_results_file,dtype=str,delimiter='\t')
+
+		per_variant_h2 = float(tmp[1,1])
+		per_gene_tissue_h2 = tmp[2:,1].astype(float)
+		tissue_names = tmp[2:,0]
+		tissue_to_gene_h2 = {}
+
+		# Deal with case where estimated per element h2 is < 0
+		if per_variant_h2 <= 1e-15:
+			per_variant_h2 = 1e-15
+		per_gene_tissue_h2[per_gene_tissue_h2 <= 1e-15] = 1e-15
+
+		# create mapping from tissue to gene
+		for tissue_iter, tissue_name in enumerate(tissue_names):
+			tissue_to_gene_h2[tissue_name] = per_gene_tissue_h2[tissue_iter]
+
+
+		# Fill in genetic elements h2s
+		gene_h2s = np.zeros(n_genes)
+		variant_h2s = np.zeros(n_variants) + per_variant_h2
+
+		for gene_iter, gene_name in enumerate(gene_names):
+			tissue_name = '_'.join(gene_name.split('_')[1:])
+			gene_h2s[gene_iter] = tissue_to_gene_h2[tissue_name]
+
+		# Calculate h2 from region (sum of element h2s)
+		region_h2 = np.sum(gene_h2s) + np.sum(variant_h2s)
+
+
+		# Normalize to get probabilities
+		gene_probs = gene_h2s/region_h2
+		variant_probs = variant_h2s/region_h2
+
+		# Add to matrix
+		gene_prior[study_iter,:] = gene_probs
+		variant_prior[study_iter,:] = variant_probs
+	return np.log(gene_prior), np.log(variant_prior)
+
+
+def extract_variant_gene_log_prior_probabilities(gene_names, variant_names, study_names, tgfm_sldsc_results_dir):
+	# General info
+	n_genes = len(gene_names)
+	n_variants = len(variant_names)
+	n_studies = len(study_names)
+
+	# Initialize prior mats
+	gene_prior = np.zeros((n_studies, n_genes))
+	variant_prior = np.zeros((n_studies, n_variants))
+
+	for study_iter, study_name in enumerate(study_names):
+		# Extract per gene and per variant h2
+		tglr_results_file = tgfm_sldsc_results_dir + study_name + '_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_avg_per_snp_and_gene_h2.txt'
+		tmp = np.loadtxt(tglr_results_file,dtype=str,delimiter='\t')
+		per_variant_h2 = float(tmp[1,1])
+		per_gene_h2 = float(tmp[2,1])
+		# Deal with case where estimated per element h2 is < 0
+		if per_variant_h2 <= 1e-15:
+			per_variant_h2 = 1e-15
+		if per_gene_h2 <= 1e-15:
+			per_gene_h2 = 1e-15
+
+		# Fill in genetic elements h2s
+		gene_h2s = np.zeros(n_genes) + per_gene_h2
+		variant_h2s = np.zeros(n_variants) + per_variant_h2
+
+		# Calculate h2 from region (sum of element h2s)
+		region_h2 = np.sum(gene_h2s) + np.sum(variant_h2s)
+
+
+		# Normalize to get probabilities
+		gene_probs = gene_h2s/region_h2
+		variant_probs = variant_h2s/region_h2
+
+		# Add to matrix
+		gene_prior[study_iter,:] = gene_probs
+		variant_prior[study_iter,:] = variant_probs
+
+	return np.log(gene_prior), np.log(variant_prior)
+
+
 
 ukkbb_window_summary_file = sys.argv[1]
 hapmap3_snpid_file = sys.argv[2]
@@ -965,6 +1078,7 @@ job_number = int(sys.argv[6])  # For parallelization purposes
 num_jobs = int(sys.argv[7])  # For parallelization purposes
 gene_type = sys.argv[8]
 annotation_dir = sys.argv[9]
+tgfm_sldsc_results_dir = sys.argv[10]
 
 # Number of bootstrap samples
 n_bs = 100
@@ -980,7 +1094,8 @@ ukbb_windows_parr = np.array_split(ukbb_windows, num_jobs)[job_number]
 print(ukbb_windows_parr.shape)
 
 # Get array of pseudotissue names
-pseudotissues = get_pseudotissue_names(gtex_pseudotissue_file)
+pseudotissues = get_pseudotissue_names(gtex_pseudotissue_file, remove_testis=True)
+
 
 # Create dictionary from pseudotissue to array of gene models for that tissue
 tissue_to_gene_model_df = create_tissue_to_gene_model_df(pseudotissues, gtex_susie_gene_models_dir, gene_type)
@@ -1032,10 +1147,6 @@ for window_iter in range(num_windows):
 	# Load in LD
 	LD = np.load(window_variant_in_sample_ld_file)
 
-	# Load in ukbb ld
-	#kg_geno = np.loadtxt(window_1kg_genotype_file)
-	#kg_LD = np.corrcoef(np.transpose(kg_geno))
-
 	# Load variant names
 	window_variant_names = np.loadtxt(window_variant_id_file, dtype=str)
 
@@ -1047,19 +1158,8 @@ for window_iter in range(num_windows):
 	gwas_beta = np.loadtxt(window_gwas_beta_file)
 	gwas_beta_se = np.loadtxt(window_gwas_beta_se_file)
 
-	'''
-	# GONNA SAVE THIS FOR RUNTIME
-	# Standardize gwas summary statistics
-	gwas_beta_scaled = np.copy(gwas_beta)
-	gwas_beta_se_scaled = np.copy(gwas_beta_se)
-	for study_iter, study_name in enumerate(study_names):
-		print(study_iter)
-		study_sample_size = float(study_sample_sizes[study_iter])
-		beta_scaled, beta_se_scaled = convert_to_standardized_summary_statistics(gwas_beta[study_iter,:], gwas_beta_se[study_iter,:], study_sample_size, LD)
-	'''
 
 	# Organize TGFM trait agnostic input for single window
-	# ALSO PRIORs
 	tgfm_data_obj = organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, window_variant_names, LD, pseudotissues, tissue_to_gene_model_df, short_variant_name_to_annotation_vec, n_bs)
 
 	# Save TGFM input data object
@@ -1068,12 +1168,30 @@ for window_iter in range(num_windows):
 	pickle.dump(tgfm_data_obj, g)
 	g.close()
 
+	##***********## TEMP #####****###
+	#g = open(pkl_file, "rb")
+	#tgfm_data_obj = pickle.load(g)
+	#g.close()
+	##***********## TEMP #####****###
+
+
+	# Extract log-prior probabilities of each element being causal
+	uniform_ln_prior_gene, uniform_ln_prior_variant = extract_uniform_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names, tgfm_sldsc_results_dir)
+	variant_gene_ln_prior_gene, variant_gene_ln_prior_variant = extract_variant_gene_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names, tgfm_sldsc_results_dir)
+	sparse_variant_gene_tissue_ln_prior_gene, sparse_variant_gene_tissue_ln_prior_variant = extract_sparse_variant_gene_tissue_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names, tgfm_sldsc_results_dir)
+
 	# Add trait data
 	tgfm_trait_data = {}
 	tgfm_trait_data['gwas_beta'] = gwas_beta
 	tgfm_trait_data['gwas_beta_se'] = gwas_beta_se
 	tgfm_trait_data['gwas_sample_size'] = study_sample_sizes
 	tgfm_trait_data['gwas_study_names'] = study_names
+	tgfm_trait_data['uniform_ln_prior_gene'] = uniform_ln_prior_gene
+	tgfm_trait_data['uniform_ln_prior_variant'] = uniform_ln_prior_variant
+	tgfm_trait_data['variant_gene_ln_prior_gene'] = variant_gene_ln_prior_gene
+	tgfm_trait_data['variant_gene_ln_prior_variant'] = variant_gene_ln_prior_variant
+	tgfm_trait_data['sparse_variant_gene_tissue_ln_prior_gene'] = sparse_variant_gene_tissue_ln_prior_gene
+	tgfm_trait_data['sparse_variant_gene_tissue_ln_prior_variant'] = sparse_variant_gene_tissue_ln_prior_variant
 
 	# Save TGFM input data object
 	trait_pkl_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ukbb_data_obj.pkl'
@@ -1084,44 +1202,6 @@ for window_iter in range(num_windows):
 	t.write(window_name + '\t' + window_variant_in_sample_ld_file + '\t' + pkl_file + '\t' + trait_pkl_file + '\n')
 	t.flush()
 
-	# Extract RSS-likelihood formatted data (standardized eQTLs)
-	#rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
-	#standardize=True
-	#extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
-
-
-
-	'''
-	# Extract ld score annotation file
-	window_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file.txt'
-	window_unstandardized_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file.txt'
-	#extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, window_unstandardized_ld_score_annotation_file, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, pseudotissues)
-
-	# Extract ld score annotation file component only gene models
-	window_ld_score_annotation_file_component_only_gene_model = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file_component_only_gene_model.txt'
-	window_unstandardized_ld_score_annotation_file_component_only_gene_model = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file_component_only_gene_model.txt'
-	extract_tgfm_ld_score_annotation_file_component_only_gene_model(window_ld_score_annotation_file_component_only_gene_model, window_unstandardized_ld_score_annotation_file_component_only_gene_model, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, pseudotissues)
-
-	# Extract ld score annotation file component only gene models
-	window_ld_score_annotation_file_point_est_gene_model = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file_point_est_gene_model.txt'
-	window_unstandardized_ld_score_annotation_file_point_est_gene_model = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file_point_est_gene_model.txt'
-	extract_tgfm_ld_score_annotation_file_point_estimate_gene_model(window_ld_score_annotation_file_point_est_gene_model, window_unstandardized_ld_score_annotation_file_point_est_gene_model, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, pseudotissues)
-
-
-
-
-	# Extract RSS-likelihood formatted data
-	rss_likelihood_data_output_root = preprocessed_tgfm_data_dir + window_name + '_rss_likelihood_'
-	standardize=False
-	extract_rss_likelihood_data_for_multiple_traits(window_name, tgfm_trait_agnostic_obj, gwas_beta, gwas_beta_se, study_names, study_sample_sizes, rss_likelihood_data_output_root, standardize)
-
-
-	# Extract ld score annotation with 1kg LD file
-	tgfm_trait_agnostic_obj['reference_ld'] = kg_LD
-	window_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_annotation_file_1kg_ld.txt'
-	window_unstandardized_ld_score_annotation_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ldscore_not_standardized_annotation_file_1kg_ld.txt'
-	extract_tgfm_ld_score_annotation_file(window_ld_score_annotation_file, window_unstandardized_ld_score_annotation_file, tgfm_trait_agnostic_obj, regression_snp_indices, hapmap3_snp_indices, pseudotissues)
-	'''
 
 t.close()
 
