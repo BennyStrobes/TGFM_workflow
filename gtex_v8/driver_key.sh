@@ -20,6 +20,8 @@ liftover_directory="/n/groups/price/ben/tools/liftOver_x86/"
 
 # File containing gtex tissues to do analysis on and their sample size
 gtex_pseudotissue_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_info.txt"
+# File containing gtex pseudotissues and their assigned tissue category
+gtex_pseudotissue_category_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_categories.txt"
 # File containing gtex tissue info
 gtex_tissue_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/tissue_info.txt"
 
@@ -278,12 +280,17 @@ trait_name="body_WHRadjBMIz"
 sh run_tgfm_sldsc.sh $preprocessed_tgfm_sldsc_data_dir $full_sumstat_dir $ldsc_code_dir $sldsc_h38_weights_dir $ref_1kg_genotype_dir $tgfm_sldsc_results_dir $trait_name $mod_ldsc_code_dir $quasi_independent_ld_blocks_hg38_dir
 fi
 
-
+########################################
+# Visualize TGLR results
+########################################
+if false; then
+source ~/.bash_profile
+module load R/3.5.1
+Rscript visualize_tgfm_sldsc_results.R $independent_trait_names_file $tgfm_sldsc_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_sldsc_dir
+fi
 
 ########################################
 # Preprocess data for TGFM
-# NEED TO ADD:
-## 1. Prior probabilities
 ########################################
 # Number of parallel jobs
 num_jobs="100"
@@ -297,13 +304,17 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 done
 fi
 
+# Organize preprocessed TGFM results across parallel jobs
 if false; then
-job_number="0"
-sh preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type $preprocessed_tgfm_sldsc_data_dir $tgfm_sldsc_results_dir
+sh organize_processed_tgfm_input_data.sh $num_jobs $gene_type $preprocessed_tgfm_data_dir
 fi
+
+
+
 
 ########################################
 # Get number of genes and numbr of variants used in analysis
+######## CURRENTLY SKIPPED RUNNING******* 
 ########################################
 if false; then
 python3 get_number_of_genes_and_number_of_variants_used.py $ukkbb_window_summary_file $gtex_susie_gene_models_dir $gtex_pseudotissue_file $num_genes_and_variants_dir
@@ -312,30 +323,118 @@ fi
 ########################################
 # Run TGFM
 ########################################
+gene_type="component_gene"
+num_jobs="50"
+job_number="0"
+
+
+if false; then
+trait_name="blood_MONOCYTE_COUNT"
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+done
+
+
+trait_name="biochemistry_Cholesterol"
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+done
+fi
+
+
+if false; then
+trait_name="bp_DIASTOLICadjMEDz"
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+done
+
+trait_name="body_BMIz"
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+done
+
+trait_name="body_WHRadjBMIz"
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+done
+
+trait_name="blood_MEAN_PLATELET_VOL"
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+done
+fi
+
+if false; then
+trait_name="biochemistry_VitaminD"
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+done
+
+trait_name="blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT"
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+done
+
+trait_name="lung_FEV1FVCzSMOKE"
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+done
+fi
+
+# Organize TGFM results across parallel runs
+if false; then
+sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type}
+fi
+
+
+
+
+
+
+
+
+
+
+
+########################################
+# Run TGFM (old)
+########################################
 gene_type="cis_heritable_genes"
 independent_trait_names_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt"
 num_jobs="5"
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt" | while read trait_name study_file samp_size h2; do
 for job_number in $(seq 0 $(($num_jobs-1))); do
+	if false; then
 	sbatch run_tgfm.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $tgfm_sldsc_results_dir $samp_size $gene_type $tgfm_results_dir $job_number $num_jobs
+	fi
 done
 done
 fi
-
 # Organize TGFM results across parallel runs
 if false; then
 sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt"
 fi
 
-########################################
-# Visualize results
-########################################
-if false; then
-source ~/.bash_profile
-module load R/3.5.1
-Rscript visualize_tgfm_sldsc_results.R $independent_trait_names_file $tgfm_sldsc_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_sldsc_dir
-fi
+
 
 if false; then
 Rscript visualize_tgfm_results.R $independent_trait_names_file $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_dir
