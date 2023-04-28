@@ -339,6 +339,14 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 		pdb.set_trace()
 	return tgfm_obj
 
+def correct_ld_mat_for_af_standardization(ld_mat):
+	n_snps = ld_mat.shape[0]
+	correction = 1.0/np.diag(ld_mat)
+	for snp_iter in range(n_snps):
+		ld_mat[:,snp_iter] = ld_mat[:,snp_iter]*np.sqrt(correction[snp_iter])
+		ld_mat[snp_iter,:] = ld_mat[snp_iter,:]*np.sqrt(correction[snp_iter])
+	return ld_mat
+
 
 # Convert gwas summary statistics to *STANDARDIZED* effect sizes
 # Following SuSiE code found in these two places:
@@ -505,6 +513,7 @@ for window_iter in range(n_windows):
 	#tgfm_data['gene_eqtl_pmces'] = standardize_eqtl_pmces_old(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])
 
 	# Standardize gwas summary statistics
+	#ld_mat = correct_ld_mat_for_af_standardization(ld_mat)
 	gwas_beta_scaled, gwas_beta_se_scaled = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, float(gwas_sample_size), ld_mat)
 
 	# Extract full ld between genes, variants, and gene-variants

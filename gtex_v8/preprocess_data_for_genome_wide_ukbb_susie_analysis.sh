@@ -35,7 +35,8 @@ fi
 
 ##################################################
 # Generate processed input data for SuSiE for each window
-##################################################
+##################################################G
+
 if false; then
 for chrom_num in $(seq 21 22); do 
 	sbatch preprocess_ukbb_data_for_genome_wide_susie_analysis.sh $chrom_num $genome_wide_window_file $ukbb_sumstats_hg38_dir $gtex_genotype_dir $ref_1kg_genotype_dir $ukbb_preprocessed_for_genome_wide_susie_dir $ukbb_in_sample_ld_dir $ukbb_in_sample_genotype_dir
@@ -52,6 +53,5 @@ fi
 ##################################################
 # Concatenate window summary files across chromosomes
 ##################################################
-if false; then
 python3 merge_susie_input_window_file_across_chromosomes.py $ukbb_preprocessed_for_genome_wide_susie_dir
-fi
+

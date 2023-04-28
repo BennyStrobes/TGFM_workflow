@@ -156,10 +156,10 @@ def create_predicted_causal_effect_size_file(cs_input_file, pred_causal_effect_s
 	print(np.mean(probs))
 
 
-def generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per_gene_pip_summary_file):
+def generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per_gene_pip_summary_file, tissue_name_to_broad_category):
 	f = open(concatenated_pip_summary_file)
 	t = open(per_gene_pip_summary_file,'w')
-	t.write('gene_tissue_name\tgene_name\ttissue_name\twindow_name\tPIP\n')
+	t.write('gene_tissue_name\tgene_name\ttissue_name\ttissue_visualization_category\twindow_name\tPIP\n')
 	head_count = 0
 	for line in f:
 		line = line.rstrip()
@@ -177,7 +177,7 @@ def generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per
 				continue
 			gene_name = ele_name.split('_')[0]
 			tissue_name = '_'.join(ele_name.split('_')[1:])
-			t.write(ele_name + '\t' + gene_name + '\t' + tissue_name + '\t' + window_name + '\t' + str(pips[ii]) + '\n')
+			t.write(ele_name + '\t' + gene_name + '\t' + tissue_name + '\t' + tissue_name_to_broad_category[tissue_name] + '\t' + window_name + '\t' + str(pips[ii]) + '\n')
 	f.close()
 	t.close()
 	return
@@ -309,7 +309,7 @@ def extract_tissue_pips_from_tgfm_pmces_obj(tgfm_results, tissue_names):
 
 def generate_per_tissue_category_pip_summary_file(concatenated_pip_summary_file, per_tissue_category_pip_summary_file, tissue_names,tissue_categories, tissue_category_to_tissue_names, file_stem, model_version, processed_tgfm_input_stem):
 	f = open(concatenated_pip_summary_file)
-	t = open(per_tissue_pip_summary_file,'w')
+	t = open(per_tissue_category_pip_summary_file,'w')
 	t.write('tissue_category_name\twindow_name\tPIP\n')
 	head_count = 0
 	for line in f:
@@ -345,13 +345,124 @@ def generate_per_tissue_category_pip_summary_file(concatenated_pip_summary_file,
 			pdb.set_trace()
 
 		for tt, tissue_cat_name in enumerate(tissue_categories):
-			t.write(tissue_cat_name + '\t' + window_name + '\t' + str(tissue_cat_pips[tt]) + '\t')
-			#if tissue_cat_pips[tt] > .5:
-				#print(tissue_cat_name + '\t' + str(tissue_cat_pips[tt]))
+			t.write(tissue_cat_name + '\t' + window_name + '\t' + str(tissue_cat_pips[tt]) + '\n')
+			if model_version.startswith('susie_sampler_'):
+				if tissue_cat_pips[tt] > .4:
+					print(tissue_cat_name + '\t' + str(tissue_cat_pips[tt]))
 	f.close()
 	t.close()
-	return	
+	return
 
+
+def fill_in_causal_effect_size_matrix(null_mat, bs_eqtls_pmces_sparse):
+	null_mat[bs_eqtls_pmces_sparse[:,0].astype(int), bs_eqtls_pmces_sparse[:,1].astype(int)] = bs_eqtls_pmces_sparse[:,2]
+	return null_mat
+
+def extract_extensive_per_gene_tissue_info_for_a_specific_high_sampler_tgfm_pip_gene(tgfm_results, gene_name, z_scores, sparse_eqtl_pmces,tgfm_data):
+	# Extract index corresponding to this gene
+	index_vec = np.where(tgfm_results['genes']==gene_name)[0]
+	if len(index_vec) != 1:
+		print('assumption eroorr')
+		pdb.set_trace()
+	gene_index = index_vec[0]
+
+	avg_component_pis = []
+	for component_iter in range(len(tgfm_results['alpha_phis'])):
+		avg_component_pi = np.mean(tgfm_results['alpha_phis'][component_iter][:, gene_index])
+		avg_component_pis.append(avg_component_pi)
+	avg_component_pis = np.asarray(avg_component_pis)
+	top_component = np.argmax(avg_component_pis)
+
+	gene_eqtl_pmces = np.zeros((len(tgfm_data['genes']), len(tgfm_data['variants'])))
+	twas_zs = []
+	for itera in range(len(sparse_eqtl_pmces)):
+		gene_eqtl_pmces = gene_eqtl_pmces*0.0
+		gene_eqtl_pmces = fill_in_causal_effect_size_matrix(gene_eqtl_pmces, sparse_eqtl_pmces[itera])
+		sampled_z = np.dot(z_scores, gene_eqtl_pmces[gene_index,:])
+		twas_zs.append(sampled_z)
+	twas_zs = np.asarray(twas_zs)
+
+	pip_distr = tgfm_results['alpha_pips'][:,gene_index]
+	pip_standard_dev = np.std(pip_distr)
+
+	lb = np.sort(pip_distr)[2]
+	ub = np.sort(pip_distr)[-3]
+
+	return top_component, np.mean(twas_zs), pip_standard_dev, lb, ub
+
+def extract_extensive_per_gene_tissue_info_for_a_specific_high_pmces_tgfm_pip_gene(tgfm_results, gene_name, z_scores, eqtl_pmces):
+	# Extract index corresponding to this gene
+	index_vec = np.where(tgfm_results['genes']==gene_name)[0]
+	if len(index_vec) != 1:
+		print('assumption eroorr')
+		pdb.set_trace()
+	gene_index = index_vec[0]
+
+	top_component = np.argmax(tgfm_results['alpha_phi'][:,gene_index])
+
+	twas_z = np.dot(eqtl_pmces[gene_index,:], z_scores)
+
+	pip_standard_dev = 0
+
+	gene_pip = tgfm_results['alpha_pip'][gene_index]
+
+	return top_component, twas_z, pip_standard_dev, gene_pip, gene_pip
+
+
+def generate_extensive_per_gene_tissue_pip_summary_file(per_gene_tissue_pip_summary_file, per_gene_tissue_high_pip_extensive_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem,pip_threshold, ukbb_preprocessed_for_genome_wide_susie_dir, trait_name, per_gene_tissue_high_pip_high_confidence_extensive_summary_file):
+
+	f = open(per_gene_tissue_pip_summary_file)
+	t2 = open(per_gene_tissue_high_pip_high_confidence_extensive_summary_file,'w')
+	t = open(per_gene_tissue_high_pip_extensive_summary_file,'w')
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			t.write(line + '\t' + 'component_mode\ttwas_z\tpip_standard_deviation\tpip_lb\tpip_ub\n')
+			t2.write(line + '\t' + 'component_mode\ttwas_z\tpip_standard_deviation\tpip_lb\tpip_ub\n')
+			continue
+		full_gene_name = data[0]
+		gene_name = data[1]
+		tissue_name = data[2]
+		tissue_category = data[3]
+		window_name = data[4]
+		pip = float(data[5])
+		if pip < pip_threshold:
+			continue
+		# Load in TGFM results pkl file for this window
+		window_pkl_file = file_stem + '_' + window_name + '_results.pkl'
+		# Load in tgfm results data
+		g = open(window_pkl_file, "rb")
+		tgfm_results = pickle.load(g)
+		g.close()
+
+		# Load in tgfm results data
+		g = open(processed_tgfm_input_stem + '_' + window_name + '_tgfm_trait_agnostic_input_data_obj.pkl', "rb")
+		tgfm_data = pickle.load(g)
+		g.close()
+		g = open(processed_tgfm_input_stem + '_' + window_name + '_tgfm_ukbb_data_obj.pkl', "rb")
+		tgfm_trait_data = pickle.load(g)
+		g.close()
+
+		# Get trait z-scores
+		trait_index = np.where(tgfm_trait_data['gwas_study_names']==trait_name)[0][0]
+		z_scores = tgfm_trait_data['gwas_beta'][trait_index,:]/tgfm_trait_data['gwas_beta_se'][trait_index,:]
+
+		if model_version.startswith('susie_pmces_'):
+			component_mode, twas_z, pip_standard_deviation, pip_lb, pip_ub = extract_extensive_per_gene_tissue_info_for_a_specific_high_pmces_tgfm_pip_gene(tgfm_results, full_gene_name, z_scores, tgfm_data['gene_eqtl_pmces'])
+		elif model_version.startswith('susie_sampler_'):
+			component_mode, twas_z, pip_standard_deviation, pip_lb, pip_ub = extract_extensive_per_gene_tissue_info_for_a_specific_high_sampler_tgfm_pip_gene(tgfm_results, full_gene_name, z_scores, tgfm_data['sparse_sampled_gene_eqtl_pmces'], tgfm_data)
+
+		t.write(line + '\t' + str(component_mode) + '\t' + str(twas_z) + '\t' + str(pip_standard_deviation) + '\t' + str(pip_lb) + '\t' + str(pip_ub) + '\n')
+		if pip_lb > .05:
+			t2.write(line + '\t' + str(component_mode) + '\t' + str(twas_z) + '\t' + str(pip_standard_deviation) + '\t' + str(pip_lb) + '\t' + str(pip_ub) + '\n')
+
+	f.close()
+	t.close()
+	t2.close()
+	return
 
 def generate_per_tissue_pip_summary_file(concatenated_pip_summary_file, per_tissue_pip_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem):
 	f = open(concatenated_pip_summary_file)
@@ -391,7 +502,7 @@ def generate_per_tissue_pip_summary_file(concatenated_pip_summary_file, per_tiss
 			pdb.set_trace()
 
 		for tt, tissue_name in enumerate(tissue_names):
-			t.write(tissue_name + '\t' + window_name + '\t' + str(tissue_pips[tt]) + '\t')
+			t.write(tissue_name + '\t' + window_name + '\t' + str(tissue_pips[tt]) + '\n')
 			#if tissue_pips[tt] > .5:
 				#print(tissue_name + '\t' + str(tissue_pips[tt]))
 
@@ -455,6 +566,7 @@ def generate_per_tissue_pip_summary_file_old(per_gene_pip_summary_file, pip_thre
 def create_mapping_from_tissue_category_to_tissue_names(gtex_pseudotissue_category_file,ignore_testis=False):
 	category_names = []
 	mapping = {}
+	mapping2 = {}
 	f = open(gtex_pseudotissue_category_file)
 	head_count = 0
 	for line in f:
@@ -464,9 +576,11 @@ def create_mapping_from_tissue_category_to_tissue_names(gtex_pseudotissue_catego
 			head_count = head_count + 1
 			continue
 		tissue_name = data[0]
-		category = data[-1]
+		category = data[-2]
+		broad_category = data[-1]
 		if tissue_name == 'Testis' and ignore_testis:
 			continue
+		mapping2[tissue_name] = broad_category
 		category_names.append(category)
 		if category not in mapping:
 			mapping[category] = []
@@ -478,8 +592,60 @@ def create_mapping_from_tissue_category_to_tissue_names(gtex_pseudotissue_catego
 	for category_name in category_names:
 		mapping[category_name] = np.asarray(mapping[category_name])
 
-	return category_names, mapping
+	return category_names, mapping, mapping2
 
+def correlate_number_of_high_pip_genes_with_per_tissue_sldsc_h2(tissue_names, per_gene_tissue_pip_summary_file, pip_threshold, sldsc_mediated_h2_file, per_tissue_sldsc_comparison_summary_file, tissue_name_to_broad_category):
+	tissue_name_to_pip_count = {}
+	tissue_name_to_h2 = {}
+	tissue_name_to_h2_lb = {}
+	tissue_name_to_h2_ub = {}
+	for tissue in tissue_names:
+		tissue_name_to_pip_count[tissue] = 0
+		tissue_name_to_h2[tissue] = 0
+		tissue_name_to_h2_lb[tissue] = 0
+		tissue_name_to_h2_ub[tissue] = 0
+	f = open(per_gene_tissue_pip_summary_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		tissue_name = data[2]
+		pip = float(data[5])
+		if pip < pip_threshold:
+			continue
+		tissue_name_to_pip_count[tissue_name] = tissue_name_to_pip_count[tissue_name] + pip
+	f.close()
+
+	f = open(sldsc_mediated_h2_file)
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if data[0] not in tissue_name_to_h2:
+			continue
+		tissue_name = data[0]
+		h2 = float(data[1])
+		h2_se = float(data[2])
+		h2_ub = h2 + 1.96*h2_se
+		h2_lb = h2 - 1.96*h2_se
+		tissue_name_to_h2[tissue_name] = h2
+		tissue_name_to_h2_lb[tissue_name] = h2_lb
+		tissue_name_to_h2_ub[tissue_name] = h2_ub
+	f.close()
+	t = open(per_tissue_sldsc_comparison_summary_file,'w')
+	t.write('tissue\ttissue_category\tn_tgfm_components\ttglr_mediated_h2\th2_ub\th2_lb\n')
+	comps = []
+	h2s = []
+	for tissue in tissue_names:
+		t.write(tissue + '\t' + str(tissue_name_to_broad_category[tissue]) + '\t' + str(tissue_name_to_pip_count[tissue]) + '\t' + str(tissue_name_to_h2[tissue]) + '\t' + str(tissue_name_to_h2_ub[tissue]) + '\t' + str(tissue_name_to_h2_lb[tissue]) + '\n')
+		comps.append(tissue_name_to_pip_count[tissue])
+		h2s.append(tissue_name_to_h2[tissue])
+	t.close()
+	comps = np.asarray(comps)
+	h2s = np.asarray(h2s)
+	return
 
 tgfm_results_dir = sys.argv[1]
 gene_type = sys.argv[2]
@@ -488,6 +654,8 @@ trait_names_file = sys.argv[4]
 gtex_pseudotissue_file = sys.argv[5]
 gtex_pseudotissue_category_file = sys.argv[6]
 processed_tgfm_input_stem = sys.argv[7]
+ukbb_preprocessed_for_genome_wide_susie_dir = sys.argv[8]
+tgfm_sldsc_results_dir = sys.argv[9]
 
 
 model_versions = ['susie_pmces_variant_gene', 'susie_sampler_variant_gene']
@@ -497,13 +665,84 @@ model_versions = ['susie_pmces_variant_gene', 'susie_sampler_variant_gene']
 tissue_names = extract_pseudotissue_names(gtex_pseudotissue_file, ignore_testis=True)
 
 # Create mapping from category to tissue names
-tissue_categories, tissue_category_to_tissue_names = create_mapping_from_tissue_category_to_tissue_names(gtex_pseudotissue_category_file, ignore_testis=True)
+tissue_categories, tissue_category_to_tissue_names, tissue_name_to_broad_category = create_mapping_from_tissue_category_to_tissue_names(gtex_pseudotissue_category_file, ignore_testis=True)
 
 # Extract trait names
 trait_names = extract_trait_names(trait_names_file)
 print(trait_names)
 
-valid_trait_names = {'biochemistry_Cholesterol':1, 'blood_MEAN_PLATELET_VOL':1, 'blood_MONOCYTE_COUNT':1, 'body_BMIz':1, 'body_WHRadjBMIz':1, 'bp_DIASTOLICadjMEDz':1}
+valid_trait_names = {'biochemistry_Cholesterol':1, 'blood_MEAN_PLATELET_VOL':1, 'blood_MONOCYTE_COUNT':1, 'body_BMIz':1, 'body_WHRadjBMIz':1, 'bp_DIASTOLICadjMEDz':1, 'biochemistry_VitaminD':1, 'blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT':1, 'lung_FEV1FVCzSMOKE':1}
+
+
+
+# Concatenate parrallelized results across runs for each trait
+for trait_name in trait_names:
+	print(trait_name)
+	if trait_name not in valid_trait_names:
+		continue
+	for model_version in model_versions:
+		###################################################
+		# Concatenate PIP summary file across parallel runs (one line for each window)
+		###################################################
+		file_stem = tgfm_results_dir + 'tgfm_results_' + trait_name + '_' + gene_type + '_' + model_version
+		suffix = 'tgfm_pip_summary.txt'
+		concatenated_pip_summary_file = file_stem + '_' + suffix
+		#concatenate_results_across_parallel_jobs(file_stem, suffix, num_jobs, concatenated_pip_summary_file)
+
+		###################################################
+		# Create gene-Tissue pip summary file
+		###################################################
+		per_gene_tissue_pip_summary_file = file_stem + '_tgfm_per_gene_tissue_pip_summary.txt'
+		#generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per_gene_tissue_pip_summary_file, tissue_name_to_broad_category)
+		
+		###################################################
+		# Extract nominal twas z and component-iter and PIP confidence intervals for high pip gene-tissue pair
+		###################################################
+		pip_threshold = .4
+		per_gene_tissue_high_pip_extensive_summary_file = file_stem + '_tgfm_per_high_pip_gene_tissue_extensive_summary.txt'
+		per_gene_tissue_high_pip_high_confidence_extensive_summary_file = file_stem + '_tgfm_per_high_pip_high_confidence_gene_tissue_extensive_summary.txt'
+		#generate_extensive_per_gene_tissue_pip_summary_file(per_gene_tissue_pip_summary_file, per_gene_tissue_high_pip_extensive_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem,pip_threshold, ukbb_preprocessed_for_genome_wide_susie_dir, trait_name, per_gene_tissue_high_pip_high_confidence_extensive_summary_file)
+
+
+		###################################################
+		# Correlate per tissue h2 with number of components identified in each tissue
+		###################################################
+		sldsc_mediated_h2_file = tgfm_sldsc_results_dir + trait_name + '_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_organized_mediated_h2_5_50.txt'
+		per_tissue_sldsc_comparison_summary_file = file_stem + '_tgfm_per_tissue_sldsc_comparison.txt'
+		pip_threshold = 0.2
+		#correlate_number_of_high_pip_genes_with_per_tissue_sldsc_h2(tissue_names, per_gene_tissue_pip_summary_file, pip_threshold, sldsc_mediated_h2_file, per_tissue_sldsc_comparison_summary_file, tissue_name_to_broad_category)
+
+
+
+		###################################################
+		# Create tissue pip summary file
+		###################################################
+		per_tissue_pip_summary_file = file_stem + '_tgfm_per_tissue_pip_summary.txt'
+		# generate_per_tissue_pip_summary_file(concatenated_pip_summary_file, per_tissue_pip_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem)
+
+
+		###################################################
+		# Create tissue-category pip summary file
+		###################################################
+		per_tissue_category_pip_summary_file = file_stem + '_tgfm_per_tissue_category_pip_summary.txt'
+		# generate_per_tissue_category_pip_summary_file(concatenated_pip_summary_file, per_tissue_category_pip_summary_file, tissue_names,tissue_categories, tissue_category_to_tissue_names, file_stem, model_version, processed_tgfm_input_stem)
+
+
+
+model_versions = ['susie_pmces_sparse_variant_gene_tissue', 'susie_sampler_sparse_variant_gene_tissue']
+
+
+#Extract tissue names
+tissue_names = extract_pseudotissue_names(gtex_pseudotissue_file, ignore_testis=True)
+
+# Create mapping from category to tissue names
+tissue_categories, tissue_category_to_tissue_names, tissue_name_to_broad_category = create_mapping_from_tissue_category_to_tissue_names(gtex_pseudotissue_category_file, ignore_testis=True)
+
+# Extract trait names
+trait_names = extract_trait_names(trait_names_file)
+print(trait_names)
+
+valid_trait_names = {'biochemistry_Cholesterol':1, 'blood_MEAN_PLATELET_VOL':1, 'blood_MONOCYTE_COUNT':1, 'body_BMIz':1, 'body_WHRadjBMIz':1, 'bp_DIASTOLICadjMEDz':1, 'biochemistry_VitaminD':1}
 
 
 
@@ -525,7 +764,25 @@ for trait_name in trait_names:
 		# Create gene-Tissue pip summary file
 		###################################################
 		per_gene_tissue_pip_summary_file = file_stem + '_tgfm_per_gene_tissue_pip_summary.txt'
-		generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per_gene_tissue_pip_summary_file)
+		generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per_gene_tissue_pip_summary_file, tissue_name_to_broad_category)
+		
+		###################################################
+		# Extract nominal twas z and component-iter and PIP confidence intervals for high pip gene-tissue pair
+		###################################################
+		pip_threshold = .4
+		per_gene_tissue_high_pip_extensive_summary_file = file_stem + '_tgfm_per_high_pip_gene_tissue_extensive_summary.txt'
+		per_gene_tissue_high_pip_high_confidence_extensive_summary_file = file_stem + '_tgfm_per_high_pip_high_confidence_gene_tissue_extensive_summary.txt'
+		generate_extensive_per_gene_tissue_pip_summary_file(per_gene_tissue_pip_summary_file, per_gene_tissue_high_pip_extensive_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem,pip_threshold, ukbb_preprocessed_for_genome_wide_susie_dir, trait_name, per_gene_tissue_high_pip_high_confidence_extensive_summary_file)
+
+
+		###################################################
+		# Correlate per tissue h2 with number of components identified in each tissue
+		###################################################
+		sldsc_mediated_h2_file = tgfm_sldsc_results_dir + trait_name + '_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_organized_mediated_h2_5_50.txt'
+		per_tissue_sldsc_comparison_summary_file = file_stem + '_tgfm_per_tissue_sldsc_comparison.txt'
+		pip_threshold = 0.2
+		correlate_number_of_high_pip_genes_with_per_tissue_sldsc_h2(tissue_names, per_gene_tissue_pip_summary_file, pip_threshold, sldsc_mediated_h2_file, per_tissue_sldsc_comparison_summary_file, tissue_name_to_broad_category)
+
 
 
 		###################################################
@@ -544,22 +801,6 @@ for trait_name in trait_names:
 
 
 
-		# GENERATE Gene-PIP summary
-
-
-		# Generate Tissue-category PIP summary
-
-		'''
-		###################################################
-		# Create tissue pip summary file (at various pip thresholds)
-		###################################################
-		#pip_thresholds = ['.01', '.05', '.1', '.2', '.3', '.4', '.5', '.7','.9']
-		pip_thresholds = ['.01', '.05', '.1', '.2', '.3', '.4']
-		for pip_threshold_str in pip_thresholds:
-			print(pip_threshold_str)
-			per_tissue_pip_summary_file = file_stem + '_tgfm_per_tissue_pip_' + pip_threshold_str + '_summary.txt'
-			generate_per_tissue_pip_summary_file_old(per_gene_pip_summary_file, float(pip_threshold_str), per_gene_tissue_pip_summary_file, tissue_names)
-		'''
 
 
 

@@ -514,6 +514,15 @@ def get_ukbb_variants_on_this_chromosome(bim_file):
 	f.close()
 	return variants
 
+def correct_ld_mat_for_af_standardization(ld_mat):
+	n_snps = ld_mat.shape[0]
+	correction = 1.0/np.diag(ld_mat)
+	for snp_iter in range(n_snps):
+		ld_mat[:,snp_iter] = ld_mat[:,snp_iter]*np.sqrt(correction[snp_iter])
+		ld_mat[snp_iter,:] = ld_mat[snp_iter,:]*np.sqrt(correction[snp_iter])
+	return ld_mat
+
+
 #######################
 # Command line args
 chrom_num = sys.argv[1]
@@ -679,7 +688,6 @@ for line in f:
 	if len(sample_ld_variant_indices) < 50:
 		continue
 
-
 	# NOW GET LD matrix
 	ukbb_in_sample_ld_mat = extract_ld_mat_from_in_sample_ld(sample_ld_variant_indices, ukbb_in_sample_ld_dir, chrom_num)
 	# Flip alleles to make sure it matches summary statistics
@@ -688,7 +696,7 @@ for line in f:
 			ukbb_in_sample_ld_mat[var_index, :] = ukbb_in_sample_ld_mat[var_index, :]*-1.0
 			ukbb_in_sample_ld_mat[:, var_index] = ukbb_in_sample_ld_mat[:, var_index]*-1.0
 
-
+	#ukbb_in_sample_ld_mat = correct_ld_mat_for_af_standardization(ukbb_in_sample_ld_mat)
 
 	# Save data to output file
 	# Beta file

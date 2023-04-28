@@ -178,6 +178,7 @@ fi
 ########################################
 # Preprocess data for UKBB genome-wide Susie Analysis
 ########################################
+# NOTE. THIS CURRENTLY HAS A WEIRD HACK IN THE CHROMOSOME ANALYSIS TO DEAL WITH LD CORRECTION AND MISSING DATA
 if false; then
 sh preprocess_data_for_genome_wide_ukbb_susie_analysis.sh $ukbb_sumstats_hg38_dir $gtex_genotype_dir $ref_1kg_genotype_dir $ukbb_preprocessed_for_genome_wide_susie_dir $ukbb_sumstats_hg19_dir $ukbb_in_sample_ld_dir $ukbb_in_sample_genotype_dir
 fi
@@ -298,6 +299,8 @@ num_jobs="100"
 gene_type="component_gene"
 # FIle summarizing ukkbb windows
 ukkbb_window_summary_file=$ukbb_preprocessed_for_genome_wide_susie_dir"genome_wide_susie_windows_and_processed_data.txt"
+
+
 if false; then
 for job_number in $(seq 0 $(($num_jobs-1))); do 
 	sbatch preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type $preprocessed_tgfm_sldsc_data_dir $tgfm_sldsc_results_dir
@@ -311,21 +314,24 @@ fi
 
 
 
-
-########################################
-# Get number of genes and numbr of variants used in analysis
-######## CURRENTLY SKIPPED RUNNING******* 
-########################################
-if false; then
-python3 get_number_of_genes_and_number_of_variants_used.py $ukkbb_window_summary_file $gtex_susie_gene_models_dir $gtex_pseudotissue_file $num_genes_and_variants_dir
-fi
-
 ########################################
 # Run TGFM
 ########################################
 gene_type="component_gene"
 num_jobs="50"
 job_number="0"
+
+###NOOOOTEEE THE DIFFERENT OUTPUT STEM HERE. THIS IS FOR DEBUGGING
+trait_name="blood_MEAN_PLATELET_VOL"
+job_number="0"
+tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_tmp"
+if false; then
+sh run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+fi
+
+
+
 
 
 if false; then
@@ -401,9 +407,15 @@ fi
 
 # Organize TGFM results across parallel runs
 if false; then
-sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type}
+sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir
 fi
 
+# Visualize TGFM results
+if false; then
+source ~/.bash_profile
+module load R/3.5.1
+fi
+Rscript visualize_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt" $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_dir
 
 
 
@@ -413,6 +425,23 @@ fi
 
 
 
+
+
+##############
+# Old
+##############
+
+
+
+
+
+########################################
+# Get number of genes and numbr of variants used in analysis
+######## CURRENTLY SKIPPED RUNNING******* 
+########################################
+if false; then
+python3 get_number_of_genes_and_number_of_variants_used.py $ukkbb_window_summary_file $gtex_susie_gene_models_dir $gtex_pseudotissue_file $num_genes_and_variants_dir
+fi
 
 ########################################
 # Run TGFM (old)
@@ -454,7 +483,11 @@ fi
 
 
 
+# DEBUGGING CASES.
 
+# 1. Mean platelet Vol
+######7:4020607:7020607, ENSG00000155034.18_Esophagus_Mucosa, 0.8341949641693392
+######19:45069983:48069983, ENSG00000042753.11_Esophagus_Mucosa, 0.8854378534228537
 
 
 
