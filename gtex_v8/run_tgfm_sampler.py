@@ -252,6 +252,40 @@ def compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj, variant_z_vec, varian
 		elbos.append(elbo)
 	return np.asarray(elbos)
 
+def extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, variant_ld_mat, subset_n = 100, ld_thresh=0.5):
+	bs_eqtls_pmces = np.zeros((tgfm_obj.G, tgfm_obj.K))
+	valid_components = []
+	for bs_iter in range(tgfm_obj.n_bs):
+		print(bs_iter)
+		# Initialize component array for this bootstrap
+		bs_valid_components = []
+
+		# Extract eqtl causal effects for this bootstrap
+		bs_eqtls_pmces = bs_eqtls_pmces*0.0
+		bs_eqtls_pmces_sparse = tgfm_obj.sparse_sampled_gene_eqtl_pmces[bs_iter]
+		bs_eqtls_pmces = fill_in_causal_effect_size_matrix(bs_eqtls_pmces, bs_eqtls_pmces_sparse)
+		gene_variant_z_vec = np.hstack((tgfm_obj.nominal_twas_z[bs_iter], tgfm_obj.gwas_variant_z))
+		gene_variant_full_ld = extract_full_gene_variant_ld(bs_eqtls_pmces, tgfm_data['reference_ld'])
+
+
+		for l_iter in range(tgfm_obj.L):
+			cs_predictors = get_credible_set_genes(np.hstack((tgfm_obj.alpha_phis[l_iter][bs_iter, :], tgfm_obj.beta_phis[l_iter][bs_iter, :])), .95)
+
+			if subset_n > len(cs_predictors):
+				# absolute ld among genes and variants in credible set
+				if np.min(np.abs(gene_variant_full_ld[cs_predictors,:][:, cs_predictors])) > ld_thresh:
+					bs_valid_components.append(l_iter)
+			else:
+				# First run subsetted analysis
+				cs_predictors_subset = np.random.choice(cs_predictors, size=subset_n, replace=False, p=None)
+				if np.min(np.abs(gene_variant_full_ld[cs_predictors_subset,:][:, cs_predictors_subset])) > ld_thresh:
+					if np.min(np.abs(gene_variant_full_ld[cs_predictors,:][:, cs_predictors])) > ld_thresh:
+						bs_valid_components.append(l_iter)
+
+		valid_components.append(np.asarray(bs_valid_components))
+	return valid_components
+
+
 def merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj2, variant_z_vec, variant_ld_mat, gwas_sample_size):
 	for bs_iter in range(tgfm_obj.n_bs):
 		# Extract causal eqtl effects for this bootstrap
@@ -510,6 +544,11 @@ for window_iter in range(n_windows):
 	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method)
 
 	##############################
+	# Extract valid tgfm components
+	###############################
+	valid_tgfm_sampler_components = extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, ld_mat)
+
+	##############################
 	# Organize TGFM data and print to results
 	###############################
 	# Extract names of genetic elements
@@ -554,7 +593,8 @@ for window_iter in range(n_windows):
 	tgfm_results['beta_pips'] = tgfm_obj.beta_pips
 	tgfm_results['expected_alpha_pips'] = tgfm_obj.expected_alpha_pips
 	tgfm_results['expected_beta_pips'] = tgfm_obj.expected_beta_pips
-
+	tgfm_results['valid_components'] = valid_tgfm_sampler_components
+	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
 
 	# Write pickle file
 	window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'

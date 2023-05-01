@@ -103,7 +103,7 @@ def load_in_log_priors(log_prior_prob_file, variant_names, gene_names):
 	return variant_log_prob, gene_log_prob
 
 
-def extract_valid_joint_susie_components_from_full_ld(alpha_phi, beta_phi, full_ld, ld_thresh):
+def extract_valid_joint_susie_components_from_full_ld(alpha_phi, beta_phi, full_ld, ld_thresh, subset_n = 100):
 	num_components = alpha_phi.shape[0]
 	valid_components = []
 
@@ -112,12 +112,17 @@ def extract_valid_joint_susie_components_from_full_ld(alpha_phi, beta_phi, full_
 
 	for component_num in range(num_components):
 		cs_predictors = get_credible_set_genes(np.hstack((alpha_phi[component_num,:], beta_phi[component_num,:])), .95)
-		cs_genes = cs_predictors[cs_predictors < num_genes]
-		cs_variants = cs_predictors[cs_predictors >= num_genes] - num_genes
 
-		# absolute ld among genes and variants in credible set
-		if np.min(np.abs(full_ld[cs_predictors,:][:, cs_predictors])) > ld_thresh:
-			valid_components.append(component_num)
+		if subset_n > len(cs_predictors):
+			# absolute ld among genes and variants in credible set
+			if np.min(np.abs(full_ld[cs_predictors,:][:, cs_predictors])) > ld_thresh:
+				valid_components.append(component_num)
+		else:
+			# First run subsetted analysis
+			cs_predictors_subset = np.random.choice(cs_predictors, size=subset_n, replace=False, p=None)
+			if np.min(np.abs(full_ld[cs_predictors_subset,:][:, cs_predictors_subset])) > ld_thresh:
+				if np.min(np.abs(full_ld[cs_predictors,:][:, cs_predictors])) > ld_thresh:
+					valid_components.append(component_num)
 
 	return valid_components
 
@@ -534,6 +539,7 @@ for window_iter in range(n_windows):
 	###############################
 	# Extract components that pass purity filter
 	valid_tgfm_components = extract_valid_joint_susie_components_from_full_ld(tgfm_obj.alpha_phi, tgfm_obj.beta_phi, gene_variant_full_ld, .5)
+
 	# Extract names of genetic elements
 	genetic_element_names = np.hstack((tgfm_data['genes'], tgfm_data['variants']))
 	# Extract dictionary list of genetic elements in the middel of this window
@@ -615,6 +621,8 @@ for window_iter in range(n_windows):
 	tgfm_results['alpha_pip'] = tgfm_obj.alpha_pip
 	tgfm_results['beta_pip'] = tgfm_obj.beta_pip
 	tgfm_results['component_variances'] = tgfm_obj.component_variances
+	tgfm_results['valid_components'] = valid_tgfm_components
+	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
 
 	# Write pickle file
 	window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'

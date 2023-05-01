@@ -175,7 +175,13 @@ def fill_in_window_dictionary_for_single_trait(trait_name, trait_file, chrom_num
 				continue
 			beta = float(data[10])
 			std_err = float(data[11])
-			stringer = trait_name + ',' + line_variant_id + ',' + str(beta) + ',' + str(std_err) + ',' + rs_id
+			chi_sq_bolt_lmm = float(data[14])
+			z_bolt_lmm = np.sqrt(chi_sq_bolt_lmm)
+			signer = 1.0
+			if beta <= 0.0:
+				signer = -1.0
+			z_bolt_lmm = z_bolt_lmm*signer
+			stringer = trait_name + ',' + line_variant_id + ',' + str(z_bolt_lmm) + ',' + str(1.0) + ',' + rs_id
 			window_string = window_names_chromosome[variant_pos]
 			windows = window_string.split(',')
 			for window in windows:
@@ -189,7 +195,13 @@ def fill_in_window_dictionary_for_single_trait(trait_name, trait_file, chrom_num
 				continue
 			beta = float(data[10])
 			std_err = float(data[11])
-			stringer = trait_name + ',' + line_variant_id + ',' + str(beta) + ',' + str(std_err) + ',' + rs_id
+			chi_sq_bolt_lmm = float(data[14])
+			z_bolt_lmm = np.sqrt(chi_sq_bolt_lmm)
+			signer = 1.0
+			if beta <= 0.0:
+				signer = -1.0
+			z_bolt_lmm = z_bolt_lmm*signer
+			stringer = trait_name + ',' + line_variant_id + ',' + str(z_bolt_lmm) + ',' + str(1.0) + ',' + rs_id
 			window_string = window_names_chromosome[variant_pos]
 			windows = window_string.split(',')
 			for window in windows:
@@ -689,14 +701,14 @@ for line in f:
 		continue
 
 	# NOW GET LD matrix
+	'''
 	ukbb_in_sample_ld_mat = extract_ld_mat_from_in_sample_ld(sample_ld_variant_indices, ukbb_in_sample_ld_dir, chrom_num)
 	# Flip alleles to make sure it matches summary statistics
 	for var_index, sample_ld_flip_value in enumerate(sample_ld_flips):
 		if sample_ld_flip_value == -1.0:
 			ukbb_in_sample_ld_mat[var_index, :] = ukbb_in_sample_ld_mat[var_index, :]*-1.0
 			ukbb_in_sample_ld_mat[:, var_index] = ukbb_in_sample_ld_mat[:, var_index]*-1.0
-
-	#ukbb_in_sample_ld_mat = correct_ld_mat_for_af_standardization(ukbb_in_sample_ld_mat)
+	'''
 
 	# Save data to output file
 	# Beta file
@@ -716,7 +728,7 @@ for line in f:
 	np.savetxt(ref_geno_file, gene_reference_genotype[:, valid_window_indices], fmt="%s", delimiter='\t')
 	# In sample LD
 	in_sample_ld_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_ukbb_in_sample_ld.npy'
-	np.save(in_sample_ld_file, ukbb_in_sample_ld_mat)
+	#np.save(in_sample_ld_file, ukbb_in_sample_ld_mat)
 	# Sample sizes
 	sample_size_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_study_sample_sizes.txt'
 	np.savetxt(sample_size_file, window_sample_sizes, fmt="%s", delimiter='\t')
