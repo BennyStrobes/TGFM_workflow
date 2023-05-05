@@ -1,9 +1,8 @@
-
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-5:00                         # Runtime in D-HH:MM format
-#SBATCH -p short                           # Partition to run in
-#SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
+#SBATCH -t 0-30:00                         # Runtime in D-HH:MM format
+#SBATCH -p medium                           # Partition to run in
+#SBATCH --mem=30GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -18,6 +17,7 @@ kg_genotype_dir="$6"
 
 source ~/.bash_profile
 
+if false; then
 ###############################
 # Extract list of variants in ldsc baseline analysis
 ###############################
@@ -82,7 +82,7 @@ rm ${processed_genotype_data_dir}"ukb_imp_chr_"${chrom_num}*
 genomic_annotation_file=${processed_genotype_data_dir}"baseline."${chrom_num}".annot"
 python3 extract_genomic_annotations_for_simulation_variants.py ${processed_genotype_data_dir}"simulated_gwas_data_"${chrom_num}".bim" ${processed_genotype_data_dir}"100G.EUR.QC.filtered."${chrom_num}".bim" $ldsc_baseline_hg19_annotation_dir"baseline."${chrom_num}".annot.gz" $genomic_annotation_file
 
-
+fi
 
 #########################
 # Create 3MB chromosome windows
@@ -90,11 +90,12 @@ python3 extract_genomic_annotations_for_simulation_variants.py ${processed_genot
 window_size_mb="3" # In MB
 reference_bim=${processed_genotype_data_dir}"simulated_gwas_data_"${chrom_num}".bim"  # Used to know where end and start on this chromosome
 window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_"${window_size_mb}"_mb.txt"
+if false; then
 python3 create_chromosome_windows.py $window_size_mb $reference_bim $window_file ${chrom_num}
+fi
 
 
-
-
+python3 generate_gwas_in_sample_ld_for_all_windows.py $chrom_num $window_file ${processed_genotype_data_dir}
 
 
 

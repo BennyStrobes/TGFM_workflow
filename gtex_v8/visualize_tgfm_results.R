@@ -328,6 +328,30 @@ make_bar_plot_showing_expected_number_of_causal_tissue_categories_for_single_tra
 }
 
 
+make_bar_plot_showing_iterative_prior_probability_of_each_tissue <- function(iterative_prior_file, method_version, trait_name_readable) {
+	# Load in input data
+	df <- read.table(iterative_prior_file, header=TRUE)
+	# Skip variants
+	df <- df[2:(dim(df)[1]),]
+	df$tissue = df$element_name
+
+	ordered_tissues <- as.character(df$tissue)
+	priors <- as.numeric(df$prior)
+
+	ord <- order(priors)
+	df$tissue = factor(df$tissue, levels=ordered_tissues[ord])
+	df$tissue = str_replace_all(as.character(df$tissue), "-", "_")
+	df$tissue <- recode(df$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+	ordered_tissues2 <- as.character(df$tissue)[1:length(unique(df$tissue))]
+	df$tissue = factor(df$tissue, levels=ordered_tissues2[ord])
+	
+	p<-ggplot(df, aes(x=tissue, y=priors)) +
+  		geom_bar(stat="identity",position=position_dodge())+figure_theme() +
+  		theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  		theme(legend.position="bottom") +
+  		labs(x="", y="Prior probability", title=trait_name_readable)
+
+}
 
 make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait <- function(trait_name, trait_name_readable, method_version, tgfm_results_dir) {
 	tissue_vec <- c()
@@ -453,14 +477,37 @@ gtex_colors_df <- read.table(gtex_tissue_colors_file, header=TRUE, sep="\t")
 gtex_colors_df$tissue_site_detail_id = as.character(gtex_colors_df$tissue_site_detail_id)
 gtex_colors_df$tissue_site_detail_id[23] = "Cells_Cultured_fibroblasts"
 
-print(head(gtex_colors_df))
-
 
 # Extract trait names
 trait_df <- read.table(independent_trait_names_file, header=TRUE, sep="\t")
 trait_names <- as.character(trait_df$study_name)
 trait_names <- c("biochemistry_Cholesterol", "biochemistry_VitaminD", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "blood_MEAN_PLATELET_VOL", "blood_MONOCYTE_COUNT", "body_BMIz", "body_WHRadjBMIz", "bp_DIASTOLICadjMEDz", "lung_FEV1FVCzSMOKE")
 trait_names_readable <- c("Cholesterol", "VitaminD", "Reticulocyte_count", "Platelet_vol", "Monocyte_count", "BMI", "WHRadjBMI", "Diastolic_BP", "FEV1FVC")
+
+
+##################################################
+# Bar plot showing iterative prior probabilities
+##################################################
+for (trait_iter in 1:length(trait_names)) {
+	trait_name <- trait_names[trait_iter]
+	trait_name_readable <- trait_names_readable[trait_iter]
+
+	# Sampler approach
+	method_version="susie_sampler_variant_gene"
+	iterative_prior_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior.txt")
+	barplot <- make_bar_plot_showing_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
+	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_iterative_prior_probabilities_", trait_name_readable, "_", method_version,".pdf")
+	ggsave(barplot, file=output_file, width=7.2, height=4.2, units="in")
+
+
+	# PMCES approach
+	method_version="susie_pmces_variant_gene"
+	iterative_prior_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior.txt")
+
+	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_iterative_prior_probabilities_", trait_name_readable, "_", method_version,".pdf")
+
+
+}
 
 
 
