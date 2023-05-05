@@ -524,20 +524,19 @@ genotype_obj = load_in_genotype_data(genotype_stem)
 # Generate gene-weighted ld scores
 ####################################################
 gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'  # names of genes
-eqtl_sample_sizes = np.asarray([100,300,500,1000,'inf'])  # Various eqtl data sets
-
+eqtl_sample_sizes = np.asarray([300,500,1000,'inf'])  # Various eqtl data sets
 gene_weighted_ld_score_output_root = simulated_ld_scores_dir + simulation_name_string + '_gene_weighted_ld_scores'  # output root
 generate_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,simulated_gene_expression_dir, gene_weighted_ld_score_output_root)
 
 
-eqtl_sample_sizes = np.asarray([100, 300, 500, 1000])  # Various eqtl data sets
+eqtl_sample_sizes = np.asarray([300, 500, 1000])  # Various eqtl data sets
 susie_distr_gene_weighted_ld_score_output_root = simulated_ld_scores_dir + simulation_name_string + '_susie_distr_gene_weighted_ld_scores'  # output root
 generate_susie_distr_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,simulated_gene_expression_dir, susie_distr_gene_weighted_ld_score_output_root)
 
 
-eqtl_sample_sizes = np.asarray([100, 300, 500, 1000])  # Various eqtl data sets
-unbiased_marginal_gene_weighted_ld_score_output_root = simulated_ld_scores_dir + simulation_name_string + '_unbiased_marginal_gene_weighted_ld_scores'  # output root
-generate_unbiased_marginal_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,simulated_gene_expression_dir, unbiased_marginal_gene_weighted_ld_score_output_root)
+#eqtl_sample_sizes = np.asarray([100, 300, 500, 1000])  # Various eqtl data sets
+#unbiased_marginal_gene_weighted_ld_score_output_root = simulated_ld_scores_dir + simulation_name_string + '_unbiased_marginal_gene_weighted_ld_scores'  # output root
+#generate_unbiased_marginal_gene_weighted_ld_scores(regression_snp_names, genotype_obj, eqtl_sample_sizes, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,simulated_gene_expression_dir, unbiased_marginal_gene_weighted_ld_score_output_root)
 
 
 

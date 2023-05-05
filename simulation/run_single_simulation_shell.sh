@@ -2,7 +2,7 @@
 #SBATCH -c 1                               # Request one core
 #SBATCH -t 0-44:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=18GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -112,7 +112,7 @@ python3 organize_data_for_sldsc.py $simulation_number $chrom_num $simulation_nam
 #######################################################
 echo "Simulation Step 7"
 # Use eQTL PMCES
-eqtl_sample_size_arr=( "100" "300" "500" "1000" "inf")
+eqtl_sample_size_arr=( "300" "500" "1000" "inf")
 
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
@@ -127,7 +127,7 @@ do
 done
 
 # Use susie distr eQTLS
-eqtl_sample_size_arr=( "100" "300" "500" "1000")
+eqtl_sample_size_arr=( "300" "500" "1000")
 
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
@@ -141,20 +141,21 @@ do
 	python3 organize_tgfm_sldsc_results.py ${simulated_sldsc_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_distr_sldsc_results" ${simulated_ld_scores_dir}${simulation_name_string}"_joint_baseline_variant_"${eqtl_sample_size}"_susie_distr_gene_ld_scores" $n_gwas_individuals
 done
 
-# Use susie distr eQTLS
-eqtl_sample_size_arr=( "100" "300" "500" "1000")
 
-for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
-do
-	source /n/groups/price/ben/environments/sldsc/bin/activate
-	module load python/2.7.12
-	trait_file=${simulated_ld_scores_dir}${simulation_name_string}"_ldsc_ready_summary_statistics.txt"
-	python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --n-blocks 200 --chisq-max 1000 --ref-ld ${simulated_ld_scores_dir}${simulation_name_string}"_joint_baseline_variant_"${eqtl_sample_size}"_unbiased_marginal_gene_ld_scores" --w-ld ${simulated_ld_scores_dir}${simulation_name_string}"_regression_weights."${chrom_num} --print-delete-vals --print-coefficients --out ${simulated_sldsc_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_unbiased_marginal_sldsc_results"
 
-	# Organize sldsc results
-	source ~/.bash_profile
-	python3 organize_tgfm_sldsc_results.py ${simulated_sldsc_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_unbiased_marginal_sldsc_results" ${simulated_ld_scores_dir}${simulation_name_string}"_joint_baseline_variant_"${eqtl_sample_size}"_unbiased_marginal_gene_ld_scores" $n_gwas_individuals
-done
+
+#######################################################
+# Step 8: Run GWAS on simulated trait on only snps in TGFM windows.
+#######################################################
+echo "Simulation Step 9"
+global_window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_3_mb.txt"
+python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $global_window_file $simulated_gwas_dir
+
+
+
+
+date
+
 
 
 
@@ -261,9 +262,6 @@ fi
 
 
 
-
-
-date
 
 
 

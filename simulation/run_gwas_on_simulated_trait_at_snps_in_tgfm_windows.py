@@ -195,7 +195,7 @@ processed_genotype_data_dir = sys.argv[4]
 simulated_trait_dir = sys.argv[5]
 simulation_window_list_file = sys.argv[6]
 simulated_gwas_dir = sys.argv[7]
-simulated_tgfm_input_data_dir = sys.argv[8]
+#simulated_tgfm_input_data_dir = sys.argv[8]
 
 # Bim file for this chromosomse
 bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + chrom_num + '.bim'
@@ -229,8 +229,8 @@ for line in g:
 	####################################################
 	# Compute window LD 
 	####################################################
-	gwas_plink_stem = processed_genotype_data_dir + 'simulated_gwas_data_' + str(chrom_num)  # Genotype files
-	ld_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_in_sample_ld.npy'
-	compute_ld_on_window(gwas_plink_stem, window_rsids, ld_output_file)
+	#gwas_plink_stem = processed_genotype_data_dir + 'simulated_gwas_data_' + str(chrom_num)  # Genotype files
+	#ld_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_in_sample_ld.npy'
+	#compute_ld_on_window(gwas_plink_stem, window_rsids, ld_output_file)
 
 g.close()
