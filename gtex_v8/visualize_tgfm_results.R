@@ -280,6 +280,54 @@ stacked_barplot_for_single_trait_breaking_down_expression_effects_per_tissue <- 
 
 }
 
+make_bar_plot_showing_expected_number_of_causal_tissue_categories_for_single_trait <- function(trait_name, trait_name_readable, method_version, tgfm_results_dir) {
+	tissue_vec <- c()
+	count_vec <- c()
+	pip_thresh_vec <- c()
+
+
+	pip_threshs <- c(.3,.5,.7)
+	trait_gene_pip_summary_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_tgfm_per_tissue_category_pip_summary.txt")
+	trait_df <- read.table(trait_gene_pip_summary_file, header=TRUE,sep="\t")
+
+	ordered_tissues <- sort(unique(as.character(trait_df$tissue_category_name)))
+
+	tmper <- c()
+	for (pip_iter in 1:length(pip_threshs)) {
+		pip_thresh <- pip_threshs[pip_iter]
+		tmp_df <- trait_df[trait_df$PIP > pip_thresh,]
+		#print(head(tmp_df))
+		for (tissue_iter in 1:length(ordered_tissues)) {
+			tissue_name <- ordered_tissues[tissue_iter]
+			pip_sum = sum(tmp_df$PIP[as.character(tmp_df$tissue_category_name) ==tissue_name])
+			tissue_vec <- c(tissue_vec, tissue_name)
+			count_vec <- c(count_vec, pip_sum)
+			pip_thresh_vec <- c(pip_thresh_vec, pip_thresh)
+			if (pip_thresh == pip_threshs[1]) {
+				tmper <- c(tmper, pip_sum)
+			}
+		}
+
+
+	}
+
+	ord <- order(tmper)
+	df <- data.frame(expected_causal_genes=count_vec, tissue=factor(tissue_vec,levels=ordered_tissues[ord]), pip_thresh=factor(pip_thresh_vec))
+	df$tissue = str_replace_all(as.character(df$tissue), "-", "_")
+	#df$tissue <- recode(df$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+	ordered_tissues2 <- as.character(df$tissue)[1:length(unique(df$tissue))]
+	df$tissue = factor(df$tissue, levels=ordered_tissues2[ord])
+
+	p<-ggplot(df, aes(x=tissue, y=expected_causal_genes, fill=pip_thresh)) +
+  		geom_bar(stat="identity",position=position_dodge())+figure_theme() +
+  		theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  		theme(legend.position="bottom") +
+  		labs(x="", y="Expected #\ncausal tissues", fill="PIP threshold",title=trait_name_readable)
+
+  	return(p)
+}
+
+
 
 make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait <- function(trait_name, trait_name_readable, method_version, tgfm_results_dir) {
 	tissue_vec <- c()
@@ -420,35 +468,55 @@ trait_names_readable <- c("Cholesterol", "VitaminD", "Reticulocyte_count", "Plat
 # Swarm-plot showing gene-tissue PIPs colored by tissue group for each trait
 ##########################################################
 method_version="susie_pmces_variant_gene"
-#beeswarm_plot <- make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait(trait_names, trait_names_readable, method_version, tgfm_results_dir)
+beeswarm_plot <- make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait(trait_names, trait_names_readable, method_version, tgfm_results_dir)
 output_file <- paste0(visualize_tgfm_dir, "beeswarm_gene_tissue_pip_colored_by_tissue_group_", method_version,".pdf")
-#ggsave(beeswarm_plot, file=output_file, width=7.2, height=4.5, units="in")
+ggsave(beeswarm_plot, file=output_file, width=7.2, height=4.5, units="in")
 method_version="susie_sampler_variant_gene"
-#beeswarm_plot <- make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait(trait_names, trait_names_readable, method_version, tgfm_results_dir)
+beeswarm_plot <- make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait(trait_names, trait_names_readable, method_version, tgfm_results_dir)
 output_file <- paste0(visualize_tgfm_dir, "beeswarm_gene_tissue_pip_colored_by_tissue_group_", method_version,".pdf")
-#ggsave(beeswarm_plot, file=output_file, width=7.2, height=4.5, units="in")
-
+ggsave(beeswarm_plot, file=output_file, width=7.2, height=4.5, units="in")
 
 
 ##########################################################
-# Bar plot showing expected number of causal gene-tissue pairs in each tissue
+# Bar plot showing expected number of causal tissue categories
 ##########################################################
-
 for (trait_iter in 1:length(trait_names)) {
 	trait_name <- trait_names[trait_iter]
 	trait_name_readable <- trait_names_readable[trait_iter]
 
 	# Sampler approach
 	method_version="susie_sampler_variant_gene"
-	#tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_results_dir)
-	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_expected_number_of_gene_tissue_pairs_", trait_name_readable, "_", method_version,".pdf")
-	#ggsave(tissue_bar_plot, file=output_file, width=7.2, height=4.5, units="in")
+	tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_tissue_categories_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_results_dir)
+	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_expected_number_of_tissue_categories_", trait_name_readable, "_", method_version,".pdf")
+	ggsave(tissue_bar_plot, file=output_file, width=7.2, height=4.5, units="in")
 
 	# PMCES approach
 	method_version="susie_pmces_variant_gene"
-	#tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_results_dir)
+	tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_tissue_categories_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_results_dir)
+	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_expected_number_of_tissue_categories_", trait_name_readable, "_", method_version,".pdf")
+	ggsave(tissue_bar_plot, file=output_file, width=7.2, height=4.5, units="in")
+}
+
+
+
+##########################################################
+# Bar plot showing expected number of causal gene-tissue pairs in each tissue
+##########################################################
+for (trait_iter in 1:length(trait_names)) {
+	trait_name <- trait_names[trait_iter]
+	trait_name_readable <- trait_names_readable[trait_iter]
+
+	# Sampler approach
+	method_version="susie_sampler_variant_gene"
+	tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_results_dir)
 	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_expected_number_of_gene_tissue_pairs_", trait_name_readable, "_", method_version,".pdf")
-	#ggsave(tissue_bar_plot, file=output_file, width=7.2, height=4.5, units="in")
+	ggsave(tissue_bar_plot, file=output_file, width=7.2, height=4.5, units="in")
+
+	# PMCES approach
+	method_version="susie_pmces_variant_gene"
+	tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_results_dir)
+	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_expected_number_of_gene_tissue_pairs_", trait_name_readable, "_", method_version,".pdf")
+	ggsave(tissue_bar_plot, file=output_file, width=7.2, height=4.5, units="in")
 }
 
 
@@ -462,15 +530,18 @@ for (trait_iter in 1:length(trait_names)) {
 
 	# Sampler approach
 	method_version="susie_sampler_variant_gene"
-	#scatterplot <- make_scatterplot_comparing_tglr_expression_h2_and_n_tgfm_pip_across_tissues(trait_name, trait_name_readable, method_version, tgfm_results_dir)
+	scatterplot <- make_scatterplot_comparing_tglr_expression_h2_and_n_tgfm_pip_across_tissues(trait_name, trait_name_readable, method_version, tgfm_results_dir)
 	output_file <- paste0(visualize_tgfm_dir, "scatter_comparing_tglr_expression_h2_and_n_tgfm_pip_across_tissues_", trait_name_readable, "_", method_version,".pdf")
-	#ggsave(scatterplot, file=output_file, width=7.2, height=4.5, units="in")
+	ggsave(scatterplot, file=output_file, width=7.2, height=4.5, units="in")
 }
 
 
 
 
 
+
+
+if (FALSE) {
 # Extract trait names
 trait_df <- read.table(independent_trait_names_file, header=TRUE, sep="\t")
 trait_names <- as.character(trait_df$study_name)
@@ -530,7 +601,7 @@ for (trait_iter in 1:length(trait_names)) {
 	ggsave(scatterplot, file=output_file, width=7.2, height=4.5, units="in")
 }
 
-
+}
 
 
 

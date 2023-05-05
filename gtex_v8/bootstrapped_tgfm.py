@@ -196,6 +196,10 @@ class TGFM(object):
 
 				# Update KL Terms
 				lbf = np.hstack((un_normalized_lv_alpha_weights-expected_log_pi, un_normalized_lv_beta_weights-expected_log_variant_pi))
+				# Save LBF
+				self.alpha_lbfs[l_index][bs_iter,:] = un_normalized_lv_alpha_weights-expected_log_pi
+				self.beta_lbfs[l_index][bs_iter,:] = un_normalized_lv_beta_weights-expected_log_variant_pi
+				# Update KL terms
 				maxlbf = np.max(lbf)
 				ww = np.exp(lbf - maxlbf)
 				ww_weighted = ww*np.exp(np.hstack((expected_log_pi, expected_log_variant_pi)))
@@ -350,6 +354,8 @@ class TGFM(object):
 		self.beta_phis = []
 		self.gene_trait_pred = []
 		self.KL_terms = []
+		self.alpha_lbfs = []
+		self.beta_lbfs = []
 
 		if phi_init is not None and mu_init is not None and mu_var_init is not None:
 			# Pre-specified initialization
@@ -373,6 +379,9 @@ class TGFM(object):
 
 				# Initialize KL terms
 				self.KL_terms.append(np.zeros(self.n_bs))
+				# Initialize lbf
+				self.alpha_lbfs.append(np.zeros((self.n_bs, self.G)))
+				self.beta_lbfs.append(np.zeros((self.n_bs, self.K)))
 		else:
 			for l_iter in range(self.L):
 				# Initialize variational distributions defining alphas (the causal effect of genetically-predicted expression in each gene on the trait)
@@ -391,6 +400,9 @@ class TGFM(object):
 
 				# Initialize KL terms
 				self.KL_terms.append(np.zeros(self.n_bs))
+				# Initialize lbf
+				self.alpha_lbfs.append(np.zeros((self.n_bs, self.G)))
+				self.beta_lbfs.append(np.zeros((self.n_bs, self.K)))
 
 
 		#self.pmces_files = twas_data_obj['bs_gene_eqtl_pmces_files']

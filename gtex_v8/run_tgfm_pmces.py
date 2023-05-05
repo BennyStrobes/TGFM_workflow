@@ -201,6 +201,10 @@ def update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_obj):
 	tgfm_obj.alpha_pip = pips[:(tgfm_obj.G)]
 	tgfm_obj.beta_pip = pips[(tgfm_obj.G):]
 
+	lbf = susie_obj.rx2('lbf_variable')
+	tgfm_obj.alpha_lbf = lbf[:, :(tgfm_obj.G)]
+	tgfm_obj.beta_lbf = lbf[:, (tgfm_obj.G):]
+
 	return tgfm_obj
 
 def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld, init_method, est_resid_var_bool):
@@ -262,6 +266,12 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 		if susie_variant_init_elbo > susie_null_init_elbo:
 			# Variant init wins
 			tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_variant_init)
+			#lbf=susie_variant_init.rx2('lbf_variable')[0,:]
+			#maxlbf = np.max(lbf)
+			#ww = np.exp(lbf - maxlbf)
+			#w_weighted = ww*prior_probs
+			#weighted_sum_w = sum(w_weighted)
+			#alpha = w_weighted / weighted_sum_w
 		else:
 			# Null init wins
 			tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
@@ -614,6 +624,8 @@ for window_iter in range(n_windows):
 	tgfm_results['genes'] = tgfm_data['genes']
 	tgfm_results['alpha_phi'] = tgfm_obj.alpha_phi
 	tgfm_results['beta_phi'] = tgfm_obj.beta_phi
+	tgfm_results['alpha_lbf'] = tgfm_obj.alpha_lbf
+	tgfm_results['beta_lbf'] = tgfm_obj.beta_lbf
 	tgfm_results['alpha_mu'] = tgfm_obj.alpha_mu
 	tgfm_results['beta_mu'] = tgfm_obj.beta_mu
 	tgfm_results['alpha_var'] = tgfm_obj.alpha_var

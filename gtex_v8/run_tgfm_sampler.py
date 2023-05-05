@@ -256,7 +256,6 @@ def extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, variant_ld_mat, s
 	bs_eqtls_pmces = np.zeros((tgfm_obj.G, tgfm_obj.K))
 	valid_components = []
 	for bs_iter in range(tgfm_obj.n_bs):
-		print(bs_iter)
 		# Initialize component array for this bootstrap
 		bs_valid_components = []
 
@@ -324,6 +323,9 @@ def merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj2, variant_z_ve
 				# Update mu_var
 				tgfm_obj.alpha_vars[l_iter][bs_iter, :] = np.copy(tgfm_obj2.alpha_vars[l_iter][bs_iter, :])
 				tgfm_obj.beta_vars[l_iter][bs_iter, :] = np.copy(tgfm_obj2.beta_vars[l_iter][bs_iter, :])
+				# Update LBF
+				tgfm_obj.alpha_lbfs[l_iter][bs_iter, :] = np.copy(tgfm_obj2.alpha_lbfs[l_iter][bs_iter, :])
+				tgfm_obj.beta_lbfs[l_iter][bs_iter, :] = np.copy(tgfm_obj2.beta_lbfs[l_iter][bs_iter, :])
 	# Recompute PIPs
 	tgfm_obj.compute_pips()
 
@@ -589,6 +591,8 @@ for window_iter in range(n_windows):
 	tgfm_results['genes'] = tgfm_data['genes']
 	tgfm_results['alpha_phis'] = tgfm_obj.alpha_phis
 	tgfm_results['beta_phis'] = tgfm_obj.beta_phis
+	tgfm_results['alpha_lbfs'] = tgfm_obj.alpha_lbfs
+	tgfm_results['beta_lbfs'] = tgfm_obj.beta_lbfs
 	tgfm_results['alpha_pips'] = tgfm_obj.alpha_pips
 	tgfm_results['beta_pips'] = tgfm_obj.beta_pips
 	tgfm_results['expected_alpha_pips'] = tgfm_obj.expected_alpha_pips
