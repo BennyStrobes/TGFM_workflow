@@ -327,6 +327,33 @@ make_bar_plot_showing_expected_number_of_causal_tissue_categories_for_single_tra
   	return(p)
 }
 
+make_bar_plot_showing_sldsc_tau_of_each_tissue <- function(sldsc_file, trait_name_readable) {
+	# Load in input data
+	df <- read.table(sldsc_file, header=TRUE)
+	# Skip variants
+	df <- df[54:(dim(df)[1]),]
+
+	df$tissue = df$Annotation
+	ordered_tissues <- as.character(df$tissue)
+	df$prior = df$tau
+	priors <- as.numeric(df$prior)
+
+	ord <- order(priors)
+	df$tissue = factor(df$tissue, levels=ordered_tissues[ord])
+	df$tissue = str_replace_all(as.character(df$tissue), "-", "_")
+	df$tissue <- recode(df$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+	ordered_tissues2 <- as.character(df$tissue)[1:length(unique(df$tissue))]
+	df$tissue = factor(df$tissue, levels=ordered_tissues2[ord])
+	
+	p<-ggplot(df, aes(x=tissue, y=priors)) +
+  		geom_bar(stat="identity",position=position_dodge())+figure_theme() +
+  		theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  		theme(legend.position="bottom") +
+  		geom_errorbar( aes(x=tissue, ymin=priors-(1.96*tau_se), ymax=priors+(1.96*tau_se)), width=0.2, colour="blue", alpha=0.5, size=.5) +
+  		labs(x="", y="TGLR Tau", title=trait_name_readable)
+  	return(p)
+}
+
 
 make_bar_plot_showing_iterative_prior_probability_of_each_tissue <- function(iterative_prior_file, method_version, trait_name_readable) {
 	# Load in input data
@@ -495,9 +522,19 @@ for (trait_iter in 1:length(trait_names)) {
 	# Sampler approach
 	method_version="susie_sampler_variant_gene"
 	iterative_prior_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior.txt")
-	barplot <- make_bar_plot_showing_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
+	barplot1 <- make_bar_plot_showing_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
 	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_iterative_prior_probabilities_", trait_name_readable, "_", method_version,".pdf")
-	ggsave(barplot, file=output_file, width=7.2, height=4.2, units="in")
+	ggsave(barplot1, file=output_file, width=7.2, height=4.2, units="in")
+
+
+	# S-ldsc approach
+	sldsc_file <- paste0(tgfm_sldsc_results_dir, trait_name, "_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_organized_res.txt")
+	barplot2 <- make_bar_plot_showing_sldsc_tau_of_each_tissue(sldsc_file, trait_name_readable)
+
+	pp <- plot_grid(barplot1, barplot2, ncol=1)
+	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_iterative_prior_probabilities2_", trait_name_readable, "_", method_version,".pdf")
+	ggsave(pp, file=output_file, width=7.2, height=8.6, units="in")
+
 
 
 	# PMCES approach

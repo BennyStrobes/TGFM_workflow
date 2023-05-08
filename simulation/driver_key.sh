@@ -53,6 +53,7 @@ ldsc_summary_stats_dir="/n/groups/price/ldsc/sumstats_formatted_2021/"
 ############################
 # Output roots (one temporary on scratch and one permanent)
 temp_output_root="/n/scratch3/users/b/bes710/causal_eqtl_gwas/simulation/"
+alkes_temp_output_root="/n/scratch3/users/a/ap92/ben/tgfm/simulation/"
 perm_output_root="/n/groups/price/ben/causal_eqtl_gwas/simulation/"
 
 # Directory containing processed genotype data
@@ -86,7 +87,7 @@ simulated_sldsc_results_dir=$temp_output_root"simulated_sldsc_results/"
 simulated_organized_results_dir=$temp_output_root"simulated_organized_results/"
 
 # Directory containing simulated tgfm input data
-simulated_tgfm_input_data_dir=$temp_output_root"simulated_tgfm_input/"
+simulated_tgfm_input_data_dir=$alkes_temp_output_root"simulated_tgfm_input/"
 
 # Directory containing simulated tgfm results
 simulated_tgfm_results_dir=$temp_output_root"simulated_tgfm_results/"
@@ -155,24 +156,57 @@ fi
 
 
 ############################
-# Run single simulation
+# Run single simulation of processing and TGLR
 ############################
 # cis window arround genes to define eQTLs
 cis_window="100000"
 # Iteration of simulation (also works as seed)
 if false; then
-for simulation_number in $(seq 1 50); do 
+for simulation_number in $(seq 2 100); do 
 	# Simulation string used for output file
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
 	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir
 done
 fi
 
-simulation_number="1"
+simulation_number="84"
 simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
 if false; then
 sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir
 fi
+
+
+
+
+############################
+# Run single simulation of TGFM
+############################
+# cis window arround genes to define eQTLs
+cis_window="100000"
+# Iteration of simulation (also works as seed)
+simulation_number="1"
+# Simulation string used for output file
+simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
+
+# CONSIDER SAVING TGFM RESULTS IN APRICE DIRECOTRY 
+
+eqtl_sample_size="300"
+sh run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size
+
+if false; then
+eqtl_sample_size="500"
+sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size
+
+eqtl_sample_size="1000"
+sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size
+fi
+
+
+
+
+
+
+
 
 if false; then
 # Organize simulation results across parallel simulations

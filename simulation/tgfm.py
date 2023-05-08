@@ -38,6 +38,19 @@ def calculate_distance_between_two_vectors(vec1, vec2):
 	dist = np.mean(np.abs(vec1-vec2))
 	return dist
 
+def temp_elbo_calc(z_vec, LD, samp_size, alpha, mu, mu2, KL_terms):
+	bb = alpha*mu
+	b_bar = np.sum(bb,axis=0)
+	postb2 = alpha*mu2
+	elbo_term1 = samp_size -1
+	elbo_term2 = -2.0*np.sum(np.sqrt(samp_size-1)*b_bar*z_vec)
+	elbo_term3 = np.sum(b_bar*np.dot((samp_size-1.0)*LD, b_bar))
+	elbo_term4 = - np.sum(np.dot(bb, (samp_size-1.0)*LD)*bb)
+	elbo_term5 = np.sum(np.dot(np.diag(LD*(samp_size-1)), np.transpose(postb2)))
+	elbo_term7 = (-samp_size/2.0)*np.log(2.0*np.pi)
+
+	elbo = elbo_term7 - .5*(elbo_term1 + elbo_term2 + elbo_term3 + elbo_term4 + elbo_term5) - np.sum(KL_terms)
+	return elbo
 
 
 
@@ -91,11 +104,9 @@ class TGFM(object):
 			diff = calculate_distance_between_two_vectors(self.alpha_mu, self.prev_alpha_mu)
 			self.convergence_tracker.append(diff)
 			self.prev_alpha_mu = np.copy(self.alpha_mu)
-			#diff = calculate_distance_between_two_vectors(self.beta_mu, self.prev_beta_mu)
-			#self.prev_beta_mu = np.copy(self.beta_mu)
-			#print(diff)
+
+			#self.elbo = temp_elbo_calc(twas_data_obj['gwas_beta']/twas_data_obj['gwas_beta_se'], LD, samp_size, alpha, mu, mu2, KL_terms)
 			self.iter = self.iter + 1
-			print(diff)
 			if diff <= self.convergence_thresh:
 				self.converged = True
 				if self.single_variance_component:
@@ -110,6 +121,7 @@ class TGFM(object):
 			self.update_susie_effects_no_pi(self.alpha_component_variances, self.beta_component_variances)
 		if self.converged == False:
 			print('Did not converge after ' + str(self.max_iter) + ' iterations')
+
 
 
 
@@ -198,6 +210,7 @@ class TGFM(object):
 			mixture_beta_var = -1.0/(2.0*variant_a_terms)
 			mixture_beta_mu = variant_b_terms*mixture_beta_var
 
+
 			
 			################
 			# Normalization (across beta and alpha)
@@ -216,6 +229,24 @@ class TGFM(object):
 			self.beta_mu[l_index,:] = mixture_beta_mu
 			self.beta_var[l_index,:] = mixture_beta_var
 
+			# Update KL Terms
+			lbf = np.hstack((un_normalized_lv_alpha_weights-expected_log_pi, un_normalized_lv_beta_weights-expected_log_variant_pi))
+			#scipy.stats.norm.logpdf(, loc=0, scale=1)
+			#pdb.set_trace()
+			#betahat = np.hstack((b_terms, variant_b_terms))/(self.NN-1)
+			#shat2 = 1.0/(self.NN-1)
+			#lbf2 = scipy.stats.norm.logpdf(betahat, loc=0, scale=np.sqrt(alpha_component_variances[l_index] + shat2)) - scipy.stats.norm.logpdf(betahat, loc=0, scale=np.sqrt(shat2))
+			#pdb.set_trace()
+
+
+			maxlbf = np.max(lbf)
+			ww = np.exp(lbf - maxlbf)
+			ww_weighted = ww*np.exp(np.hstack((expected_log_pi, expected_log_variant_pi)))
+			kl_term1 = -(np.log(np.sum(ww_weighted)) + maxlbf) # THIS TERM IS CORRECT
+			kl_term2 = np.sum((self.beta_mu[l_index,:]*self.beta_phi[l_index,:])*variant_b_terms) + np.sum((self.alpha_mu[l_index,:]*self.alpha_phi[l_index,:])*b_terms)
+			kl_term3 = -.5*(np.sum((self.NN - 1)*self.beta_phi[l_index,:]*(np.square(self.beta_mu[l_index,:]) + self.beta_var[l_index,:])) + np.sum((self.NN - 1)*self.alpha_phi[l_index,:]*(np.square(self.alpha_mu[l_index,:]) + self.alpha_var[l_index,:])))
+			self.KL_terms[l_index] = kl_term1 + kl_term2 + kl_term3
+			self.LBF_terms[l_index] = -kl_term1
 
 			# Remove current component (as it is currently removed)
 			component_gene_trait_pred = np.dot(self.alpha_mu[l_index,:]*self.alpha_phi[l_index,:], self.gene_eqtl_pmces)
@@ -279,6 +310,9 @@ class TGFM(object):
 		self.K = len(twas_data_obj['variants'])
 		# Gene names
 		self.genes = twas_data_obj['genes']
+		# GWAS sample size
+		self.NN = twas_data_obj['gwas_sample_size']
+
 
 		if self.variant_init_log_pi is None:
 			gene_pi = np.ones(self.G)/(self.G + self.K)
@@ -366,3 +400,7 @@ class TGFM(object):
 		dd = np.diag(1.0/np.sqrt(np.diag(expression_covariance)))
 		self.ge_ld = np.dot(np.dot(dd, expression_covariance),dd)
 
+		# Initialize KL terms
+		self.KL_terms = np.zeros(self.L)
+		self.LBF_terms = np.zeros(self.L)
+		self.elbo = 0.0
