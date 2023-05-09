@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-14:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-40:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=25GB                         # Memory total in MiB (for all cores)
 
@@ -24,6 +24,7 @@ simulated_sldsc_results_dir="${15}"
 simulated_tgfm_input_data_dir="${16}"
 simulated_tgfm_results_dir="${17}"
 eqtl_sample_size="${18}"
+parr_version="${19}"
 
 
 
@@ -33,6 +34,7 @@ module load R/4.0.1
 date
 echo $simulation_number
 echo $eqtl_sample_size
+echo $parr_version
 
 # TGFM parameters
 init_method="best"
@@ -42,69 +44,96 @@ est_resid_var="False"
 tgfm_input_summary_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_bootstrapped_tgfm_input_data_summary.txt"
 
 
+
+if [ $parr_version == "parallel_1" ]; then
+
+echo "Part 1"
 # Uniform (PMCES)
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
-if false; then
 python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
-fi
+
 
 # Uniform (sampler)
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
-if false; then
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
-fi
 
-# variant-gene (PMCES)
-# Extract variant-gene log prior information
-ln_pi_method="tglr_variant_gene"
-tmp_anno="pmces"
-if false; then
-python3 extract_tglr_variant_gene_log_prior_info_for_tgfm.py $tgfm_input_summary_file $eqtl_sample_size $simulation_name_string $simulated_sldsc_results_dir $tmp_anno
-tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
-python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method"_"$tmp_anno
-fi
-
-
-
-# variant-gene (sampler)
-# Extract variant-gene log prior information
-ln_pi_method="tglr_variant_gene"
-tmp_anno="sampler"
-if false; then
-python3 extract_tglr_variant_gene_log_prior_info_for_tgfm.py $tgfm_input_summary_file $eqtl_sample_size $simulation_name_string $simulated_sldsc_results_dir $tmp_anno
-tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
-python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method"_"$tmp_anno
-fi
 
 # sparse-variant-gene tissue (PMCES)
 ln_pi_method="tglr_sparse_variant_gene_tissue"
 tmp_anno="pmces"
-if false; then
 python3 extract_tglr_sparse_variant_gene_tissue_log_prior_info_for_tgfm.py $tgfm_input_summary_file $eqtl_sample_size $simulation_name_string $simulated_sldsc_results_dir $tmp_anno
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
 python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method"_"$tmp_anno
-fi
 
-if false; then
+
 # sparse-variant-gene tissue (sampler)
 ln_pi_method="tglr_sparse_variant_gene_tissue"
 tmp_anno="sampler"
 python3 extract_tglr_sparse_variant_gene_tissue_log_prior_info_for_tgfm.py $tgfm_input_summary_file $eqtl_sample_size $simulation_name_string $simulated_sldsc_results_dir $tmp_anno
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method"_"$tmp_anno
+
+
+
 fi
 
-# ITerative prior
 
-# iterative prior (PMCES)
+
+
+
+
+if [ $parr_version == "parallel_2" ]; then
+
+echo "PART 2"
+
+# variant-gene (PMCES)
+# Extract variant-gene log prior information
+ln_pi_method="tglr_variant_gene"
+tmp_anno="pmces"
+python3 extract_tglr_variant_gene_log_prior_info_for_tgfm.py $tgfm_input_summary_file $eqtl_sample_size $simulation_name_string $simulated_sldsc_results_dir $tmp_anno
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
+python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method"_"$tmp_anno
+
+
+# variant-gene (sampler)
+# Extract variant-gene log prior information
+ln_pi_method="tglr_variant_gene"
+tmp_anno="sampler"
+python3 extract_tglr_variant_gene_log_prior_info_for_tgfm.py $tgfm_input_summary_file $eqtl_sample_size $simulation_name_string $simulated_sldsc_results_dir $tmp_anno
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
+python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method"_"$tmp_anno
+
+
+
+
+# Iterative prior (PMCES)
+version="pmces"
+ln_pi_method="tglr_variant_gene"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
+python3 learn_iterative_tgfm_component_prior.py $tgfm_input_summary_file $tgfm_output_stem $version
+iterative_prior_summary_file=$tgfm_output_stem"_iterative_emperical_distribution_variant_gene_prior.txt"
+python3 extract_iterative_variant_gene_tissue_log_prior_info_for_tgfm.py $tgfm_input_summary_file $iterative_prior_summary_file $version
+ln_pi_method="iterative_variant_gene_tissue"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
+python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method"_"$version
+
+
 
 # Iterative prior (sampler)
+version="sampler"
+ln_pi_method="tglr_variant_gene"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
+python3 learn_iterative_tgfm_component_prior.py $tgfm_input_summary_file $tgfm_output_stem $version
+iterative_prior_summary_file=$tgfm_output_stem"_iterative_emperical_distribution_variant_gene_prior.txt"
+python3 extract_iterative_variant_gene_tissue_log_prior_info_for_tgfm.py $tgfm_input_summary_file $iterative_prior_summary_file $version
+ln_pi_method="iterative_variant_gene_tissue"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
+python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method"_"$version
 
 
-
-
+fi
 
 
 date

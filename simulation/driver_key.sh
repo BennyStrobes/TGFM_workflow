@@ -90,7 +90,7 @@ simulated_organized_results_dir=$temp_output_root"simulated_organized_results/"
 simulated_tgfm_input_data_dir=$alkes_temp_output_root"simulated_tgfm_input/"
 
 # Directory containing simulated tgfm results
-simulated_tgfm_results_dir=$temp_output_root"simulated_tgfm_results/"
+simulated_tgfm_results_dir=$alkes_temp_output_root"simulated_tgfm_results/"
 
 # Directory containing visualizations of simulated results
 visualize_simulated_results_dir=$temp_output_root"visualize_simulated_results/"
@@ -183,22 +183,30 @@ fi
 ############################
 # cis window arround genes to define eQTLs
 cis_window="100000"
-# Iteration of simulation (also works as seed)
-simulation_number="1"
+
+echo $simulated_tgfm_results_dir
+
+if false; then
+for simulation_number in $(seq 1 20); do 
 # Simulation string used for output file
 simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
 
-# CONSIDER SAVING TGFM RESULTS IN APRICE DIRECOTRY 
-
 eqtl_sample_size="300"
-sh run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size
-
-if false; then
+parr_version="parallel_1"
+sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
+parr_version="parallel_2"
+sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
 eqtl_sample_size="500"
-sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size
-
+parr_version="parallel_1"
+sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
+parr_version="parallel_2"
+sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
 eqtl_sample_size="1000"
-sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size
+parr_version="parallel_1"
+sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
+parr_version="parallel_2"
+sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
+done
 fi
 
 

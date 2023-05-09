@@ -403,13 +403,12 @@ done
 fi
 
 
-
+if false; then
 # Learn iterative component prior
 trait_name="blood_MONOCYTE_COUNT"
 tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sh learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type}
+sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type}
 
-if false; then
 trait_name="biochemistry_Cholesterol"
 tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type}
@@ -419,8 +418,7 @@ sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gt
 trait_name="body_BMIz"
 tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type}
-fi
-if false; then
+
 trait_name="body_WHRadjBMIz"
 tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type}
@@ -430,8 +428,7 @@ sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gt
 trait_name="lung_FEV1FVCzSMOKE"
 tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type}
-fi
-if false; then
+
 trait_name="blood_MEAN_PLATELET_VOL"
 tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type}
