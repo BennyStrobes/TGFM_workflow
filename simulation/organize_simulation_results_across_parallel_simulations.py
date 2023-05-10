@@ -1126,7 +1126,7 @@ simulation_runs = np.delete(simulation_runs, [17])
 ##############################
 organized_number_detected_genes_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_fraction_of_detected_heritable_genes.txt'
 #create_file_containing_number_of_detected_genes(global_simulation_name_string, simulation_runs, eqtl_sample_sizes, simulated_gene_expression_dir, simulated_learned_gene_models_dir, organized_number_detected_genes_output_file)
-
+'''
 ##############################
 # Estimate bias in TGFM-SLDSC
 ##############################
@@ -1192,7 +1192,7 @@ create_file_containing_mediated_h2_power_to_detect_causal_tissues(mediated_pvalu
 # Create file showing type 1 error for null tissues
 type_1_error_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_mediated_h2_type_1_error.txt'
 create_file_containing_mediated_h2_type_1_error(mediated_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes)
-
+'''
 
 
 
@@ -1203,16 +1203,18 @@ create_file_containing_mediated_h2_type_1_error(mediated_pvalue_by_tissue_output
 #############################################################
 # Used eQTL sample sizes
 eqtl_sample_sizes = np.asarray([300,500,1000])
+eqtl_sample_sizes = np.asarray([300,500])
 
 
 # Simulation runs
 # Currently hacky because had some failed simulations
 simulation_runs = np.arange(1,21)
-simulation_runs = np.delete(simulation_runs, [17])
+#simulation_runs = np.delete(simulation_runs, [17])
+simulation_runs = np.delete(simulation_runs, [1, 17])
 
 
 # ln_pi methods used
-ln_pi_methods = np.asarray(['uniform', 'tglr_variant_gene'])
+ln_pi_methods = np.asarray(['uniform', 'tglr_variant_gene', 'tglr_sparse_variant_gene_tissue', 'iterative_variant_gene_tissue'])
 
 
 # twas method
