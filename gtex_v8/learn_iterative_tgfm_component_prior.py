@@ -580,6 +580,81 @@ def learn_iterative_variant_gene_tissue_prior_bootstrapped(component_level_abf_s
 
 	return variant_prob_distr, tissue_probs_distr
 
+def extract_iterative_variant_gene_tissue_log_priors(mapping, variants, genes):
+	n_var = len(variants)
+	n_genes = len(genes)
+	n_bs = len(mapping['variant'])
+	var_probs = np.zeros((n_var, n_bs))
+	gene_probs = np.zeros((n_genes, n_bs))
+
+	for var_iter in range(n_var):
+		var_probs[var_iter, :] = mapping['variant']
+	for gene_iter, gene_name in enumerate(genes):
+
+		tissue_name = '_'.join(gene_name.split('_')[1:])
+		gene_probs[gene_iter, :] = mapping[tissue_name]
+	
+	# Normalize rows
+	normalizers = np.sum(gene_probs,axis=0) + np.sum(var_probs,axis=0)
+	norm_var_probs = var_probs/normalizers
+	norm_gene_probs = gene_probs/normalizers
+
+	e_ln_pi_var = np.mean(np.log(norm_var_probs),axis=1)
+	e_ln_pi_gene = np.mean(np.log(norm_gene_probs),axis=1)
+	
+	return e_ln_pi_var, e_ln_pi_gene
+
+
+def print_log_prior_across_tgfm_windows(variant_gene_distr_prior_output_file, tgfm_input_summary_file, tmp_tgfm_stem):
+
+	# Create mapping from element name to bs-probs
+	mapping = {}
+	f = open(variant_gene_distr_prior_output_file)
+	head_count = 0
+	for line in f:	
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		ele_name = data[0]
+		bs_probs = np.asarray(data[3].split(';')).astype(float)
+		mapping[ele_name] = bs_probs
+	f.close()
+
+	# Loop through windows
+	f = open(tgfm_input_summary_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		window_name = data[0]
+		tgfm_input_pkl = data[2]
+
+
+		# Load in tgfm input data
+		g = open(tgfm_input_pkl, "rb")
+		tgfm_data = pickle.load(g)
+		g.close()
+
+		# extract prior for this window
+		variant_log_prior, gene_log_prior = extract_iterative_variant_gene_tissue_log_priors(mapping, tgfm_data['variants'], tgfm_data['genes'])
+
+		# print to output
+		output_file = tmp_tgfm_stem + '_' + window_name + '.txt'
+		t = open(output_file,'w')
+		t.write('element_name\tln_pi\n')
+		for variant_iter, var_name in enumerate(tgfm_data['variants']):
+			t.write(var_name + '\t' + str(variant_log_prior[variant_iter]) + '\n')
+		for gene_iter, gene_name in enumerate(tgfm_data['genes']):
+			t.write(gene_name + '\t' + str(gene_log_prior[gene_iter]) + '\n')
+		t.close()
+	f.close()
+
+	return
 
 
 
@@ -588,6 +663,7 @@ new_tgfm_stem = sys.argv[2]
 tgfm_version = sys.argv[3]
 processed_tgfm_input_stem = sys.argv[4]
 gtex_pseudotissue_file = sys.argv[5]
+tgfm_input_summary_file = sys.argv[6]
 
 
 
@@ -600,7 +676,7 @@ tissue_names = extract_pseudotissue_names(gtex_pseudotissue_file, ignore_testis=
 suffix = 'tgfm_pip_summary.txt'
 num_jobs=50
 concatenated_pip_summary_file = new_tgfm_stem + '_iterative_prior_' + suffix
-#concatenate_results_across_parallel_jobs(new_tgfm_stem, suffix, num_jobs, concatenated_pip_summary_file)
+concatenate_results_across_parallel_jobs(new_tgfm_stem, suffix, num_jobs, concatenated_pip_summary_file)
 
 
 ###################################################
@@ -608,32 +684,14 @@ concatenated_pip_summary_file = new_tgfm_stem + '_iterative_prior_' + suffix
 ###################################################
 component_level_abf_summary_file = new_tgfm_stem + '_iterative_prior' + '_tgfm_component_level_abf_summary.txt'
 per_window_abf_output_stem = new_tgfm_stem + '_iterative_prior_per_window_abf_'
-#generate_component_level_abf_summary_data(concatenated_pip_summary_file, component_level_abf_summary_file, tissue_names, new_tgfm_stem, tgfm_version, processed_tgfm_input_stem, per_window_abf_output_stem)
-
-###################################################
-# Learn iterative variant-gene-tissue prior (doing non-distribution based prior)
-###################################################
-'''
-variant_prob, tissue_probs = learn_iterative_variant_gene_tissue_prior(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=30)
-
-# Print to output
-variant_gene_prior_output_file = new_tgfm_stem + '_iterative_variant_gene_prior.txt'
-t = open(variant_gene_prior_output_file,'w')
-t.write('element_name\tprior\n')
-t.write('variant\t' + str(variant_prob) + '\n')
-for tiss_iter, tissue_name in enumerate(tissue_names):
-	t.write(tissue_name + '\t' + str(tissue_probs[tiss_iter]) + '\n')
-t.close()
-'''
+generate_component_level_abf_summary_data(concatenated_pip_summary_file, component_level_abf_summary_file, tissue_names, new_tgfm_stem, tgfm_version, processed_tgfm_input_stem, per_window_abf_output_stem)
 
 
 ###################################################
 # Learn iterative distribution variant-gene-tissue prior (doing distribution based prior)
 ###################################################
-'''
 n_bootstraps=300
 variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_emperical_distribution_prior(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=60, n_bootstraps=n_bootstraps)
-
 # Print to output
 variant_gene_distr_prior_output_file = new_tgfm_stem + '_iterative_emperical_distribution_variant_gene_prior.txt'
 t = open(variant_gene_distr_prior_output_file,'w')
@@ -642,7 +700,8 @@ t.write('variant\t' + str(np.mean(variant_prob_emperical_distr)) + '\t' + str(np
 for tiss_iter, tissue_name in enumerate(tissue_names):
 	t.write(tissue_name + '\t' + str(np.mean(tissue_probs_emperical_distr[tiss_iter,:])) + '\t' + str(np.exp(np.mean(np.log(tissue_probs_emperical_distr[tiss_iter,:])))) + '\t' + ';'.join(tissue_probs_emperical_distr[tiss_iter,:].astype(str)) + '\n')
 t.close()
-'''
+
+print_log_prior_across_tgfm_windows(variant_gene_distr_prior_output_file, tgfm_input_summary_file, new_tgfm_stem + '_iterative_emperical_distribution_prior')
 
 
 
@@ -662,6 +721,11 @@ for tiss_iter, tissue_name in enumerate(tissue_names):
 t.close()
 
 
+print_log_prior_across_tgfm_windows(variant_gene_distr_prior_output_file, tgfm_input_summary_file, new_tgfm_stem + '_iterative_prior_bootstrapped')
+
+
+# Clear up some space
+os.system('rm ' + per_window_abf_output_stem + '*npy')
 
 
 
@@ -669,6 +733,53 @@ t.close()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###################################################
+# Learn iterative variant-gene-tissue prior (doing non-distribution based prior)
+###################################################
+'''
+variant_prob, tissue_probs = learn_iterative_variant_gene_tissue_prior(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=30)
+
+# Print to output
+variant_gene_prior_output_file = new_tgfm_stem + '_iterative_variant_gene_prior.txt'
+t = open(variant_gene_prior_output_file,'w')
+t.write('element_name\tprior\n')
+t.write('variant\t' + str(variant_prob) + '\n')
+for tiss_iter, tissue_name in enumerate(tissue_names):
+	t.write(tissue_name + '\t' + str(tissue_probs[tiss_iter]) + '\n')
+t.close()
+'''
 
 
 

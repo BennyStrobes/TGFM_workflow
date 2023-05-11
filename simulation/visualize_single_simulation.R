@@ -356,7 +356,7 @@ make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_prior_method <- function(df,
 	df$fdr_ub = 1.0 - df$coverage_lb
 
 	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(300,500,1000))
-	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene"))
+	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene", "tglr_sparse_variant_gene_tissue", "iterative_variant_gene_tissue"))
 	
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=fdr, fill=ln_pi_method)) +
   		geom_bar(stat="identity", position=position_dodge()) +
@@ -372,7 +372,7 @@ make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_prior_method <- function(df,
 make_tgfm_pip_power_plot_varying_eqtl_sample_size_and_prior_method <- function(df, pip_threshold, twas_method, element_class) {
 
 	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(300,500,1000))
-	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene"))
+	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene", "tglr_sparse_variant_gene_tissue", "iterative_variant_gene_tissue"))
 
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=power, fill=ln_pi_method)) +
   		geom_bar(stat="identity", position=position_dodge()) +
@@ -527,8 +527,6 @@ ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
 ## 3. PMCES vs Sampler
 ## 4. Prior choice
 
-
-if (FALSE) {
 #####################################################################
 # Calibration at varying pip thresholds (plots) stratefied by sample size (x-axis) and variant vs gene
 #####################################################################
@@ -713,7 +711,6 @@ joint <- plot_grid(plotlist=plots, ncol=1)
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_", element_class, "_", twas_method, "_fdr_vary_eqtl_sample_size_and_prior_method.pdf")
 ggsave(joint, file=output_file, width=7.2, height=6.7, units="in")
 
-}
 
 
 

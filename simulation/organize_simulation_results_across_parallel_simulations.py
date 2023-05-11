@@ -1203,14 +1203,13 @@ create_file_containing_mediated_h2_type_1_error(mediated_pvalue_by_tissue_output
 #############################################################
 # Used eQTL sample sizes
 eqtl_sample_sizes = np.asarray([300,500,1000])
-eqtl_sample_sizes = np.asarray([300,500])
 
 
 # Simulation runs
 # Currently hacky because had some failed simulations
 simulation_runs = np.arange(1,21)
-#simulation_runs = np.delete(simulation_runs, [17])
-simulation_runs = np.delete(simulation_runs, [1, 17])
+simulation_runs = np.delete(simulation_runs, [17])
+#simulation_runs = np.delete(simulation_runs, [1, 6, 17, 18])
 
 
 # ln_pi methods used
