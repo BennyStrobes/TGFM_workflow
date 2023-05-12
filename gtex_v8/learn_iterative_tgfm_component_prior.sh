@@ -29,7 +29,6 @@ init_ln_pi_method="variant_gene"
 new_tgfm_stem=${tgfm_stem}"_susie_pmces_"${init_ln_pi_method}
 version="pmces"
 python3 learn_iterative_tgfm_component_prior.py $trait_name $new_tgfm_stem $version $processed_tgfm_input_stem $gtex_pseudotissue_file $tgfm_input_summary_file
-
 date
 
 ########################

@@ -236,45 +236,36 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 
 	if init_method == 'best':
 		rpy2.robjects.r['options'](warn=1)
-		# Run susie with only variants
-		p_var_only = np.ones(len(z_vec))
-		p_var_only[:len(tgfm_obj.nominal_twas_z)] = 0.0
-		p_var_only = p_var_only/np.sum(p_var_only)
-		susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=7, prior_weights=p_var_only.reshape((len(p_var_only),1)), estimate_residual_variance=est_resid_var_bool)
-	
-		#elbo = temp_elbo_calc(z_vec, LD, tgfm_data['gwas_sample_size'], susie_variant_only.rx2('alpha'), susie_variant_only.rx2('mu'), susie_variant_only.rx2('mu2'), susie_variant_only.rx2('KL'))
 
-
-		# Run susie with variant initialization
-		init_obj = {'alpha':susie_variant_only.rx2('alpha'), 'mu':susie_variant_only.rx2('mu'),'mu2':susie_variant_only.rx2('mu2')}
-		init_obj2 = ro.ListVector(init_obj)
-		init_obj2.rclass = rpy2.robjects.StrVector(("list", "susie"))
-		susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=7, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
-		#elbo1 = elbo_calc(z_vec, gene_variant_full_ld, tgfm_data['gwas_sample_size'], susie_variant_init.rx2('alpha'), susie_variant_init.rx2('mu'), susie_variant_init.rx2('mu2'), susie_variant_init.rx2('KL'))
-
-		#susie_variant_init2 = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool, refine=True)
 
 		# Run susie with null initialization
 		susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=7, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
-		#susie_null_init2 = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool, refine=True)
-		#elbo2 = elbo_calc(z_vec, gene_variant_full_ld, tgfm_data['gwas_sample_size'], susie_null_init.rx2('alpha'), susie_null_init.rx2('mu'), susie_null_init.rx2('mu2'), susie_null_init.rx2('KL'))
+		tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
 
-		# Select model with largest elbo
-		susie_null_init_elbo = susie_null_init.rx2('elbo')[-1]
-		susie_variant_init_elbo = susie_variant_init.rx2('elbo')[-1]
+		# Only run alternative variant-only inititialization if we have high pip genes
+		if np.max(tgfm_obj.alpha_pip) > .5:
+			# Run susie with only variants
+			p_var_only = np.ones(len(z_vec))
+			p_var_only[:len(tgfm_obj.nominal_twas_z)] = 0.0
+			p_var_only = p_var_only/np.sum(p_var_only)
+			susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=7, prior_weights=p_var_only.reshape((len(p_var_only),1)), estimate_residual_variance=est_resid_var_bool)
+	
+			# Run susie with variant initialization
+			init_obj = {'alpha':susie_variant_only.rx2('alpha'), 'mu':susie_variant_only.rx2('mu'),'mu2':susie_variant_only.rx2('mu2')}
+			init_obj2 = ro.ListVector(init_obj)
+			init_obj2.rclass = rpy2.robjects.StrVector(("list", "susie"))
+			susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=7, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
 
-		if susie_variant_init_elbo > susie_null_init_elbo:
-			# Variant init wins
-			tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_variant_init)
-			#lbf=susie_variant_init.rx2('lbf_variable')[0,:]
-			#maxlbf = np.max(lbf)
-			#ww = np.exp(lbf - maxlbf)
-			#w_weighted = ww*prior_probs
-			#weighted_sum_w = sum(w_weighted)
-			#alpha = w_weighted / weighted_sum_w
-		else:
-			# Null init wins
-			tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
+			# Select model with largest elbo
+			susie_null_init_elbo = susie_null_init.rx2('elbo')[-1]
+			susie_variant_init_elbo = susie_variant_init.rx2('elbo')[-1]
+
+			if susie_variant_init_elbo > susie_null_init_elbo:
+				# Variant init wins
+				tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_variant_init)
+			else:
+				# Null init wins
+				tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
 	elif init_method == 'refine_best':
 		rpy2.robjects.r['options'](warn=1)
 		# Run susie with only variants
@@ -387,6 +378,44 @@ def convert_to_standardized_summary_statistics(gwas_beta_raw, gwas_beta_se_raw, 
 	beta_se_scaled = np.sqrt(sigma2/dXtX2)
 
 	return beta_scaled, beta_se_scaled
+
+def extract_log_prior_probabilities_from_summary_file(log_prior_file, existing_var_names, existing_gene_names):
+	var_names = []
+	gene_names = []
+	var_probs = []
+	gene_probs = []
+
+	f = open(log_prior_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		element_name = data[0]
+		log_prob = float(data[1])
+		if element_name.startswith('ENSG'):
+			gene_probs.append(log_prob)
+			gene_names.append(element_name)
+		else:
+			var_probs.append(log_prob)
+			var_names.append(element_name)
+	f.close()
+
+
+	# Quick error checking
+	var_names = np.asarray(var_names)
+	gene_names = np.asarray(gene_names)
+	if np.array_equal(var_names, existing_var_names) == False:
+		print('assumption eorroror')
+		pdb.set_trace()
+	if np.array_equal(gene_names, existing_gene_names) == False:
+		print('assumption eorroror')
+		pdb.set_trace()
+
+
+	return np.asarray(var_probs), np.asarray(gene_probs)
 
 
 ######################
@@ -519,6 +548,9 @@ for window_iter in range(n_windows):
 	elif ln_pi_method_name == 'sparse_variant_gene_tissue':
 		var_log_prior = tgfm_trait_data['sparse_variant_gene_tissue_ln_prior_variant'][trait_index,:]
 		gene_log_prior = tgfm_trait_data['sparse_variant_gene_tissue_ln_prior_gene'][trait_index,:]
+	elif ln_pi_method_name == 'iterative_variant_gene_tissue':
+		log_prior_file = tgfm_output_stem.split('_iterative_variant')[0] + '_variant_gene_iterative_emperical_distribution_prior_' + window_name + '.txt'
+		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_summary_file(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
 	else:
 		print('assumption erororo: ' + str(ln_pi_method_name) + ' is not yet implemented')
 		pdb.set_trace()		
