@@ -283,6 +283,20 @@ def get_ld_score_correlation_heatmap(variant_model, gene_model_suffix, preproces
 	np.savetxt(correlation_mat_output_root + '_subset_col_names.txt', subset_anno_col_names, fmt="%s", delimiter='\t')
 
 
+def get_number_of_variant_annotations(variant_ld_score_file):
+	f = gzip.open(variant_ld_score_file)
+	head_count = 0
+	for line in f:
+		line = line.decode('utf-8').rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			n_anno = len(data[3:])
+			break
+	f.close()
+
+
+	return n_anno
+
 
 gtex_pseudotissue_file = sys.argv[1]
 preprocessed_tgfm_sldsc_data_dir = sys.argv[2]
@@ -298,14 +312,6 @@ pseudotissue_names = get_pseudotissue_names(gtex_pseudotissue_file, tissue_versi
 # Get number of genes per chromosome per tissue
 n_genes_per_chromosome_per_tissue = get_n_genes_per_chromosome_per_tissue(pseudotissue_names, gtex_susie_gene_models_dir, gene_type)
 
-# Generate gene weights files
-'''
-variant_model = 'baselineLD_no_qtl'  # Simply using this to get rs-ids (could also use baseline or intercept)
-gene_model ='pmces_gene_weights'
-for chrom_num in range(1,23):
-	print(chrom_num)
-	make_gene_weight_input_file(chrom_num, pseudotissue_names, variant_model, gene_model, preprocessed_tgfm_sldsc_data_dir, gene_type, tissue_version)
-'''
 
 # Various iterations to run over
 #variant_models = ['baselineLD_no_qtl']
@@ -315,6 +321,32 @@ variant_models = ['baselineLD_no_qtl', 'baseline_no_qtl', 'baseline_plus_LDanno'
 gene_model_suffixes = ['pmces_gene_adj_ld_scores']
 #gene_model_suffixes = ['gene_ld_scores', 'gene_adj_ld_scores', 'pmces_gene_ld_scores', 'pmces_gene_adj_ld_scores']
 
+for variant_model in variant_models:
+	chrom_num = 21 # Actual chromosome choice doesn't matter because all chromosomes have the same number of annotations
+	variant_ld_score_file = preprocessed_tgfm_sldsc_data_dir + variant_model + '.' + str(chrom_num) + '.l2.ldscore.gz'
+	n_variant_annotations = get_number_of_variant_annotations(variant_ld_score_file)
+	n_gene_annotations = len(pseudotissue_names)
+
+	# Print non-negative coefficient file
+	non_neg_coef_file = preprocessed_tgfm_sldsc_data_dir + variant_model + '_' + tissue_version + '_nonnegative_coefficients.txt'
+	t = open(non_neg_coef_file,'w')
+	for variant_iter in range(n_variant_annotations):
+		t.write('False\n')
+	for gene_iter in range(n_gene_annotations):
+		t.write('True\n')
+	t.close()
+# Do the same for genotype intercept model
+non_neg_coef_file = preprocessed_tgfm_sldsc_data_dir + 'genotype_intercept' + '_' + tissue_version + '_nonnegative_coefficients.txt'
+t = open(non_neg_coef_file,'w')
+n_gene_annotations = len(pseudotissue_names)
+t.write('False\n')
+for gene_iter in range(n_gene_annotations):
+	t.write('True\n')
+t.close()
+
+
+
+'''
 for chrom_num in range(1,23):
 	print(chrom_num)
 	make_ld_score_input_shell(chrom_num,  n_genes_per_chromosome_per_tissue[(chrom_num-1),:], pseudotissue_names, variant_models, gene_model_suffixes, preprocessed_tgfm_sldsc_data_dir, gene_type, tissue_version)
@@ -326,10 +358,22 @@ reference_variant_model = 'baselineLD_no_qtl'
 for chrom_num in range(1,23):
 	make_ld_score_input_shell_for_genotype_intercept(chrom_num,  n_genes_per_chromosome_per_tissue[(chrom_num-1),:], pseudotissue_names, reference_variant_model, gene_model_suffixes, preprocessed_tgfm_sldsc_data_dir, gene_type, tissue_version)
 generate_annotation_sdev_file_for_genotype_intercept_shell(reference_variant_model, gene_model_suffixes, preprocessed_tgfm_sldsc_data_dir, gene_type, tissue_version)
+'''
 
 
 
 
+
+
+
+# Generate gene weights files
+'''
+variant_model = 'baselineLD_no_qtl'  # Simply using this to get rs-ids (could also use baseline or intercept)
+gene_model ='pmces_gene_weights'
+for chrom_num in range(1,23):
+	print(chrom_num)
+	make_gene_weight_input_file(chrom_num, pseudotissue_names, variant_model, gene_model, preprocessed_tgfm_sldsc_data_dir, gene_type, tissue_version)
+'''
 
 '''
 variant_model = 'baselineLD_no_qtl'

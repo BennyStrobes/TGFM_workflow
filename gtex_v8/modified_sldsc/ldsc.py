@@ -543,6 +543,12 @@ parser.add_argument('--chisq-max', default=None, type=float,
 parser.add_argument('--ref-ld-chr-cts', default=None, type=str,
     help='Name of a file that has a list of file name prefixes for cell-type-specific analysis.')
 parser.add_argument('--print-all-cts', action='store_true', default=False)
+parser.add_argument('--bootstrap',default=False,action='store_true',
+    help='Run genomic bootstrap instead of genomic jackknife.')
+parser.add_argument('--n-bootstraps', default=100, type=int,
+    help='Number of bootstrap samples to run Only applicable if running bootstrapping.')
+parser.add_argument('--nonnegative-coefficient-file', default=None,type=str,
+    help='Currently only for use with ---bootstrap. Specifies which entries, if any, to require to be non-negative')
 
 # Flags for both LD Score estimation and h2/gencor estimation
 parser.add_argument('--print-cov', default=False, action='store_true',
