@@ -334,16 +334,16 @@ def merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj2, variant_z_ve
 
 
 
-def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method):
+def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method, bootstrap_prior):
 	if init_method == 'null':
-		tgfm_obj = bootstrapped_tgfm.TGFM(L=15, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5)
+		tgfm_obj = bootstrapped_tgfm.TGFM(L=15, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5, bootstrap_prior=bootstrap_prior)
 		tgfm_obj.fit(twas_data_obj=tgfm_data)
 	elif init_method == 'best':
 		# Run susie with only variants
 		z_vec = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
 
 		# Now run tgfm sampler with null init
-		tgfm_obj = bootstrapped_tgfm.TGFM(L=15, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5)
+		tgfm_obj = bootstrapped_tgfm.TGFM(L=15, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5, bootstrap_prior=bootstrap_prior)
 		tgfm_obj.fit(twas_data_obj=tgfm_data)
 		#elbo_null_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
 
@@ -362,7 +362,7 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_
 			mu_var_init[:, num_genes:] = variant_only_mu_var
 
 			# Run tgfm sampler with variant init
-			tgfm_obj_variant_init = bootstrapped_tgfm.TGFM(L=15, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5)
+			tgfm_obj_variant_init = bootstrapped_tgfm.TGFM(L=15, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5, bootstrap_prior=bootstrap_prior)
 			tgfm_obj_variant_init.fit(twas_data_obj=tgfm_data, phi_init=alpha_init, mu_init=mu_init, mu_var_init=mu_var_init)
 			#elbo_variant_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj_variant_init, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
 
@@ -435,6 +435,50 @@ def extract_log_prior_probabilities_from_summary_file(log_prior_file, existing_v
 	return np.asarray(var_probs), np.asarray(gene_probs)
 
 
+def create_mapping_from_element_name_to_bs_probs(ln_pi_input_file):
+	# Create mapping from element name to bs-probs
+	mapping = {}
+	f = open(ln_pi_input_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		ele_name = data[0]
+		bs_probs = np.asarray(data[3].split(';')).astype(float)
+		new_bs_probs = []
+		for bs_prob in bs_probs:
+			if bs_prob == 0:
+				new_bs_probs.append(1e-100)
+			else:
+				new_bs_probs.append(bs_prob)
+		new_bs_probs = np.asarray(new_bs_probs)
+		meany = float(data[1])
+		mapping[ele_name] = new_bs_probs
+	f.close()
+	return mapping
+
+def extract_log_prior_probabilities_from_bootstrapped_ln_pi_mapping(mapping, variants, genes):
+	n_var = len(variants)
+	n_genes = len(genes)
+	n_bs = len(mapping['variant'])
+	var_probs = np.zeros((n_var, n_bs))
+	gene_probs = np.zeros((n_genes, n_bs))
+
+	for var_iter in range(n_var):
+		var_probs[var_iter, :] = mapping['variant']
+	for gene_iter, gene_name in enumerate(genes):
+		tissue_name = gene_name.split('_')[1]
+		gene_probs[gene_iter, :] = mapping[tissue_name]
+	
+	# Normalize rows
+	normalizers = np.sum(gene_probs,axis=0) + np.sum(var_probs,axis=0)
+	norm_var_probs = var_probs/normalizers
+	norm_gene_probs = gene_probs/normalizers
+
+	return np.log(norm_var_probs), np.log(norm_gene_probs)
 
 
 ######################
@@ -462,6 +506,13 @@ else:
 	print('assumption eroror')
 	pdb.set_trace()
 
+# Load in ln-pi info
+if ln_pi_method_name == 'iterative_variant_gene_tissue_bootstrapped_sampler':
+	ln_pi_input_file = tgfm_output_stem.split('iterative_variant')[0] + 'uniform_iterative_variant_gene_prior_bootstrapped.txt'
+	ln_pi_ele_name_to_bs_probs_mapping = create_mapping_from_element_name_to_bs_probs(ln_pi_input_file)
+elif ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped' or ln_pi_method_name == 'sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped':
+	ln_pi_input_file = tgfm_output_stem.split('_sampler')[0] + '_' + ln_pi_method_name + '.txt'
+	ln_pi_ele_name_to_bs_probs_mapping = create_mapping_from_element_name_to_bs_probs(ln_pi_input_file)
 
 
 # Open PIP file handle
@@ -526,14 +577,18 @@ for window_iter in range(n_windows):
 	tgfm_data['reference_ld'] = ld_mat
 
 	# Extract log prior probabilities from summary file
-	log_prior_file = ln_pi_file_stem + '_' + ln_pi_method_name + '.txt'
-	var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_summary_file(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
-
+	if ln_pi_method_name == 'iterative_variant_gene_tissue_bootstrapped_sampler' or ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped' or ln_pi_method_name == 'sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped':
+		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_bootstrapped_ln_pi_mapping(ln_pi_ele_name_to_bs_probs_mapping, tgfm_data['variants'], tgfm_data['genes'])
+		bootstrap_prior = True
+	else:
+		log_prior_file = ln_pi_file_stem + '_' + ln_pi_method_name + '.txt'
+		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_summary_file(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
+		bootstrap_prior = False
 
 	##############################
 	# Run TGFM
 	###############################
-	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method)
+	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method, bootstrap_prior)
 
 	##############################
 	# Extract valid tgfm components

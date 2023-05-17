@@ -890,6 +890,7 @@ tgfm_sldsc_results_dir = sys.argv[9]
 
 
 model_versions = ['susie_pmces_variant_gene', 'susie_sampler_variant_gene', 'susie_pmces_sparse_variant_gene_tissue', 'susie_sampler_sparse_variant_gene_tissue']
+model_versions = ['susie_sampler_iterative_variant_gene_tissue']
 
 
 #Extract tissue names
@@ -904,7 +905,7 @@ print(trait_names)
 
 valid_trait_names = {'biochemistry_Cholesterol':1, 'blood_MEAN_PLATELET_VOL':1, 'blood_MONOCYTE_COUNT':1, 'body_BMIz':1, 'body_WHRadjBMIz':1, 'bp_DIASTOLICadjMEDz':1, 'biochemistry_VitaminD':1, 'blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT':1, 'lung_FEV1FVCzSMOKE':1}
 
-valid_trait_names = {'blood_MEAN_PLATELET_VOL':1, 'blood_MONOCYTE_COUNT':1, 'body_BMIz':1, 'body_WHRadjBMIz':1, 'bp_DIASTOLICadjMEDz':1, 'lung_FEV1FVCzSMOKE':1}
+#valid_trait_names = {'blood_MEAN_PLATELET_VOL':1, 'blood_MONOCYTE_COUNT':1, 'body_BMIz':1, 'body_WHRadjBMIz':1, 'bp_DIASTOLICadjMEDz':1, 'lung_FEV1FVCzSMOKE':1}
 
 
 
@@ -936,14 +937,14 @@ for trait_name in trait_names:
 		##################################################
 		sldsc_fraction_mediated_h2_file = tgfm_sldsc_results_dir + trait_name + '_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_h2_5_50_med.txt'
 		fraction_mediated_sldsc_comparison_summary_file = file_stem + '_tgfm_fraction_mediated_sldsc_comparison.txt'
-		correlate_fraction_mediated_h2_with_fraction_of_components_mediated(component_level_summary_file, sldsc_fraction_mediated_h2_file, fraction_mediated_sldsc_comparison_summary_file, model_version, trait_name)
+		#correlate_fraction_mediated_h2_with_fraction_of_components_mediated(component_level_summary_file, sldsc_fraction_mediated_h2_file, fraction_mediated_sldsc_comparison_summary_file, model_version, trait_name)
 
 		##################################################
 		# Correlate per tissue h2 with number of components identifiedin each tissue
 		##################################################
 		sldsc_mediated_h2_file = tgfm_sldsc_results_dir + trait_name + '_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_organized_mediated_h2_5_50.txt'
 		per_tissue_sldsc_comparison_summary_file = file_stem + '_tgfm_per_tissue_sldsc_comparison_component_level.txt'
-		correlate_per_tissue_h2_with_number_of_components_identified_in_each_tissue(component_level_summary_file, sldsc_mediated_h2_file, per_tissue_sldsc_comparison_summary_file, model_version, trait_name, tissue_names, tissue_name_to_broad_category)
+		#correlate_per_tissue_h2_with_number_of_components_identified_in_each_tissue(component_level_summary_file, sldsc_mediated_h2_file, per_tissue_sldsc_comparison_summary_file, model_version, trait_name, tissue_names, tissue_name_to_broad_category)
 
 		###################################################
 		# Create gene-Tissue pip summary file
@@ -957,7 +958,7 @@ for trait_name in trait_names:
 		sldsc_mediated_h2_file = tgfm_sldsc_results_dir + trait_name + '_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_organized_mediated_h2_5_50.txt'
 		per_tissue_sldsc_comparison_summary_file = file_stem + '_tgfm_per_tissue_sldsc_comparison_old.txt'
 		pip_threshold = 0.2
-		correlate_number_of_high_pip_genes_with_per_tissue_sldsc_h2(tissue_names, per_gene_tissue_pip_summary_file, pip_threshold, sldsc_mediated_h2_file, per_tissue_sldsc_comparison_summary_file, tissue_name_to_broad_category)
+		#correlate_number_of_high_pip_genes_with_per_tissue_sldsc_h2(tissue_names, per_gene_tissue_pip_summary_file, pip_threshold, sldsc_mediated_h2_file, per_tissue_sldsc_comparison_summary_file, tissue_name_to_broad_category)
 		
 		###################################################
 		# Extract nominal twas z and component-iter and PIP confidence intervals for high pip gene-tissue pair
@@ -965,16 +966,16 @@ for trait_name in trait_names:
 		pip_threshold = .4
 		per_gene_tissue_high_pip_extensive_summary_file = file_stem + '_tgfm_per_high_pip_gene_tissue_extensive_summary.txt'
 		per_gene_tissue_high_pip_high_confidence_extensive_summary_file = file_stem + '_tgfm_per_high_pip_high_confidence_gene_tissue_extensive_summary.txt'
-		generate_extensive_per_gene_tissue_pip_summary_file(per_gene_tissue_pip_summary_file, per_gene_tissue_high_pip_extensive_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem,pip_threshold, ukbb_preprocessed_for_genome_wide_susie_dir, trait_name, per_gene_tissue_high_pip_high_confidence_extensive_summary_file)
+		#generate_extensive_per_gene_tissue_pip_summary_file(per_gene_tissue_pip_summary_file, per_gene_tissue_high_pip_extensive_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem,pip_threshold, ukbb_preprocessed_for_genome_wide_susie_dir, trait_name, per_gene_tissue_high_pip_high_confidence_extensive_summary_file)
 
 		###################################################
 		# Create tissue pip summary file
 		###################################################
 		per_tissue_pip_summary_file = file_stem + '_tgfm_per_tissue_pip_summary.txt'
-		generate_per_tissue_pip_summary_file(concatenated_pip_summary_file, per_tissue_pip_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem)
+		#generate_per_tissue_pip_summary_file(concatenated_pip_summary_file, per_tissue_pip_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem)
 
 		###################################################
 		# Create tissue-category pip summary file
 		###################################################
 		per_tissue_category_pip_summary_file = file_stem + '_tgfm_per_tissue_category_pip_summary.txt'
-		generate_per_tissue_category_pip_summary_file(concatenated_pip_summary_file, per_tissue_category_pip_summary_file, tissue_names,tissue_categories, tissue_category_to_tissue_names, file_stem, model_version, processed_tgfm_input_stem)
+		#generate_per_tissue_category_pip_summary_file(concatenated_pip_summary_file, per_tissue_category_pip_summary_file, tissue_names,tissue_categories, tissue_category_to_tissue_names, file_stem, model_version, processed_tgfm_input_stem)

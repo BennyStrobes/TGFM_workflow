@@ -85,9 +85,113 @@ def create_file_containing_mediated_h2_sparse_binary_est_in_causal_and_non_causa
 					causal_status = 'null'
 				t.write(str(eqtl_sample_size) + '\t' + str(simulation_run) + '\t' + str(tissue_iter) + '\t' + str(med_h2_coef[tissue_iter]) + '\t' + str(pvalue[tissue_iter]) + '\t' + causal_status + '\n')
 		#print(np.mean(arr))
+	t.close()
+
+def create_file_containing_iterative_bootstrapped_sampler_prior_mediated_h2_pvalue_in_causal_and_non_causal_tissues_across_thresholds(simulated_tgfm_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_iterative_sampler_pvalue_by_tissue_output_file, thresholds, model_name):
+	# Open output file and print header
+	t = open(mediated_iterative_sampler_pvalue_by_tissue_output_file,'w')
+	t.write('eqtl_sample_size\tsimulation_number\ttissue_number\tz_score\tpvalue\tcausal_status\tthreshold\n')
+	for eqtl_sample_size in eqtl_sample_sizes:
+		arr = []
+		for simulation_run in simulation_runs:
+			# Extract per annotation mediated heritability file for this run
+			h2_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + model_name + '_bootstrapped.txt'
+			# Load in per anno med h2
+			h2_data_raw = np.loadtxt(h2_file, dtype=str, delimiter='\t')
+			expr_data = h2_data_raw[-10:,:]
+			for tissue_iter in range(10):
+				if tissue_iter == 0 or tissue_iter == 3:
+					causal_status = 'causal'
+				else:
+					causal_status = 'null'
+				for threshold in thresholds:
+					bootstrapped_coefficients = np.asarray(expr_data[tissue_iter,-1].split(';')).astype(float)
+					emperical_pvalue = np.sum(bootstrapped_coefficients < threshold)/len(bootstrapped_coefficients)
+					t.write(str(eqtl_sample_size) + '\t' + str(simulation_run) + '\t' + str(tissue_iter) + '\t' + str(0.0) + '\t' + str(emperical_pvalue) + '\t' + causal_status + '\t' + str(threshold) + '\n')
+		#print(np.mean(arr))
+	t.close()		
+
+
+def create_file_containing_iterative_bootstrapped_sampler_prior_mediated_h2_pvalue_in_causal_and_non_causal_tissues(simulated_tgfm_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_iterative_sampler_pvalue_by_tissue_output_file):
+	# Open output file and print header
+	t = open(mediated_iterative_sampler_pvalue_by_tissue_output_file,'w')
+	t.write('eqtl_sample_size\tsimulation_number\ttissue_number\tz_score\tpvalue\tcausal_status\n')
+	for eqtl_sample_size in eqtl_sample_sizes:
+		arr = []
+		for simulation_run in simulation_runs:
+			# Extract per annotation mediated heritability file for this run
+			h2_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_pmces_uniform_iterative_variant_gene_prior_bootstrapped.txt'
+			# Load in per anno med h2
+			h2_data_raw = np.loadtxt(h2_file, dtype=str, delimiter='\t')
+			expr_data = h2_data_raw[-10:,:]
+			for tissue_iter in range(10):
+				if tissue_iter == 0 or tissue_iter == 3:
+					causal_status = 'causal'
+				else:
+					causal_status = 'null'
+				bootstrapped_coefficients = np.asarray(expr_data[tissue_iter,-1].split(';')).astype(float)
+				emperical_pvalue = np.sum(bootstrapped_coefficients < 1e-9)/len(bootstrapped_coefficients)
+
+				t.write(str(eqtl_sample_size) + '\t' + str(simulation_run) + '\t' + str(tissue_iter) + '\t' + str(0.0) + '\t' + str(emperical_pvalue) + '\t' + causal_status + '\n')
+		#print(np.mean(arr))
+	t.close()		
+
+def create_file_containing_nonnegative_bootstrapped_mediated_h2_pvalue_in_causal_and_non_causal_tissues(simulated_sldsc_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_nonnegative_pvalue_by_tissue_output_file, eqtl_type, anno_type):
+	# Open output file and print header
+	t = open(mediated_nonnegative_pvalue_by_tissue_output_file,'w')
+	t.write('eqtl_sample_size\tsimulation_number\ttissue_number\tz_score\tpvalue\tcausal_status\n')
+	for eqtl_sample_size in eqtl_sample_sizes:
+		arr = []
+		for simulation_run in simulation_runs:
+			# Extract per annotation mediated heritability file for this run
+			if anno_type == 'full_anno':
+				h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_sldsc_results_nonnegative_eqtl_bootstrapped_sldsc_coefficients.txt'
+			elif anno_type == 'genotype_intercept':
+				h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_sldsc_results_genotype_intercept_nonnegative_eqtl_bootstrapped_sldsc_coefficients.txt'
+			# Load in per anno med h2
+			h2_data_raw = np.loadtxt(h2_file, dtype=str, delimiter='\t')
+			expr_data = h2_data_raw[-10:,:]
+			for tissue_iter in range(10):
+				if tissue_iter == 0 or tissue_iter == 3:
+					causal_status = 'causal'
+				else:
+					causal_status = 'null'
+				bootstrapped_coefficients = np.asarray(expr_data[tissue_iter,-1].split(';')).astype(float)
+				emperical_pvalue = np.sum(bootstrapped_coefficients < 1e-10)/len(bootstrapped_coefficients)
+
+				t.write(str(eqtl_sample_size) + '\t' + str(simulation_run) + '\t' + str(tissue_iter) + '\t' + str(0.0) + '\t' + str(emperical_pvalue) + '\t' + causal_status + '\n')
+		#print(np.mean(arr))
+	t.close()
+
+def create_file_containing_nonnegative_bootstrapped_mediated_h2_pvalue_in_causal_and_non_causal_tissues_across_thresholds(simulated_sldsc_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_nonnegative_pvalue_by_tissue_output_file, eqtl_type, anno_type, thresholds):
+	# Open output file and print header
+	t = open(mediated_nonnegative_pvalue_by_tissue_output_file,'w')
+	t.write('eqtl_sample_size\tsimulation_number\ttissue_number\tz_score\tpvalue\tcausal_status\tthreshold\n')
+	for eqtl_sample_size in eqtl_sample_sizes:
+		arr = []
+		for simulation_run in simulation_runs:
+			# Extract per annotation mediated heritability file for this run
+			if anno_type == 'full_anno':
+				h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_sldsc_results_nonnegative_eqtl_bootstrapped_sldsc_coefficients.txt'
+			elif anno_type == 'genotype_intercept':
+				h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_sldsc_results_genotype_intercept_nonnegative_eqtl_bootstrapped_sldsc_coefficients.txt'
+			# Load in per anno med h2
+			h2_data_raw = np.loadtxt(h2_file, dtype=str, delimiter='\t')
+			expr_data = h2_data_raw[-10:,:]
+			for tissue_iter in range(10):
+				if tissue_iter == 0 or tissue_iter == 3:
+					causal_status = 'causal'
+				else:
+					causal_status = 'null'
+				bootstrapped_coefficients = np.asarray(expr_data[tissue_iter,-1].split(';')).astype(float)
+				for threshold in thresholds:
+					emperical_pvalue = np.sum(bootstrapped_coefficients < threshold)/len(bootstrapped_coefficients)
+					t.write(str(eqtl_sample_size) + '\t' + str(simulation_run) + '\t' + str(tissue_iter) + '\t' + str(0.0) + '\t' + str(emperical_pvalue) + '\t' + causal_status + '\t' + str(threshold) + '\n')
+		#print(np.mean(arr))
 	t.close()	
 
-def create_file_containing_mediated_h2_pvalue_in_causal_and_non_causal_tissues(simulated_sldsc_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_pvalue_by_tissue_output_file):
+
+def create_file_containing_mediated_h2_pvalue_in_causal_and_non_causal_tissues(simulated_sldsc_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_pvalue_by_tissue_output_file, eqtl_type, anno_type):
 	# Open output file and print header
 	t = open(mediated_pvalue_by_tissue_output_file,'w')
 	t.write('eqtl_sample_size\tsimulation_number\ttissue_number\tz_score\tpvalue\tcausal_status\n')
@@ -95,7 +199,10 @@ def create_file_containing_mediated_h2_pvalue_in_causal_and_non_causal_tissues(s
 		arr = []
 		for simulation_run in simulation_runs:
 			# Extract per annotation mediated heritability file for this run
-			h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_distr' + '_sldsc_results_organized_res.txt'
+			if anno_type == 'full_anno':
+				h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_sldsc_results_organized_res.txt'
+			elif anno_type == 'genotype_intercept':
+				h2_file = simulated_sldsc_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_sldsc_results_genotype_intercept_organized_res.txt'
 			# Load in per anno med h2
 			h2_data_raw = np.loadtxt(h2_file, dtype=str, delimiter='\t')
 			med_h2_z = h2_data_raw[-10:,3].astype(float)
@@ -108,6 +215,58 @@ def create_file_containing_mediated_h2_pvalue_in_causal_and_non_causal_tissues(s
 				t.write(str(eqtl_sample_size) + '\t' + str(simulation_run) + '\t' + str(tissue_iter) + '\t' + str(med_h2_z[tissue_iter]) + '\t' + str(pvalue[tissue_iter]) + '\t' + causal_status + '\n')
 		#print(np.mean(arr))
 	t.close()
+
+def create_file_containing_expected_fraction_of_expression_mediated_disease_components(simulated_tgfm_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, model_name, simulated_ld_scores_dir, fraction_expr_med_disease_components_output_file):
+	# Open output file and print header
+	t = open(fraction_expr_med_disease_components_output_file,'w')
+	t.write('eqtl_sample_size\tsimulation_number\testimated_fraction_expression_mediated\tsimulated_fraction_expression_mediated\n')
+	for eqtl_sample_size in eqtl_sample_sizes:
+		arr = []
+		for simulation_run in simulation_runs:
+			# Extract per annotation mediated heritability file for this run
+			h2_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + model_name + '_bootstrapped.txt'
+			# Load in per anno med h2
+			h2_data_raw = np.loadtxt(h2_file, dtype=str, delimiter='\t')
+			expr_med_tau = h2_data_raw[-10:,1].astype(float)
+			non_mediated_tau = float(h2_data_raw[1,1])
+
+			# Load in M-vec
+			m_vec_file = simulated_ld_scores_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_joint_baseline_variant_' + str(eqtl_sample_size) + '_gene_ld_scores.l2.M'
+			m_vec = np.loadtxt(m_vec_file)
+			n_var = m_vec[0]
+			n_genes = m_vec[-10:]
+
+			n_var_comp = n_var*non_mediated_tau
+			n_gene_comp = np.sum(n_genes*expr_med_tau)
+
+			fraction_mediated = n_gene_comp/(n_var_comp + n_gene_comp)
+
+			t.write(str(eqtl_sample_size) + '\t' + str(simulation_run) + '\t' + str(fraction_mediated) + '\t' +  '.1' + '\n')
+	t.close()
+	return
+
+def create_file_containing_fraction_causal_in_causal_and_non_causal_tissues(simulated_tgfm_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, model_name, fraction_causal_by_tissue_output_file):
+	# Open output file and print header
+	t = open(fraction_causal_by_tissue_output_file,'w')
+	t.write('eqtl_sample_size\tsimulation_number\ttissue_number\testimated_fraction_causal\tsimulated_fraction_causal\n')
+	for eqtl_sample_size in eqtl_sample_sizes:
+		arr = []
+		for simulation_run in simulation_runs:
+			# Extract per annotation mediated heritability file for this run
+			h2_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + model_name + '_bootstrapped.txt'
+			# Load in per anno med h2
+			h2_data_raw = np.loadtxt(h2_file, dtype=str, delimiter='\t')
+			med_tau = h2_data_raw[-10:,1].astype(float)
+
+			for tissue_iter in range(10):
+				if tissue_iter == 0 or tissue_iter == 3:
+					sim_med_h2 = 30/2000.0
+				else:
+					sim_med_h2 = 0.0
+				t.write(str(eqtl_sample_size) + '\t' + str(simulation_run) + '\t' + str(tissue_iter) + '\t' + str(med_tau[tissue_iter]) + '\t' + str(sim_med_h2) + '\n')
+		#print(np.mean(arr))
+	t.close()		
+
 
 def create_file_containing_mediated_h2_in_causal_and_non_causal_tissues_sparse_estimate(simulated_sldsc_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_h2_by_tissue_output_file):
 	# Open output file and print header
@@ -181,10 +340,48 @@ def create_file_containing_mediated_h2_power_to_detect_causal_tissues(mediated_p
 		power = np.sum(causal_pvalues < .05)/len(causal_pvalues)
 		se = np.sqrt((power)*(1.0-power))/np.sqrt(len(causal_pvalues))
 		t.write(str(eqtl_sample_size) + '\t' + str(power) + '\t' + str(power-(se*1.96)) + '\t' + str(power+(se*1.96)) + '\n')
-
-
 	t.close()
 	return
+
+
+def create_file_containing_mediated_h2_power_to_detect_causal_tissues_across_thresholds(mediated_pvalue_by_tissue_output_file, power_output_file, eqtl_sample_sizes, thresholds):
+	raw_pvalue_file = np.loadtxt(mediated_pvalue_by_tissue_output_file,dtype=str, delimiter='\t')
+
+	t = open(power_output_file,'w')
+	t.write('eqtl_sample_size\tthreshold\tpower\tpower_lb\tpower_ub\n')
+
+	for eqtl_sample_size in eqtl_sample_sizes:
+		for threshold in thresholds:
+			raw_pvalue_subset = raw_pvalue_file[raw_pvalue_file[:,0] == str(eqtl_sample_size), :]
+			raw_pvalue_subset = raw_pvalue_subset[raw_pvalue_subset[:,-2] == 'causal',:]
+			raw_pvalue_subset = raw_pvalue_subset[raw_pvalue_subset[:,-1].astype(float)==threshold, :]
+			causal_pvalues = raw_pvalue_subset[:,4].astype(float)
+			power = np.sum(causal_pvalues < .05)/len(causal_pvalues)
+			se = np.sqrt((power)*(1.0-power))/np.sqrt(len(causal_pvalues))
+			t.write(str(eqtl_sample_size) + '\t' + str(threshold) + '\t' + str(power) + '\t' + str(power-(se*1.96)) + '\t' + str(power+(se*1.96)) + '\n')
+	t.close()
+	return
+
+
+def create_file_containing_mediated_h2_type_1_error_across_thresholds(mediated_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes, thresholds):
+	raw_pvalue_file = np.loadtxt(mediated_pvalue_by_tissue_output_file,dtype=str, delimiter='\t')
+
+	t = open(type_1_error_output_file,'w')
+	t.write('eqtl_sample_size\tthreshold\ttype_1_error\ttype_1_error_lb\ttype_1_error_ub\n')
+
+	for eqtl_sample_size in eqtl_sample_sizes:
+		for threshold in thresholds:
+			raw_pvalue_subset = raw_pvalue_file[raw_pvalue_file[:,0] == str(eqtl_sample_size), :]
+			raw_pvalue_subset = raw_pvalue_subset[raw_pvalue_subset[:,-2] == 'null',:]
+			raw_pvalue_subset = raw_pvalue_subset[raw_pvalue_subset[:,-1].astype(float)==threshold, :]
+			null_pvalues = raw_pvalue_subset[:,4].astype(float)
+			type_1_error = np.sum(null_pvalues < .05)/len(null_pvalues)
+			se = np.sqrt((type_1_error)*(1.0-type_1_error))/np.sqrt(len(null_pvalues))
+
+			t.write(str(eqtl_sample_size) + '\t' + str(threshold) + '\t' + str(type_1_error) + '\t' + str(type_1_error-(se*1.96)) + '\t' + str(type_1_error+(se*1.96)) + '\n')
+	t.close()
+	return
+
 
 def create_file_containing_mediated_h2_type_1_error(mediated_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes):
 	raw_pvalue_file = np.loadtxt(mediated_pvalue_by_tissue_output_file,dtype=str, delimiter='\t')
@@ -200,8 +397,6 @@ def create_file_containing_mediated_h2_type_1_error(mediated_pvalue_by_tissue_ou
 		se = np.sqrt((type_1_error)*(1.0-type_1_error))/np.sqrt(len(null_pvalues))
 
 		t.write(str(eqtl_sample_size) + '\t' + str(type_1_error) + '\t' + str(type_1_error-(se*1.96)) + '\t' + str(type_1_error+(se*1.96)) + '\n')
-
-
 	t.close()
 	return
 
@@ -242,6 +437,31 @@ def create_file_containing_avg_fraction_h2_across_simulation_runs(organized_frac
 
 	t.close()
 	return
+
+def create_file_containing_avg_fraction_causal_by_tissue_across_simulation_runs(mediated_h2_by_tissue_output_file, organized_avg_mediated_h2_by_tissue_output_file, eqtl_sample_sizes):
+	raw_file = np.loadtxt(mediated_h2_by_tissue_output_file, dtype=str,delimiter='\t')
+
+	t = open(organized_avg_mediated_h2_by_tissue_output_file,'w')
+	t.write('eqtl_sample_size\ttissue_number\tcausal_status\tfraction_causal\tfraction_causal_lb\tfraction_causal_ub\n')
+
+	for eqtl_sample_size in eqtl_sample_sizes:
+		raw_subset = raw_file[raw_file[:,0] == str(eqtl_sample_size), :]
+		for tiss_iter in range(10):
+			if tiss_iter == 0 or tiss_iter == 3:
+				causal_status = 'causal'
+			else:
+				causal_status = 'null'
+			raw_subset2 = raw_subset[raw_subset[:,2] == str(tiss_iter),:]
+
+			est = raw_subset2[:,3].astype(float)
+
+			meaner = np.mean(est)
+			se = np.std(est)/np.sqrt(len(est))
+
+			t.write(str(eqtl_sample_size) + '\t' + str(tiss_iter) + '\t' + causal_status + '\t' + str(meaner) + '\t' + str(meaner - (1.96*se)) + '\t' + str(meaner + (1.96*se)) + '\n')
+	t.close()
+	return
+
 
 def create_file_containing_avg_med_h2_by_tissue_across_simulation_runs(mediated_h2_by_tissue_output_file, organized_avg_mediated_h2_by_tissue_output_file, eqtl_sample_sizes):
 	raw_file = np.loadtxt(mediated_h2_by_tissue_output_file, dtype=str,delimiter='\t')
@@ -866,6 +1086,8 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp(global_simulatio
 		for eqtl_sample_size in eqtl_sample_sizes:
 			for ln_pi_method in ln_pi_methods:
 				for twas_method in twas_methods:
+					if ln_pi_method == 'iterative_variant_gene_tissue_bootstrapped' and twas_method == 'susie_pmces':
+						continue
 					# Credible set file for this run
 					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method + '_tgfm_pip_summary.txt'
 					f = open(cs_file)
@@ -974,6 +1196,8 @@ def create_file_containing_tgfm_high_pip_snp_power_per_component(global_simulati
 			discovered_dicti = {}
 			for ln_pi_method in ln_pi_methods:
 				for twas_method in twas_methods:
+					if ln_pi_method == 'iterative_variant_gene_tissue_bootstrapped' and twas_method == 'susie_pmces':
+						continue
 					discovered_pi_dicti = {}
 					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method + '_tgfm_pip_summary.txt'
 					f = open(cs_file)
@@ -1041,6 +1265,8 @@ def create_file_containing_tgfm_high_pip_snp_power_per_component(global_simulati
 						# THis is a causal gene
 						for ln_pi_method in ln_pi_methods:
 							for twas_method in twas_methods:
+								if ln_pi_method == 'iterative_variant_gene_tissue_bootstrapped' and twas_method == 'susie_pmces':
+									continue
 								booler = 0.0
 								if gene_name in discovered_dicti[ln_pi_method + '_' + twas_method]:
 									booler = 1.0
@@ -1051,6 +1277,8 @@ def create_file_containing_tgfm_high_pip_snp_power_per_component(global_simulati
 					# This is a causal variant
 					for ln_pi_method in ln_pi_methods:
 						for twas_method in twas_methods:
+							if ln_pi_method == 'iterative_variant_gene_tissue_bootstrapped' and twas_method == 'susie_pmces':
+								continue
 							booler = 0.0
 							if variant_name in discovered_dicti[ln_pi_method + '_' + twas_method]:
 								booler = 1.0
@@ -1099,8 +1327,7 @@ simulated_learned_gene_models_dir = sys.argv[12]
 simulated_tgfm_input_data_dir = sys.argv[13]
 simulated_gene_position_file = sys.argv[14]
 processed_genotype_data_dir = sys.argv[15]
-
-
+simulated_ld_scores_dir = sys.argv[16]
 
 
 
@@ -1117,16 +1344,15 @@ eqtl_sample_sizes = np.asarray([300,500,1000])
 
 # Simulation runs
 # Currently hacky because had some failed simulations
-simulation_runs = np.arange(1,21)
-simulation_runs = np.delete(simulation_runs, [17])
-
+simulation_runs = np.arange(1,100)
+simulation_runs = np.delete(simulation_runs, [17,88])
 
 ##############################
 # Calculate number of of cis-heritable genes
 ##############################
 organized_number_detected_genes_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_fraction_of_detected_heritable_genes.txt'
 #create_file_containing_number_of_detected_genes(global_simulation_name_string, simulation_runs, eqtl_sample_sizes, simulated_gene_expression_dir, simulated_learned_gene_models_dir, organized_number_detected_genes_output_file)
-'''
+
 ##############################
 # Estimate bias in TGFM-SLDSC
 ##############################
@@ -1144,7 +1370,6 @@ create_file_containing_fraction_expression_mediated_h2_across_simulation_runs(si
 # Average estimates across simulations
 organized_avg_fraction_h2_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_avg_fraction_expression_med_h2.txt'
 create_file_containing_avg_fraction_h2_across_simulation_runs(organized_fraction_h2_output_file, organized_avg_fraction_h2_output_file, eqtl_sample_sizes)
-
 
 # Create file showing mediated h2 in causal tissues and non-causal tissues
 mediated_h2_by_tissue_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_mediated_h2_by_tissue_est.txt'
@@ -1168,11 +1393,9 @@ create_file_containing_avg_med_h2_by_tissue_across_simulation_runs(mediated_h2_b
 # Create file showing binary status in causal tissues and non-causal tissues
 mediated_binary_variable_by_tissue_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_mediated_h2_sparse_binary_est_by_tissue.txt'
 create_file_containing_mediated_h2_sparse_binary_est_in_causal_and_non_causal_tissues(simulated_sldsc_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_binary_variable_by_tissue_output_file)
-
 # Create file showing power to detect causal tissues
 power_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_sparse_mediated_h2_power.txt'
 create_file_containing_mediated_h2_power_to_detect_causal_tissues(mediated_binary_variable_by_tissue_output_file, power_output_file, eqtl_sample_sizes)
-
 # Create file showing type 1 error for null tissues
 type_1_error_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_sparse_mediated_h2_type_1_error.txt'
 create_file_containing_mediated_h2_type_1_error(mediated_binary_variable_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes)
@@ -1181,23 +1404,94 @@ create_file_containing_mediated_h2_type_1_error(mediated_binary_variable_by_tiss
 ##############################
 # Power and type 1 error in TGFM-SLDSC
 ##############################
-# Create file showing p-value in causal tissues and non-causal tissues
-mediated_pvalue_by_tissue_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_mediated_h2_pvalue_by_tissue_est.txt'
-create_file_containing_mediated_h2_pvalue_in_causal_and_non_causal_tissues(simulated_sldsc_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_pvalue_by_tissue_output_file)
+eqtl_types = ['susie_pmces', 'susie_distr']
+anno_types = ['genotype_intercept', 'full_anno']
 
-# Create file showing power to detect causal tissues
-power_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_mediated_h2_power.txt'
-create_file_containing_mediated_h2_power_to_detect_causal_tissues(mediated_pvalue_by_tissue_output_file, power_output_file, eqtl_sample_sizes)
+for eqtl_type in eqtl_types:
+	for anno_type in anno_types:
+		# Create file showing p-value in causal tissues and non-causal tissues
+		mediated_pvalue_by_tissue_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + eqtl_type + '_' + anno_type + '_mediated_h2_pvalue_by_tissue_est.txt'
+		create_file_containing_mediated_h2_pvalue_in_causal_and_non_causal_tissues(simulated_sldsc_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_pvalue_by_tissue_output_file, eqtl_type, anno_type)
+		# Create file showing power to detect causal tissues
+		power_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + eqtl_type + '_' + anno_type + '_mediated_h2_power.txt'
+		create_file_containing_mediated_h2_power_to_detect_causal_tissues(mediated_pvalue_by_tissue_output_file, power_output_file, eqtl_sample_sizes)
+		# Create file showing type 1 error for null tissues
+		type_1_error_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + eqtl_type + '_' + anno_type + '_mediated_h2_type_1_error.txt'
+		create_file_containing_mediated_h2_type_1_error(mediated_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes)
 
-# Create file showing type 1 error for null tissues
-type_1_error_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_mediated_h2_type_1_error.txt'
-create_file_containing_mediated_h2_type_1_error(mediated_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes)
+'''
+##############################
+# Power and type 1 error in TGFM-SLDSC non-negative bootstrapped
+##############################
+eqtl_types = ['susie_pmces', 'susie_distr']
+anno_types = ['genotype_intercept', 'full_anno']
+thresholds = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12]
+
+for eqtl_type in eqtl_types:
+	for anno_type in anno_types:
+		# Create file showing p-value in causal tissues and non-causal tissues
+		mediated_nonnegative_pvalue_by_tissue_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + eqtl_type + '_' + anno_type + '_nonnegative_bootstrapped_mediated_h2_pvalue_by_tissue_est_across_thresholds.txt'
+		create_file_containing_nonnegative_bootstrapped_mediated_h2_pvalue_in_causal_and_non_causal_tissues_across_thresholds(simulated_sldsc_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_nonnegative_pvalue_by_tissue_output_file, eqtl_type, anno_type, thresholds)
+		# Create file showing power to detect causal tissues
+		power_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + eqtl_type + '_' + anno_type + '_nonnegative_bootstrapped_mediated_h2_power_across_thresholds.txt'
+		create_file_containing_mediated_h2_power_to_detect_causal_tissues_across_thresholds(mediated_nonnegative_pvalue_by_tissue_output_file, power_output_file, eqtl_sample_sizes, thresholds)
+		# Create file showing type 1 error for null tissues
+		type_1_error_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + eqtl_type + '_' + anno_type + '_nonnegative_bootstrapped_mediated_h2_type_1_error_across_thresholds.txt'
+		create_file_containing_mediated_h2_type_1_error_across_thresholds(mediated_nonnegative_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes, thresholds)
 '''
 
 
 
+# Simulation runs
+# Currently hacky because had some failed simulations
+simulation_runs = np.arange(1,20)
+simulation_runs = np.delete(simulation_runs, [17])
+thresholds = [1e-1, 1e-2, 1e-3, 5e-4, 2.5e-4, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12, 1e-14, 1e-16, 1e-18]
+
+model_names = ['susie_pmces_uniform_iterative_variant_gene_prior', 'susie_sampler_uniform_iterative_variant_gene_prior', 'susie_pmces_uniform_iterative_variant_gene_prior_pip_level', 'susie_sampler_uniform_iterative_variant_gene_prior_pip_level']
+
+for model_name in model_names:
+
+	##########################
+	# Power and Type 1 Error
+	##########################
+	# Create file showing p-value in causal tissues and non-causal tissues
+	mediated_iterative_sampler_pvalue_by_tissue_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_mediated_h2_pvalue_by_tissue_est_across_thresholds.txt'
+	create_file_containing_iterative_bootstrapped_sampler_prior_mediated_h2_pvalue_in_causal_and_non_causal_tissues_across_thresholds(simulated_tgfm_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_iterative_sampler_pvalue_by_tissue_output_file, thresholds, model_name)
+	# Create file showing power to detect causal tissues
+	power_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_mediated_h2_power_across_thresholds.txt'
+	create_file_containing_mediated_h2_power_to_detect_causal_tissues_across_thresholds(mediated_iterative_sampler_pvalue_by_tissue_output_file, power_output_file, eqtl_sample_sizes, thresholds)
+	# Create file showing type 1 error for null tissues
+	type_1_error_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_h2_type_1_error_across_thresholds.txt'
+	create_file_containing_mediated_h2_type_1_error_across_thresholds(mediated_iterative_sampler_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes, thresholds)
 
 
+	##########################
+	# Bias in fraction of causal components going through gene expression
+	##########################
+	# Create file showing mediated h2 in causal tissues and non-causal tissues
+	fraction_expr_med_disease_components_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_expected_fraction_expression_mediated_disease_components.txt'
+	create_file_containing_expected_fraction_of_expression_mediated_disease_components(simulated_tgfm_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, model_name, simulated_ld_scores_dir, fraction_expr_med_disease_components_output_file)
+	# Average estimates across simulations
+	organized_avg_fraction_expr_med_disease_components_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_avg_expected_fraction_expression_mediated_disease_components.txt'
+	create_file_containing_avg_fraction_h2_across_simulation_runs(fraction_expr_med_disease_components_output_file, organized_avg_fraction_expr_med_disease_components_output_file, eqtl_sample_sizes)
+	print(organized_avg_fraction_expr_med_disease_components_output_file)
+
+
+	##########################
+	# Bias in fraction of causal genes per tissue
+	##########################
+	# Create file showing mediated h2 in causal tissues and non-causal tissues
+	fraction_causal_by_tissue_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_fraction_causal_by_tissue.txt'
+	create_file_containing_fraction_causal_in_causal_and_non_causal_tissues(simulated_tgfm_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, model_name, fraction_causal_by_tissue_output_file)
+	# Average estimates across simulations
+	organized_avg_fraction_causal_by_tissue_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_avg_fraction_causal_by_tissue.txt'
+	#create_file_containing_avg_med_h2_by_tissue_across_simulation_runs(fraction_causal_by_tissue_output_file, organized_avg_fraction_causal_by_tissue_output_file, eqtl_sample_sizes)
+	create_file_containing_avg_fraction_causal_by_tissue_across_simulation_runs(fraction_causal_by_tissue_output_file, organized_avg_fraction_causal_by_tissue_output_file, eqtl_sample_sizes)
+
+
+
+'''
 #############################################################
 # Fine-mapping evaluation metrics
 #############################################################
@@ -1213,7 +1507,7 @@ simulation_runs = np.delete(simulation_runs, [17])
 
 
 # ln_pi methods used
-ln_pi_methods = np.asarray(['uniform', 'tglr_variant_gene', 'tglr_sparse_variant_gene_tissue', 'iterative_variant_gene_tissue'])
+ln_pi_methods = np.asarray(['uniform', 'tglr_variant_gene', 'tglr_sparse_variant_gene_tissue', 'iterative_variant_gene_tissue', 'iterative_variant_gene_tissue_bootstrapped'])
 
 
 # twas method
@@ -1256,8 +1550,7 @@ for pip_threshold in pip_thresholds:
 
 	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_power.txt'
 	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods,twas_methods)
-
-
+'''
 
 
 

@@ -327,6 +327,8 @@ make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_twas_method <- function(df, 
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.4, position=position_dodge(.9))  +
   		figure_theme() +
+  		 scale_fill_manual(values=c("#F8766D", "#56B4E9"))+
+
   		labs(x="eQTL sample size", y="FDR", fill="", title=paste0("PIP=", pip_threshold, " / ", ln_pi_method, " / ", element_class))  +
   		geom_hline(yintercept=(1.0-pip_threshold), linetype=2) +
   		theme(plot.title = element_text(hjust = 0.5,size=12))
@@ -343,6 +345,8 @@ make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_element_class <- function(df
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=fdr, fill=genetic_element_class)) +
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.4, position=position_dodge(.9))  +
+  		scale_fill_manual(values=c("#F8766D", "#999999"))+
+
   		figure_theme() +
   		labs(x="eQTL sample size", y="FDR", fill="", title=paste0("PIP=", pip_threshold, " / ", ln_pi_method, " / ", twas_method))  +
   		geom_hline(yintercept=(1.0-pip_threshold), linetype=2) +
@@ -356,12 +360,18 @@ make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_prior_method <- function(df,
 	df$fdr_ub = 1.0 - df$coverage_lb
 
 	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(300,500,1000))
-	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene", "tglr_sparse_variant_gene_tissue", "iterative_variant_gene_tissue"))
-	
+	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene", "tglr_sparse_variant_gene_tissue", "iterative_variant_gene_tissue", "iterative_variant_gene_tissue_bootstrapped"))
+	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "iterative_variant_gene_tissue_bootstrapped"))
+
+	df=df[!is.na(df$ln_pi_method),]	
+
+	df$ln_pi_method = recode(df$ln_pi_method, uniform="Uniform prior", iterative_variant_gene_tissue_bootstrapped="Genome-wide prior")
+
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=fdr, fill=ln_pi_method)) +
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.4, position=position_dodge(.9))  +
   		figure_theme() +
+    	scale_fill_manual(values=c("#56B4E9", "darkorchid3"))+
   		labs(x="eQTL sample size", y="FDR", fill="", title=paste0("PIP=", pip_threshold, " / ", element_class, " / ", new_method))  +
   		geom_hline(yintercept=(1.0-pip_threshold), linetype=2) +
   		theme(plot.title = element_text(hjust = 0.5,size=12))
@@ -372,11 +382,15 @@ make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_prior_method <- function(df,
 make_tgfm_pip_power_plot_varying_eqtl_sample_size_and_prior_method <- function(df, pip_threshold, twas_method, element_class) {
 
 	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(300,500,1000))
-	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene", "tglr_sparse_variant_gene_tissue", "iterative_variant_gene_tissue"))
+	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene", "tglr_sparse_variant_gene_tissue", "iterative_variant_gene_tissue", "iterative_variant_gene_tissue_bootstrapped"))
+	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "iterative_variant_gene_tissue_bootstrapped"))
+	df=df[!is.na(df$ln_pi_method),]	
+	df$ln_pi_method = recode(df$ln_pi_method, uniform="Uniform prior", iterative_variant_gene_tissue_bootstrapped="Genome-wide prior")
 
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=power, fill=ln_pi_method)) +
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
+  		scale_fill_manual(values=c("#56B4E9", "darkorchid3"))+
   		figure_theme() +
   		labs(x="eQTL sample size", y="Power", fill="", title=paste0("PIP=", pip_threshold, " / ", element_class, " / ", new_method)) +
   		theme(plot.title = element_text(hjust = 0.5,size=12))
@@ -555,6 +569,12 @@ for (pip_iter in 1:length(pip_threshold_arr)) {
 	# Make plot
 	calibration_barplot <- make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_element_class(calibration_df, as.numeric(pip_threshold), ln_pi_method, new_method)
 	plots[[pip_iter]] = calibration_barplot
+
+	if (pip_threshold=="0.9") {
+		output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_", twas_method, "_", ln_pi_method, "_fdr_vary_eqtl_sample_size_and_element_class_pip_", pip_threshold, ".pdf")
+		ggsave(calibration_barplot, file=output_file, width=7.2, height=3.7, units="in")
+	}
+
 }
 joint <- plot_grid(plotlist=plots, ncol=1)
 # Save to output
@@ -586,6 +606,10 @@ for (pip_iter in 1:length(pip_threshold_arr)) {
 	# Make plot
 	calibration_barplot <- make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_element_class(calibration_df, as.numeric(pip_threshold), ln_pi_method, new_method)
 	plots[[pip_iter]] = calibration_barplot
+	if (pip_threshold=="0.9") {
+		output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_", twas_method, "_", ln_pi_method, "_fdr_vary_eqtl_sample_size_and_element_class_pip_", pip_threshold, ".pdf")
+		ggsave(calibration_barplot, file=output_file, width=7.2, height=3.7, units="in")
+	}
 }
 joint <- plot_grid(plotlist=plots, ncol=1)
 # Save to output
@@ -616,6 +640,11 @@ for (pip_iter in 1:length(pip_threshold_arr)) {
 	# Make plot
 	calibration_barplot <- make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_twas_method(calibration_df, as.numeric(pip_threshold), ln_pi_method, element_class)
 	plots[[pip_iter]] = calibration_barplot
+	if (pip_threshold=="0.9") {
+		output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_", element_class, "_", ln_pi_method, "_prior_fdr_vary_eqtl_sample_size_and_twas_method_pip_", pip_threshold, ".pdf")
+		ggsave(calibration_barplot, file=output_file, width=7.2, height=3.7, units="in")
+	}
+
 }
 joint <- plot_grid(plotlist=plots, ncol=1)
 # Save to output
@@ -705,6 +734,11 @@ for (pip_iter in 1:length(pip_threshold_arr)) {
 	# Make plot
 	calibration_barplot <- make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_prior_method(calibration_df, as.numeric(pip_threshold), new_method, element_class)
 	plots[[pip_iter]] = calibration_barplot
+	if (pip_threshold=="0.9") {
+		output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_", element_class, "_", twas_method, "_fdr_vary_eqtl_sample_size_and_prior_method_pip_", pip_threshold, ".pdf")
+		ggsave(calibration_barplot, file=output_file, width=7.2, height=3.7, units="in")
+	}
+
 }
 joint <- plot_grid(plotlist=plots, ncol=1)
 # Save to output
@@ -742,6 +776,10 @@ for (pip_iter in 1:length(pip_threshold_arr)) {
 
 	power_barplot <- make_tgfm_pip_power_plot_varying_eqtl_sample_size_and_prior_method(power_df, pip_threshold, new_method, element_class)
 	plots[[pip_iter]] = power_barplot
+	if (pip_threshold=="0.9") {
+		output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_", element_class, "_", twas_method, "_power_vary_eqtl_sample_size_and_prior_method_pip_", pip_threshold,".pdf")
+		ggsave(power_barplot, file=output_file, width=7.2, height=3.7, units="in")
+	}
 }
 joint <- plot_grid(plotlist=plots, ncol=1)
 # Save to output

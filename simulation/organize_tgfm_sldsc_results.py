@@ -27,6 +27,7 @@ def get_anno_names(example_anno_file):
 
 
 def extract_tau_and_tau_se_from_log_file(sldsc_log_file, anno_names):
+	print(sldsc_log_file)
 	f = open(sldsc_log_file)
 	for line in f:
 		line = line.rstrip()

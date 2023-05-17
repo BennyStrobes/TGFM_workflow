@@ -428,7 +428,12 @@ make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_tra
 	count_vec <- c()
 	pip_thresh_vec <- c()
 
-	input_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_tgfm_per_tissue_sldsc_comparison.txt")
+
+	if (method_version == "susie_sampler_iterative_variant_gene_tissue") {
+		input_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", "susie_pmces_variant_gene", "_tgfm_per_tissue_sldsc_comparison.txt")
+	} else {
+		input_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_tgfm_per_tissue_sldsc_comparison.txt")
+	}
 	df <- read.table(input_file, header=TRUE, sep="\t")
 	ordered_tissues <- as.character(sort(df$tissue))
 
@@ -633,7 +638,14 @@ method_version="susie_sampler_variant_gene"
 beeswarm_plot <- make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait(trait_names, trait_names_readable, method_version, tgfm_results_dir)
 output_file <- paste0(visualize_tgfm_dir, "beeswarm_gene_tissue_pip_colored_by_tissue_group_", method_version,".pdf")
 ggsave(beeswarm_plot, file=output_file, width=7.2, height=4.5, units="in")
-
+method_version="susie_pmces_iterative_variant_gene_tissue"
+#beeswarm_plot <- make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait(trait_names, trait_names_readable, method_version, tgfm_results_dir)
+#output_file <- paste0(visualize_tgfm_dir, "beeswarm_gene_tissue_pip_colored_by_tissue_group_", method_version,".pdf")
+#ggsave(beeswarm_plot, file=output_file, width=7.2, height=4.5, units="in")
+method_version="susie_sampler_iterative_variant_gene_tissue"
+beeswarm_plot <- make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait(trait_names, trait_names_readable, method_version, tgfm_results_dir)
+output_file <- paste0(visualize_tgfm_dir, "beeswarm_gene_tissue_pip_colored_by_tissue_group_", method_version,".pdf")
+ggsave(beeswarm_plot, file=output_file, width=7.2, height=4.5, units="in")
 
 ##########################################################
 # Bar plot showing expected number of causal tissue categories
@@ -668,14 +680,20 @@ for (trait_iter in 1:length(trait_names)) {
 	method_version="susie_sampler_variant_gene"
 	tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_results_dir)
 	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_expected_number_of_gene_tissue_pairs_", trait_name_readable, "_", method_version,".pdf")
-	ggsave(tissue_bar_plot, file=output_file, width=7.2, height=4.5, units="in")
+	ggsave(tissue_bar_plot, file=output_file, width=7.2, height=3.7, units="in")
 
 	# PMCES approach
 	method_version="susie_pmces_variant_gene"
 	tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_results_dir)
 	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_expected_number_of_gene_tissue_pairs_", trait_name_readable, "_", method_version,".pdf")
-	ggsave(tissue_bar_plot, file=output_file, width=7.2, height=4.5, units="in")
+	ggsave(tissue_bar_plot, file=output_file, width=7.2, height=3.7, units="in")
+
+	method_version="susie_sampler_iterative_variant_gene_tissue"
+	tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_results_dir)
+	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_expected_number_of_gene_tissue_pairs_", trait_name_readable, "_", method_version,".pdf")
+	ggsave(tissue_bar_plot, file=output_file, width=7.2, height=3.7, units="in")	
 }
+print("DONE")
 
 
 ##########################################################
