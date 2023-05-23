@@ -268,14 +268,11 @@ fi
 ########################################
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
-	sbatch run_tgfm_sldsc.sh $preprocessed_tgfm_sldsc_data_dir $full_sumstat_dir $ldsc_code_dir $sldsc_h38_weights_dir $ref_1kg_genotype_dir $tgfm_sldsc_results_dir $trait_name $mod_ldsc_code_dir $quasi_independent_ld_blocks_hg38_dir
+	sh run_tgfm_sldsc.sh $preprocessed_tgfm_sldsc_data_dir $full_sumstat_dir $ldsc_code_dir $sldsc_h38_weights_dir $ref_1kg_genotype_dir $tgfm_sldsc_results_dir $trait_name $mod_ldsc_code_dir $quasi_independent_ld_blocks_hg38_dir
 done
 fi
 
-if false; then
-trait_name="body_WHRadjBMIz"
-sh run_tgfm_sldsc.sh $preprocessed_tgfm_sldsc_data_dir $full_sumstat_dir $ldsc_code_dir $sldsc_h38_weights_dir $ref_1kg_genotype_dir $tgfm_sldsc_results_dir $trait_name $mod_ldsc_code_dir $quasi_independent_ld_blocks_hg38_dir
-fi
+
 
 ########################################
 # Visualize TGLR results
@@ -315,16 +312,6 @@ gene_type="component_gene"
 num_jobs="50"
 job_number="0"
 
-###NOOOOTEEE THE DIFFERENT OUTPUT STEM HERE. THIS IS FOR DEBUGGING
-if false; then
-trait_name="blood_MEAN_PLATELET_VOL"
-job_number="0"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_tmp"
-sh run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
-fi
-
-
 
 trait_name="blood_MONOCYTE_COUNT"
 if false; then
@@ -358,6 +345,8 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
 done
 fi
+
+# HERE
 
 
 if false; then
@@ -399,9 +388,8 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 done
 fi
 
-
+if false; then
 # Learn iterative component prior
-if false; then
 tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 trait_name="blood_MONOCYTE_COUNT"
 tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
@@ -435,8 +423,6 @@ trait_name="blood_MEAN_PLATELET_VOL"
 tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file
 fi
-
-
 
 #################################
 # Run TGFM with iterative prior
@@ -537,146 +523,6 @@ fi
 
 
 
-
-
-
-
-
-
-##############
-# Old
-##############
-
-
-
-
-
-########################################
-# Get number of genes and numbr of variants used in analysis
-######## CURRENTLY SKIPPED RUNNING******* 
-########################################
-if false; then
-python3 get_number_of_genes_and_number_of_variants_used.py $ukkbb_window_summary_file $gtex_susie_gene_models_dir $gtex_pseudotissue_file $num_genes_and_variants_dir
-fi
-
-########################################
-# Run TGFM (old)
-########################################
-gene_type="cis_heritable_genes"
-independent_trait_names_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt"
-num_jobs="5"
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt" | while read trait_name study_file samp_size h2; do
-for job_number in $(seq 0 $(($num_jobs-1))); do
-	if false; then
-	sbatch run_tgfm.sh $trait_name $ukkbb_window_summary_file $gtex_pseudotissue_file $preprocessed_tgfm_data_dir $tgfm_sldsc_results_dir $samp_size $gene_type $tgfm_results_dir $job_number $num_jobs
-	fi
-done
-done
-fi
-# Organize TGFM results across parallel runs
-if false; then
-sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt"
-fi
-
-
-
-if false; then
-Rscript visualize_tgfm_results.R $independent_trait_names_file $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_dir
-fi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# DEBUGGING CASES.
-
-# 1. Mean platelet Vol
-######7:4020607:7020607, ENSG00000155034.18_Esophagus_Mucosa, 0.8341949641693392
-######19:45069983:48069983, ENSG00000042753.11_Esophagus_Mucosa, 0.8854378534228537
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-########################################
-# Run standard ldsc
-########################################
-# Summary statistic directory
-sumstat_dir="/n/groups/price/ldsc/sumstats_formatted_2021/"
-
-# Ldscore regression code
-ldsc_code_dir="/n/groups/price/ldsc/ldsc/"
-
-# Ldsc weights
-ldsc_weights_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/weights/"
-
-# LDSC baselineLD annotations (hg19)
-ldsc_baseline_ld_hg19_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/baselineLD_v2.2/"
-
-# LDSC 1KG genotype files (hg19)
-ldsc_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/plink_files/"
-
-if false; then
-sh preprocess_data_for_standard_sldsc.sh $ldsc_baseline_ld_hg19_annotation_dir $standard_sldsc_processed_data_dir
-fi
-
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
-	trait_name_full="UKB_460K."${trait_name}
-	echo $trait_name_full
-	sbatch run_ldsc.sh $trait_name_full $sumstat_dir $ldsc_code_dir $ldsc_baseline_ld_hg19_annotation_dir $ldsc_weights_dir $ldsc_genotype_dir $standard_sldsc_processed_data_dir $standard_sldsc_results_dir 
-done
-fi
-
-
-
-
-if false; then
-source ~/.bash_profile
-module load R/3.5.1
-Rscript visualize_tgfm_sldsc_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $preprocessed_tgfm_sldsc_data_dir $tgfm_sldsc_results_dir $visualize_tgfm_sldsc_dir $tgfm_heritability_results_dir
-fi
-
-if false; then
-source ~/.bash_profile
-module load R/3.5.1
-
-Rscript visualize_tgfm_heritability_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $num_genes_and_variants_dir $tgfm_heritability_results_dir $standard_sldsc_results_dir $standard_sldsc_processed_data_dir $ldsc_baseline_ld_hg19_annotation_dir $visualize_tgfm_h2_dir
-fi
-
-if false; then
-Rscript visualize_sparse_tgfm_heritability_estimates.R $gtex_pseudotissue_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" $num_genes_and_variants_dir $tgfm_heritability_results_dir $sparse_ldsc_heritability_results_dir $visualize_sparse_h2_dir
-fi
 
 
 

@@ -354,6 +354,121 @@ make_bar_plot_showing_sldsc_tau_of_each_tissue <- function(sldsc_file, trait_nam
   	return(p)
 }
 
+make_violin_plot_showing_distribution_of_bootstrapped_taus_of_each_tissue <- function(iterative_prior_file, method_version, trait_name_readable, threshold=1e-4) {
+	# Load in input data
+	df <- read.table(iterative_prior_file, header=TRUE)
+	# Skip variants
+	nrow = dim(df)[1]
+
+	df <- df[(nrow-36):(dim(df)[1]),]
+	tmp_tissue <- c()
+	for (tiss_iter in 1:length(df$annotation_name)) {
+		tiss_name <- as.character(df$annotation_name[tiss_iter])
+		new_tiss_name = strsplit(tiss_name,"_0")[[1]]
+		tmp_tissue <- c(tmp_tissue, new_tiss_name)
+	}
+
+
+	df$tissue = as.character(tmp_tissue)
+
+	tissue_vec <- c()
+	prior_prob_vec <- c()
+	siggy <- c()
+
+
+	for (tissue_iter in 1:length(df$tissue)) {
+		tissue_name <- as.character(df$tissue[tissue_iter])
+		prob_string = as.character(df$bootstrapped_taus[tissue_iter])
+		prob_vec = as.numeric(strsplit(prob_string,";")[[1]])
+
+		pvalue = sum(prob_vec < threshold)/length(prob_vec)
+		if (pvalue < (.1/37)) {
+			sigger = 'significant'
+		} else {
+			sigger = 'non_significant'
+		}
+
+		prior_prob_vec <- c(prior_prob_vec, prob_vec)
+		tissue_vec <- c(tissue_vec, rep(tissue_name, length(prob_vec)))
+		siggy <- c(siggy, rep(sigger, length(prob_vec)))
+	}
+
+
+	df2 <- data.frame(tissue=factor(tissue_vec, levels=as.character(df$tissue)), probability=prior_prob_vec, significance=factor(siggy))
+	df2$tissue = str_replace_all(as.character(df2$tissue), "-", "_")
+	df2$tissue <- recode(df2$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+
+	df2$tissue = factor(df2$tissue)
+
+    p <- ggplot(df2, aes(tissue, probability)) +
+  		geom_boxplot(colour = "grey50", outlier.shape = NA) +
+  		geom_jitter(aes(color=siggy),size=.001) +
+  		theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  		labs(x="", y="Per gene-tissue h2", title=paste0(trait_name_readable, " / ", method_version)) +
+  		figure_theme() +
+  		theme(legend.position="None") +
+  		scale_colour_manual(values = c("grey50", "darkorchid3"))
+
+
+  	return(p)
+
+
+}
+
+
+make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue <- function(iterative_prior_file, method_version, trait_name_readable, threshold=1e-4) {
+	# Load in input data
+	df <- read.table(iterative_prior_file, header=TRUE)
+	# Skip variants
+	nrow = dim(df)[1]
+
+	df <- df[(nrow-36):(dim(df)[1]),]
+	df$tissue = df$element_name
+
+	tissue_vec <- c()
+	prior_prob_vec <- c()
+	siggy <- c()
+
+
+	for (tissue_iter in 1:length(df$tissue)) {
+		tissue_name <- as.character(df$tissue[tissue_iter])
+		prob_string = as.character(df$prior_distribution[tissue_iter])
+		prob_vec = as.numeric(strsplit(prob_string,";")[[1]])
+
+		pvalue = sum(prob_vec < threshold)/length(prob_vec)
+		if (pvalue < (.1/37)) {
+			sigger = 'significant'
+		} else {
+			sigger = 'non_significant'
+		}
+
+		prior_prob_vec <- c(prior_prob_vec, prob_vec)
+		tissue_vec <- c(tissue_vec, rep(tissue_name, length(prob_vec)))
+		siggy <- c(siggy, rep(sigger, length(prob_vec)))
+	}
+
+
+	df2 <- data.frame(tissue=factor(tissue_vec, levels=as.character(df$tissue)), probability=prior_prob_vec, significance=factor(siggy))
+	df2$tissue = str_replace_all(as.character(df2$tissue), "-", "_")
+	df2$tissue <- recode(df2$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+
+	df2$tissue = factor(df2$tissue)
+
+    p <- ggplot(df2, aes(tissue, probability)) +
+  		geom_boxplot(colour = "grey50", outlier.shape = NA) +
+  		geom_jitter(aes(color=siggy),size=.001) +
+  		theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  		labs(x="", y="Prior Probability", title=paste0(trait_name_readable, " / ", method_version)) +
+  		figure_theme() +
+  		theme(legend.position="None") +
+  		scale_colour_manual(values = c("grey50", "darkorchid3"))
+
+
+  	return(p)
+
+
+}
+
 make_bar_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue <- function(iterative_prior_file, method_version, trait_name_readable) {
 	# Load in input data
 	df <- read.table(iterative_prior_file, header=TRUE)
@@ -561,6 +676,33 @@ trait_names_readable <- c("Cholesterol", "VitaminD", "Reticulocyte_count", "Plat
 
 
 
+##################################################
+# Violin plot showing bootstrapped prior distributions 
+##################################################
+for (trait_iter in 1:length(trait_names)) {
+	trait_name <- trait_names[trait_iter]
+	trait_name_readable <- trait_names_readable[trait_iter]
+	# PMCES approach
+	method_version="susie_pmces_variant_gene"
+	iterative_prior_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_bootstrapped.txt")
+	iterative_pmces_violin_plot <- make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
+
+	# Sampler approach
+	method_version="susie_sampler_variant_gene"
+	iterative_prior_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_bootstrapped.txt")
+	iterative_sampler_violin_plot <- make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
+
+	# Join plots together
+	pp <- plot_grid(iterative_pmces_violin_plot, iterative_sampler_violin_plot, ncol=1)
+	output_file <- paste0(visualize_tgfm_dir, "tissue_violinplot_of_distribution_prior_probabilities_", trait_name_readable,".pdf")
+	ggsave(pp, file=output_file, width=10.2, height=8.6, units="in")
+
+	# TGLR version
+	bs_nn_sldsc_file <- paste0(tgfm_sldsc_results_dir, trait_name, "_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_nonnegative_eqtl_bootstrapped_sldsc_coefficients.txt")
+	bs_nn_tglr_violin_plot <- make_violin_plot_showing_distribution_of_bootstrapped_taus_of_each_tissue(bs_nn_sldsc_file, "bootstrapped nn TGLR", trait_name_readable, threshold=1e-8)
+	output_file <- paste0(visualize_tgfm_dir, "tissue_violinplot_of_distribution_bs_nn_tglr_", trait_name_readable,".pdf")
+	ggsave(bs_nn_tglr_violin_plot, file=output_file, width=10.2, height=4.6, units="in")
+}
 
 ##################################################
 # Bar plot showing iterative prior probabilities given distribution estimates

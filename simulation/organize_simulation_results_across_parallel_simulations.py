@@ -1086,8 +1086,10 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp(global_simulatio
 		for eqtl_sample_size in eqtl_sample_sizes:
 			for ln_pi_method in ln_pi_methods:
 				for twas_method in twas_methods:
-					if ln_pi_method == 'iterative_variant_gene_tissue_bootstrapped' and twas_method == 'susie_pmces':
+					if ln_pi_method.endswith('bootstrapped') and twas_method == 'susie_pmces':
 						continue
+					if ln_pi_method.startswith('tglr_bootstrapped') and twas_method == 'susie_pmces':
+						continue					
 					# Credible set file for this run
 					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method + '_tgfm_pip_summary.txt'
 					f = open(cs_file)
@@ -1196,7 +1198,9 @@ def create_file_containing_tgfm_high_pip_snp_power_per_component(global_simulati
 			discovered_dicti = {}
 			for ln_pi_method in ln_pi_methods:
 				for twas_method in twas_methods:
-					if ln_pi_method == 'iterative_variant_gene_tissue_bootstrapped' and twas_method == 'susie_pmces':
+					if ln_pi_method.endswith('bootstrapped') and twas_method == 'susie_pmces':
+						continue
+					if ln_pi_method.startswith('tglr_bootstrapped') and twas_method == 'susie_pmces':
 						continue
 					discovered_pi_dicti = {}
 					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method + '_tgfm_pip_summary.txt'
@@ -1265,7 +1269,9 @@ def create_file_containing_tgfm_high_pip_snp_power_per_component(global_simulati
 						# THis is a causal gene
 						for ln_pi_method in ln_pi_methods:
 							for twas_method in twas_methods:
-								if ln_pi_method == 'iterative_variant_gene_tissue_bootstrapped' and twas_method == 'susie_pmces':
+								if ln_pi_method.endswith('bootstrapped') and twas_method == 'susie_pmces':
+									continue
+								if ln_pi_method.startswith('tglr_bootstrapped') and twas_method == 'susie_pmces':
 									continue
 								booler = 0.0
 								if gene_name in discovered_dicti[ln_pi_method + '_' + twas_method]:
@@ -1277,7 +1283,9 @@ def create_file_containing_tgfm_high_pip_snp_power_per_component(global_simulati
 					# This is a causal variant
 					for ln_pi_method in ln_pi_methods:
 						for twas_method in twas_methods:
-							if ln_pi_method == 'iterative_variant_gene_tissue_bootstrapped' and twas_method == 'susie_pmces':
+							if ln_pi_method.endswith('bootstrapped') and twas_method == 'susie_pmces':
+								continue
+							if ln_pi_method.startswith('tglr_bootstrapped') and twas_method == 'susie_pmces':
 								continue
 							booler = 0.0
 							if variant_name in discovered_dicti[ln_pi_method + '_' + twas_method]:
@@ -1335,6 +1343,7 @@ simulated_ld_scores_dir = sys.argv[16]
 # Genome-wide analysis
 #############################################################
 #Bim file
+'''
 bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + chrom_num + '.bim'
 
 
@@ -1419,7 +1428,6 @@ for eqtl_type in eqtl_types:
 		type_1_error_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + eqtl_type + '_' + anno_type + '_mediated_h2_type_1_error.txt'
 		create_file_containing_mediated_h2_type_1_error(mediated_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes)
 
-'''
 ##############################
 # Power and type 1 error in TGFM-SLDSC non-negative bootstrapped
 ##############################
@@ -1438,8 +1446,6 @@ for eqtl_type in eqtl_types:
 		# Create file showing type 1 error for null tissues
 		type_1_error_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + eqtl_type + '_' + anno_type + '_nonnegative_bootstrapped_mediated_h2_type_1_error_across_thresholds.txt'
 		create_file_containing_mediated_h2_type_1_error_across_thresholds(mediated_nonnegative_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes, thresholds)
-'''
-
 
 
 # Simulation runs
@@ -1488,10 +1494,9 @@ for model_name in model_names:
 	organized_avg_fraction_causal_by_tissue_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_avg_fraction_causal_by_tissue.txt'
 	#create_file_containing_avg_med_h2_by_tissue_across_simulation_runs(fraction_causal_by_tissue_output_file, organized_avg_fraction_causal_by_tissue_output_file, eqtl_sample_sizes)
 	create_file_containing_avg_fraction_causal_by_tissue_across_simulation_runs(fraction_causal_by_tissue_output_file, organized_avg_fraction_causal_by_tissue_output_file, eqtl_sample_sizes)
-
-
-
 '''
+
+
 #############################################################
 # Fine-mapping evaluation metrics
 #############################################################
@@ -1507,7 +1512,7 @@ simulation_runs = np.delete(simulation_runs, [17])
 
 
 # ln_pi methods used
-ln_pi_methods = np.asarray(['uniform', 'tglr_variant_gene', 'tglr_sparse_variant_gene_tissue', 'iterative_variant_gene_tissue', 'iterative_variant_gene_tissue_bootstrapped'])
+ln_pi_methods = np.asarray(['uniform', 'tglr_variant_gene', 'tglr_sparse_variant_gene_tissue', 'tglr_bootstrapped_nonnegative_sampler', 'iterative_variant_gene_tissue', 'iterative_variant_gene_tissue_bootstrapped', 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped', 'sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped'])
 
 
 # twas method
@@ -1550,7 +1555,6 @@ for pip_threshold in pip_thresholds:
 
 	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_power.txt'
 	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods,twas_methods)
-'''
 
 
 

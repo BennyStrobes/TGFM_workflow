@@ -47,7 +47,7 @@ def fill_in_causal_effect_size_matrix(null_mat, bs_eqtls_pmces_sparse):
 
 
 class TGFM(object):
-	def __init__(self, L=10, max_iter=200, convergence_thresh=1e-5, estimate_prior_variance=False, fusion_weights=False, ard_a_prior=1e-16, ard_b_prior=1e-16, gene_init_log_pi=None, variant_init_log_pi=None, single_variance_component=True):
+	def __init__(self, L=10, max_iter=200, convergence_thresh=1e-5, estimate_prior_variance=False, fusion_weights=False, ard_a_prior=1e-16, ard_b_prior=1e-16, gene_init_log_pi=None, variant_init_log_pi=None, single_variance_component=True,bootstrap_prior=False):
 		# Prior on gamma distributions defining residual variance and
 		self.L = L
 		self.max_iter = max_iter
@@ -59,6 +59,7 @@ class TGFM(object):
 		self.gene_init_log_pi = gene_init_log_pi
 		self.variant_init_log_pi = variant_init_log_pi
 		self.single_variance_component = single_variance_component
+		self.bootstrap_prior = bootstrap_prior
 	def fit(self, twas_data_obj, phi_init=None, mu_init=None, mu_var_init=None):
 		""" Fit the model.
 			Args:
@@ -173,8 +174,12 @@ class TGFM(object):
 				################
 				# Normalization (across beta and alpha)
 				###############
-				un_normalized_lv_alpha_weights = expected_log_pi - (.5*np.log(alpha_component_variances[bs_iter][l_index])) + (.5*np.square(mixture_alpha_mu)/mixture_alpha_var) + (.5*np.log(mixture_alpha_var))
-				un_normalized_lv_beta_weights = expected_log_variant_pi - (.5*np.log(beta_component_variances[bs_iter][l_index])) + (.5*np.square(mixture_beta_mu)/mixture_beta_var) + (.5*np.log(mixture_beta_var))
+				if self.bootstrap_prior:
+					un_normalized_lv_alpha_weights = expected_log_pi[:,bs_iter] - (.5*np.log(alpha_component_variances[bs_iter][l_index])) + (.5*np.square(mixture_alpha_mu)/mixture_alpha_var) + (.5*np.log(mixture_alpha_var))
+					un_normalized_lv_beta_weights = expected_log_variant_pi[:,bs_iter] - (.5*np.log(beta_component_variances[bs_iter][l_index])) + (.5*np.square(mixture_beta_mu)/mixture_beta_var) + (.5*np.log(mixture_beta_var))
+				else:
+					un_normalized_lv_alpha_weights = expected_log_pi - (.5*np.log(alpha_component_variances[bs_iter][l_index])) + (.5*np.square(mixture_alpha_mu)/mixture_alpha_var) + (.5*np.log(mixture_alpha_var))
+					un_normalized_lv_beta_weights = expected_log_variant_pi - (.5*np.log(beta_component_variances[bs_iter][l_index])) + (.5*np.square(mixture_beta_mu)/mixture_beta_var) + (.5*np.log(mixture_beta_var))
 
 				normalizing_term = scipy.special.logsumexp(np.hstack((un_normalized_lv_alpha_weights, un_normalized_lv_beta_weights)))
 
@@ -195,14 +200,25 @@ class TGFM(object):
 
 
 				# Update KL Terms
-				lbf = np.hstack((un_normalized_lv_alpha_weights-expected_log_pi, un_normalized_lv_beta_weights-expected_log_variant_pi))
-				# Save LBF
-				self.alpha_lbfs[l_index][bs_iter,:] = un_normalized_lv_alpha_weights-expected_log_pi
-				self.beta_lbfs[l_index][bs_iter,:] = un_normalized_lv_beta_weights-expected_log_variant_pi
-				# Update KL terms
-				maxlbf = np.max(lbf)
-				ww = np.exp(lbf - maxlbf)
-				ww_weighted = ww*np.exp(np.hstack((expected_log_pi, expected_log_variant_pi)))
+				if self.bootstrap_prior:
+					lbf = np.hstack((un_normalized_lv_alpha_weights-expected_log_pi[:, bs_iter], un_normalized_lv_beta_weights-expected_log_variant_pi[:, bs_iter]))
+					# Save LBF
+					self.alpha_lbfs[l_index][bs_iter,:] = un_normalized_lv_alpha_weights-expected_log_pi[:, bs_iter]
+					self.beta_lbfs[l_index][bs_iter,:] = un_normalized_lv_beta_weights-expected_log_variant_pi[:, bs_iter]
+					# Update KL terms
+					maxlbf = np.max(lbf)
+					ww = np.exp(lbf - maxlbf)
+					ww_weighted = ww*np.exp(np.hstack((expected_log_pi[:, bs_iter], expected_log_variant_pi[:, bs_iter])))
+				else:
+					lbf = np.hstack((un_normalized_lv_alpha_weights-expected_log_pi, un_normalized_lv_beta_weights-expected_log_variant_pi))
+					# Save LBF
+					self.alpha_lbfs[l_index][bs_iter,:] = un_normalized_lv_alpha_weights-expected_log_pi
+					self.beta_lbfs[l_index][bs_iter,:] = un_normalized_lv_beta_weights-expected_log_variant_pi
+					# Update KL terms
+					maxlbf = np.max(lbf)
+					ww = np.exp(lbf - maxlbf)
+					ww_weighted = ww*np.exp(np.hstack((expected_log_pi, expected_log_variant_pi)))
+
 				kl_term1 = -(np.log(np.sum(ww_weighted)) + maxlbf) # THIS TERM IS CORRECT
 				kl_term2 = np.sum((mixture_beta_mu*mixture_beta_phi)*variant_b_terms) + np.sum((mixture_alpha_mu*mixture_alpha_phi)*b_terms)
 				kl_term3 = -.5*(np.sum((self.NN - 1)*mixture_beta_phi*(np.square(mixture_beta_mu) + mixture_beta_var)) + np.sum((self.NN - 1)*mixture_alpha_phi*(np.square(mixture_alpha_mu) + mixture_alpha_var)))

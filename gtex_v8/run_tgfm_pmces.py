@@ -551,9 +551,12 @@ for window_iter in range(n_windows):
 	elif ln_pi_method_name == 'iterative_variant_gene_tissue':
 		log_prior_file = tgfm_output_stem.split('_iterative_variant')[0] + '_variant_gene_iterative_emperical_distribution_prior_' + window_name + '.txt'
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_summary_file(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
+	elif ln_pi_method_name == 'uniform':
+		var_log_prior = tgfm_trait_data['uniform_ln_prior_variant'][trait_index,:]
+		gene_log_prior = tgfm_trait_data['uniform_ln_prior_gene'][trait_index,:]
 	else:
 		print('assumption erororo: ' + str(ln_pi_method_name) + ' is not yet implemented')
-		pdb.set_trace()		
+		pdb.set_trace()
 
 	# Standardize eqtl PMCES (ALREADY STANDARDIZED)
 	#tgfm_data['gene_eqtl_pmces'] = standardize_eqtl_pmces(tgfm_data['gene_eqtl_pmces'], tgfm_data['gene_variances'], tgfm_data['reference_ld'])

@@ -26,6 +26,7 @@ trait_file=$full_sumstat_dir"UKB_460K."$trait_name".sumstats"
 
 
 variant_models=( "genotype_intercept" "baseline_no_qtl" "baselineLD_no_qtl" "baseline_plus_LDanno" "LDanno_only")
+
 gene_types=( "component_gene")
 gene_models=( "pmces_gene_adj_ld_scores")
 tissue_versions=( "no_testis")
@@ -41,11 +42,11 @@ for tissue_version in "${tissue_versions[@]}"; do
 	python ${mod_ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${preprocessed_tgfm_sldsc_data_dir}"regression_weights." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
 	fi
 	# Bootstrapped version
-	python ${mod_ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${preprocessed_tgfm_sldsc_data_dir}"regression_weights." --bootstrap --nonnegative-coefficient-file ${preprocessed_tgfm_sldsc_data_dir}${variant_model}"_"${tissue_version}"_nonnegative_coefficients.txt" --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_nonnegative_eqtl_bootstrapped_"
 	if false; then
+	python ${mod_ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${preprocessed_tgfm_sldsc_data_dir}"regression_weights." --bootstrap --nonnegative-coefficient-file ${preprocessed_tgfm_sldsc_data_dir}${variant_model}"_"${tissue_version}"_nonnegative_coefficients.txt" --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_nonnegative_eqtl_bootstrapped_"
+	fi
 	source ~/.bash_profile
 	python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-	fi
 done
 done
 done
@@ -58,25 +59,6 @@ done
 
 
 
-if false; then
-variant_model="baseline_no_qtl"
-gene_type="component_gene"
-gene_model="pmces_gene_adj_ld_scores"
-tissue_version="no_testis"
-data_version=${variant_model}"_"${gene_type}"_"${tissue_version}"_"${gene_model}
-
-	source /n/groups/price/ben/environments/sldsc/bin/activate
-	module load python/2.7.12
-	if false; then
-	python ${mod_ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${preprocessed_tgfm_sldsc_data_dir}"regression_weights." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
-
-	source ~/.bash_profile
-	python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-	fi
-
-	# Bootstrapped version
-	python ${mod_ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${preprocessed_tgfm_sldsc_data_dir}"regression_weights." --bootstrap --nonnegative-coefficient-file ${preprocessed_tgfm_sldsc_data_dir}${variant_model}"_"${tissue_version}"_nonnegative_coefficients.txt" --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_nonnegative_eqtl_bootstrapped_"
-fi
 
 
 
@@ -89,118 +71,3 @@ fi
 
 
 
-
-
-
-
-
-
-
-if false; then
-source /n/groups/price/ben/environments/sldsc/bin/activate
-module load python/2.7.12
-data_version="genotype_intercept_gene_ld_scores"
-python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
-source ~/.bash_profile
-python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-
-source /n/groups/price/ben/environments/sldsc/bin/activate
-module load python/2.7.12
-data_version="genotype_intercept_gene_adj_ld_scores"
-python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
-source ~/.bash_profile
-python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-
-
-source /n/groups/price/ben/environments/sldsc/bin/activate
-module load python/2.7.12
-data_version="baselineLD_no_qtl_gene_ld_scores"
-python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
-source ~/.bash_profile
-python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-
-source /n/groups/price/ben/environments/sldsc/bin/activate
-module load python/2.7.12
-data_version="baselineLD_no_qtl_gene_adj_ld_scores"
-python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
-source ~/.bash_profile
-python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-
-source /n/groups/price/ben/environments/sldsc/bin/activate
-module load python/2.7.12
-data_version="baselineLD_no_qtl_pmces_gene_ld_scores"
-python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
-source ~/.bash_profile
-python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-fi
-
-
-
-
-
-
-
-
-if false; then
-#source /n/groups/price/ben/environments/sldsc/bin/activate
-#module load python/2.7.12
-data_version="baselineLD_no_qtl_pmces_gene_adj_ld_scores"
-python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
-#python ${mod_ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --w-gene-chr ${preprocessed_tgfm_sldsc_data_dir}"pmces_gene_weights." --bootstrap_window_file $quasi_independent_dir"large_10_quasi_independent_ld_blocks_hg38_bed.txt" --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_gene_weighted_"
-
-
-#source ~/.bash_profile
-python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_gene_weighted_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-
-#module load gcc/6.2.0
-#module load python/3.6.0
-#source /n/groups/price/ben/environments/tensor_flow_cpu/bin/activate
-#python3 organize_tgfm_sldsc_results_tf.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-fi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-if false; then
-source /n/groups/price/ben/environments/sldsc/bin/activate
-module load python/2.7.12
-data_version="baseline_no_qtl_gene_ld_scores"
-python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
-source ~/.bash_profile
-python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-
-
-source /n/groups/price/ben/environments/sldsc/bin/activate
-module load python/2.7.12
-data_version="baseline_no_qtl_gene_adj_ld_scores"
-python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
-source ~/.bash_profile
-python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-
-
-source /n/groups/price/ben/environments/sldsc/bin/activate
-module load python/2.7.12
-data_version="baseline_no_qtl_pmces_gene_ld_scores"
-python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
-source ~/.bash_profile
-python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-
-
-source /n/groups/price/ben/environments/sldsc/bin/activate
-module load python/2.7.12
-data_version="baseline_no_qtl_pmces_gene_adj_ld_scores"
-python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${sldsc_h38_weights_dir}"weights.hm3_noMHC." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
-source ~/.bash_profile
-python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
-fi

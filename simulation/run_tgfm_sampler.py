@@ -434,6 +434,24 @@ def extract_log_prior_probabilities_from_summary_file(log_prior_file, existing_v
 
 	return np.asarray(var_probs), np.asarray(gene_probs)
 
+def create_mapping_from_element_name_to_mean_probs(ln_pi_input_file):
+	# Create mapping from element name to bs-probs
+	mapping = {}
+	f = open(ln_pi_input_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		ele_name = data[0]
+		bs_prob = float(data[1])
+		if bs_prob == 0:
+			bs_prob = 1e-100
+		mapping[ele_name] = bs_prob
+	f.close()
+	return mapping
 
 def create_mapping_from_element_name_to_bs_probs(ln_pi_input_file):
 	# Create mapping from element name to bs-probs
@@ -480,6 +498,26 @@ def extract_log_prior_probabilities_from_bootstrapped_ln_pi_mapping(mapping, var
 
 	return np.log(norm_var_probs), np.log(norm_gene_probs)
 
+def extract_log_prior_probabilities_from_mean_ln_pi_mapping(mapping, variants, genes):
+	n_var = len(variants)
+	n_genes = len(genes)
+	var_probs = np.zeros(n_var)
+	gene_probs = np.zeros(n_genes)
+
+	for var_iter in range(n_var):
+		var_probs[var_iter] = mapping['variant']
+	for gene_iter, gene_name in enumerate(genes):
+		tissue_name = gene_name.split('_')[1]
+		gene_probs[gene_iter] = mapping[tissue_name]
+	
+	# Normalize rows
+	normalizers = np.sum(gene_probs) + np.sum(var_probs)
+	norm_var_probs = var_probs/normalizers
+	norm_gene_probs = gene_probs/normalizers
+
+	return np.log(norm_var_probs), np.log(norm_gene_probs)	
+
+
 
 ######################
 # Command line args
@@ -516,6 +554,12 @@ elif ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_
 elif ln_pi_method_name == 'tglr_bootstrapped_nonnegative_sampler':
 	ln_pi_input_file = tgfm_output_stem.split('susie')[0] + 'tglr_bootstrapped_nonnegative_per_element_h2s.txt'
 	ln_pi_ele_name_to_bs_probs_mapping = create_mapping_from_element_name_to_bs_probs(ln_pi_input_file)
+elif ln_pi_method_name == 'tglr_bootstrapped_nonnegative_pmces':
+	ln_pi_input_file = tgfm_output_stem.split('susie')[0] + 'tglr_bootstrapped_nonnegative_per_element_h2s.txt'
+	ln_pi_ele_name_to_mean_probs_mapping = create_mapping_from_element_name_to_mean_probs(ln_pi_input_file)
+elif ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_pmces':
+	ln_pi_input_file = tgfm_output_stem.split('_sampler')[0] + '_' + 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped' + '.txt'
+	ln_pi_ele_name_to_mean_probs_mapping = create_mapping_from_element_name_to_mean_probs(ln_pi_input_file)
 
 
 # Open PIP file handle
@@ -583,6 +627,9 @@ for window_iter in range(n_windows):
 	if ln_pi_method_name == 'iterative_variant_gene_tissue_bootstrapped_sampler' or ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped' or ln_pi_method_name == 'sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped' or ln_pi_method_name == 'tglr_bootstrapped_nonnegative_sampler':
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_bootstrapped_ln_pi_mapping(ln_pi_ele_name_to_bs_probs_mapping, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
+	elif ln_pi_method_name == 'tglr_bootstrapped_nonnegative_pmces' or ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_pmces':
+		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_mean_ln_pi_mapping(ln_pi_ele_name_to_mean_probs_mapping, tgfm_data['variants'], tgfm_data['genes'])
+		bootstrap_prior = False
 	else:
 		log_prior_file = ln_pi_file_stem + '_' + ln_pi_method_name + '.txt'
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_summary_file(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
@@ -649,10 +696,11 @@ for window_iter in range(n_windows):
 	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
 
 	# Write pickle file
-	window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
-	g = open(window_tgfm_output_file, "wb")
-	pickle.dump(tgfm_results, g)
-	g.close()
+	if ln_pi_method_name == 'uniform':
+		window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
+		g = open(window_tgfm_output_file, "wb")
+		pickle.dump(tgfm_results, g)
+		g.close()
 
 
 # Close file handles

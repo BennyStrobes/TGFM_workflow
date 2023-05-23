@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-20:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-40:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
 
@@ -189,10 +189,21 @@ python3 extract_bootstrapped_nonnegative_tglr_variant_gene_tissue_prior_info_for
 ln_pi_method="tglr_bootstrapped_nonnegative_sampler"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
-
 fi
 
+if [ $parr_version == "parallel_6" ]; then
+# NOTE: REQUIRES PRECOMPUTED ITERATIVE PRIOR AND TGLR PRIOR
 
+ln_pi_method="tglr_bootstrapped_nonnegative_pmces"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
+python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
+
+
+ln_pi_method="pmces_uniform_iterative_variant_gene_prior_pip_level_pmces"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
+python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
+
+fi
 
 
 

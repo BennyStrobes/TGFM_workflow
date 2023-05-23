@@ -204,10 +204,57 @@ def print_organized_h2_mediated(output_file_name, h2_med, h2_med_se):
 	t.write(str(h2_med) + '\t' + str(h2_med_se) + '\n')
 	t.close()
 
+def extract_and_print_per_element_h2_for_nonnegative_bootstrapped_models(nonnegative_bootstrapped_coefficient_file, m_vec, nonnegative_bootstrapped_per_element_h2_file):
+	# Extract data
+	global_taus = []
+	bootstrapped_taus = []
+	anno_names = []
+	f = open(nonnegative_bootstrapped_coefficient_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		anno_names.append(data[0].split('_0')[0])
+		global_taus.append(float(data[1]))
+		bootstrapped_taus.append(np.asarray(data[4].split(';')).astype(float))
+	f.close()
+	anno_names = np.asarray(anno_names)
+	global_taus = np.asarray(global_taus)
+	bootstrapped_taus = np.asarray(bootstrapped_taus)
+
+	# Extract eqtl start index
+	for ii, ele_name in enumerate(anno_names):
+		if ele_name.endswith('L2') == False:
+			eqtl_start_index = ii
+			break
+
+	# Extract per element h2
+	# For variants
+	global_per_snp_h2 = np.sum(global_taus[:eqtl_start_index]*m_vec[:eqtl_start_index])/m_vec[0]
+	bootstrapped_per_snp_h2 = np.dot(np.transpose(bootstrapped_taus[:eqtl_start_index,:]), m_vec[:eqtl_start_index])/m_vec[0]
+	# For genes
+	global_per_gene_h2 = np.copy(global_taus[eqtl_start_index:])
+	bootstrapped_per_gene_h2 = np.copy(bootstrapped_taus[eqtl_start_index:,:])
+	tissue_names = anno_names[eqtl_start_index:]
+
+	# Print to output
+	t = open(nonnegative_bootstrapped_per_element_h2_file,'w')
+	# Header
+	t.write('element_name\tglobal_per_element_h2\tbootstrapped_per_element_h2\n')
+	# For variants
+	t.write('variant\t' + str(global_per_snp_h2) + '\t' + ';'.join(bootstrapped_per_snp_h2.astype(str)) + '\n')
+	for tissue_iter, tissue_name in enumerate(tissue_names):
+		t.write(tissue_name + '\t' + str(global_per_gene_h2[tissue_iter]) + '\t' + ';'.join(bootstrapped_per_gene_h2[tissue_iter,:].astype(str)) + '\n')
+	t.close()
+	return
+
 sldsc_output_root = sys.argv[1]
 anno_stem = sys.argv[2]
 
-
+'''
 # Extract relevent info from log file
 sldsc_log_file = sldsc_output_root + '.log'
 example_anno_file = anno_stem + '.21.l2.ldscore'
@@ -216,12 +263,20 @@ tau, tau_se = extract_tau_and_tau_se_from_log_file(sldsc_log_file, anno_names)
 tau_z = tau/tau_se
 # Print to output
 print_organized_summary_file(sldsc_output_root + 'organized_res.txt', anno_names, tau, tau_se)
-
+'''
 
 # Total counts
 m_vec = load_in_mvec(anno_stem, '.M')
 m_5_50_vec = load_in_mvec(anno_stem, '.M_5_50')
 
+
+# Get organized per element h2 for non-negative bootstrapped model
+nonnegative_bootstrapped_coefficient_file = sldsc_output_root + 'nonnegative_eqtl_bootstrapped_sldsc_coefficients.txt'
+nonnegative_bootstrapped_per_element_h2_file = sldsc_output_root + 'nonnegative_eqtl_bootstrapped_sldsc_per_element_h2.txt'
+extract_and_print_per_element_h2_for_nonnegative_bootstrapped_models(nonnegative_bootstrapped_coefficient_file, m_vec, nonnegative_bootstrapped_per_element_h2_file)
+nonnegative_bootstrapped_per_element_h2_5_50_file = sldsc_output_root + 'nonnegative_eqtl_bootstrapped_sldsc_per_element_h2_5_50.txt'
+extract_and_print_per_element_h2_for_nonnegative_bootstrapped_models(nonnegative_bootstrapped_coefficient_file, m_5_50_vec, nonnegative_bootstrapped_per_element_h2_5_50_file)
+'''
 # Print partioned h2 to output
 print_organized_summary_file(sldsc_output_root + 'organized_mediated_h2.txt', anno_names, tau*m_vec, tau_se*m_vec)
 print_organized_summary_file(sldsc_output_root + 'organized_mediated_h2_5_50.txt', anno_names, tau*m_5_50_vec, tau_se*m_5_50_vec)
@@ -278,7 +333,7 @@ print_average_per_snp_and_per_gene_h2(jacknifed_taus, eqtl_start_index-1, m_5_50
 # Compute average per-snp and per-gene-tissue h2
 print_average_per_snp_and_per_gene_tissue_h2(jacknifed_taus, eqtl_start_index-1, m_vec, sldsc_output_root + 'avg_per_snp_and_gene_tissue_h2.txt', anno_names[1:])
 print_average_per_snp_and_per_gene_tissue_h2(jacknifed_taus, eqtl_start_index-1, m_5_50_vec, sldsc_output_root + 'avg_per_snp_and_gene_tissue_h2_5_50.txt', anno_names[1:])
-
+'''
 # TEMP HACK
 #jacknifed_tau_mean2 = np.loadtxt(sldsc_output_root + 'coef_estimate.txt')
 #jacknifed_tau_covariance2 = np.loadtxt(sldsc_output_root + 'coef_cov_estimate.txt')
@@ -311,7 +366,7 @@ for reg_param in [5e-1]:
 	#print_organized_summary_file(sldsc_output_root + 'organized_' + str(reg_param) + '_sparse_ard_eqtl_coefficients_mv_update_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
 	'''
 
-
+	'''
 
 	non_eqtl_annotations_include_intercept = np.hstack([non_eqtl_annotations])
 	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(max_iter=20000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
@@ -330,7 +385,7 @@ for reg_param in [5e-1]:
 	# Compute average per-snp and per-gene-tissue h2 for sparse model
 	print_average_per_snp_and_per_gene_tissue_h2_for_sparse_model((model_beta_mu/annotation_sdev)[1:], eqtl_start_index-1, m_vec, sldsc_output_root + str(reg_param) + '_sparse_ard_all_coefficients_mv_update_avg_per_snp_and_gene_tissue_h2.txt', anno_names[1:])
 
-
+	'''
 
 
 

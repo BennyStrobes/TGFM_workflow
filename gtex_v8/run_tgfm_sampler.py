@@ -334,7 +334,7 @@ def merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj2, variant_z_ve
 
 
 
-def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method):
+def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method, bootstrap_prior):
 	if init_method == 'null':
 		tgfm_obj = bootstrapped_tgfm.TGFM(L=7, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5)
 		tgfm_obj.fit(twas_data_obj=tgfm_data)
@@ -343,7 +343,7 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_
 		z_vec = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
 
 		# Now run tgfm sampler with null init
-		tgfm_obj = bootstrapped_tgfm.TGFM(L=7, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5)
+		tgfm_obj = bootstrapped_tgfm.TGFM(L=7, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5, bootstrap_prior=bootstrap_prior)
 		tgfm_obj.fit(twas_data_obj=tgfm_data)
 		#elbo_null_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
 
@@ -362,7 +362,7 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_
 			mu_var_init[:, num_genes:] = variant_only_mu_var
 
 			# Run tgfm sampler with variant init
-			tgfm_obj_variant_init = bootstrapped_tgfm.TGFM(L=7, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5)
+			tgfm_obj_variant_init = bootstrapped_tgfm.TGFM(L=7, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5, bootstrap_prior=bootstrap_prior)
 			tgfm_obj_variant_init.fit(twas_data_obj=tgfm_data, phi_init=alpha_init, mu_init=mu_init, mu_var_init=mu_var_init)
 			#elbo_variant_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj_variant_init, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
 
@@ -434,6 +434,81 @@ def extract_log_prior_probabilities_from_summary_file(log_prior_file, existing_v
 
 
 	return np.asarray(var_probs), np.asarray(gene_probs)
+
+def extract_log_prior_probabilities_for_tglr_bs_nn_pmces(prior_file, variant_names, gene_names):
+	element_name_to_h2 = {}
+	head_count = 0
+	f = open(prior_file)
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count +1
+			continue
+		ele_name = data[0]
+		ele_h2 = float(data[1])
+		if ele_h2 == 0:
+			ele_h2 = 1e-100
+		element_name_to_h2[ele_name] = ele_h2
+	f.close()
+
+	snp_h2 = np.zeros(len(variant_names)) + element_name_to_h2['variant']
+	gene_h2 = []
+	for gene_name in gene_names:
+		tissue_name = '_'.join(gene_name.split('_')[1:])
+		gene_h2.append(element_name_to_h2[tissue_name])
+	gene_h2 = np.asarray(gene_h2)
+
+	# normalize to get probs
+	normalizer = np.sum(snp_h2) + np.sum(gene_h2)
+
+	variant_probs = snp_h2/normalizer
+	gene_probs = gene_h2/normalizer
+
+
+	return np.log(variant_probs), np.log(gene_probs)
+
+def extract_log_prior_probabilities_for_tglr_bs_nn_sampler(prior_file, variants, genes):
+	element_name_to_h2 = {}
+	head_count = 0
+	f = open(prior_file)
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count +1
+			continue
+		ele_name = data[0]
+		bs_probs = np.asarray(data[2].split(';')).astype(float)
+		new_bs_probs = []
+		for bs_prob in bs_probs:
+			if bs_prob == 0:
+				new_bs_probs.append(1e-100)
+			else:
+				new_bs_probs.append(bs_prob)
+		new_bs_probs = np.asarray(new_bs_probs)
+		element_name_to_h2[ele_name] = new_bs_probs
+	f.close()
+
+	n_var = len(variants)
+	n_genes = len(genes)
+	n_bs = len(element_name_to_h2['variant'])
+	var_probs = np.zeros((n_var, n_bs))
+	gene_probs = np.zeros((n_genes, n_bs))
+
+	for var_iter in range(n_var):
+		var_probs[var_iter, :] = element_name_to_h2['variant']
+	for gene_iter, gene_name in enumerate(genes):
+		tissue_name = '_'.join(gene_name.split('_')[1:])
+		gene_probs[gene_iter, :] = element_name_to_h2[tissue_name]
+	
+	# Normalize rows
+	normalizers = np.sum(gene_probs,axis=0) + np.sum(var_probs,axis=0)
+	norm_var_probs = var_probs/normalizers
+	norm_gene_probs = gene_probs/normalizers
+
+	return np.log(norm_var_probs), np.log(norm_gene_probs)
+
 
 
 
@@ -561,6 +636,7 @@ for window_iter in range(n_windows):
 	if len(tgfm_data['genes']) == 0:
 		continue
 
+	bootstrap_prior = False
 	if ln_pi_method_name == 'variant_gene':
 		var_log_prior = tgfm_trait_data['variant_gene_ln_prior_variant'][trait_index,:]
 		gene_log_prior = tgfm_trait_data['variant_gene_ln_prior_gene'][trait_index,:]
@@ -570,6 +646,18 @@ for window_iter in range(n_windows):
 	elif ln_pi_method_name == 'iterative_variant_gene_tissue':
 		log_prior_file = tgfm_output_stem.split('_iterative_variant')[0] + '_variant_gene_iterative_emperical_distribution_prior_' + window_name + '.txt'
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_summary_file(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
+	elif ln_pi_method_name == 'uniform':
+		var_log_prior = tgfm_trait_data['uniform_ln_prior_variant'][trait_index,:]
+		gene_log_prior = tgfm_trait_data['uniform_ln_prior_gene'][trait_index,:]
+	elif ln_pi_method_name == 'tglr_bootstrapped_nonnegative_pmces':
+		tmp_sldsc_dir = '/n/scratch3/users/b/bes710/causal_eqtl_gwas/gtex/tgfm_sldsc_results/'
+		prior_file = tmp_sldsc_dir + trait_name + '_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_nonnegative_eqtl_bootstrapped_sldsc_per_element_h2.txt'
+		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_tglr_bs_nn_pmces(prior_file, tgfm_data['variants'], tgfm_data['genes'])
+	elif ln_pi_method_name == 'tglr_bootstrapped_nonnegative_sampler':
+		tmp_sldsc_dir = '/n/scratch3/users/b/bes710/causal_eqtl_gwas/gtex/tgfm_sldsc_results/'
+		prior_file = tmp_sldsc_dir + trait_name + '_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_nonnegative_eqtl_bootstrapped_sldsc_per_element_h2.txt'
+		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_tglr_bs_nn_sampler(prior_file, tgfm_data['variants'], tgfm_data['genes'])
+		bootstrap_prior = True
 	else:
 		print('assumption erororo: ' + str(ln_pi_method_name) + ' is not yet implemented')
 		pdb.set_trace()		
@@ -589,7 +677,7 @@ for window_iter in range(n_windows):
 	##############################
 	# Run TGFM
 	###############################
-	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method)
+	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method, bootstrap_prior)
 
 	##############################
 	# Extract valid tgfm components

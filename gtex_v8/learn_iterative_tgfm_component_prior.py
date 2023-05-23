@@ -687,6 +687,7 @@ per_window_abf_output_stem = new_tgfm_stem + '_iterative_prior_per_window_abf_'
 generate_component_level_abf_summary_data(concatenated_pip_summary_file, component_level_abf_summary_file, tissue_names, new_tgfm_stem, tgfm_version, processed_tgfm_input_stem, per_window_abf_output_stem)
 
 
+'''
 ###################################################
 # Learn iterative distribution variant-gene-tissue prior (doing distribution based prior)
 ###################################################
@@ -702,7 +703,7 @@ for tiss_iter, tissue_name in enumerate(tissue_names):
 t.close()
 
 print_log_prior_across_tgfm_windows(variant_gene_distr_prior_output_file, tgfm_input_summary_file, new_tgfm_stem + '_iterative_emperical_distribution_prior')
-
+'''
 
 
 ###################################################

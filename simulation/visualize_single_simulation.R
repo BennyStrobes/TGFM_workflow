@@ -22,6 +22,19 @@ make_power_med_h2_se_barplot <- function(df) {
   	return(p)
 }
 
+make_power_med_h2_se_barplot_across_thresholds <- function(df) {
+ 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
+ 	df$threshold = factor(df$threshold)
+	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=power, fill=threshold)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="eQTL Sample size", y="Power") +
+  		theme(legend.position="bottom") 
+  	return(p)
+}
+
+
 make_type_1_error_med_h2_se_barplot <- function(df) {
  	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
 	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=type_1_error)) +
@@ -34,6 +47,21 @@ make_type_1_error_med_h2_se_barplot <- function(df) {
 
   	return(p)
 }
+
+make_type_1_error_med_h2_se_barplot_across_thresholds <- function(df) {
+ 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
+ 	df$threshold = factor(df$threshold)
+	p<-ggplot(data=df, aes(x=eqtl_sample_size, fill=threshold, y=type_1_error)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=type_1_error_lb, ymax=type_1_error_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="eQTL Sample size", y="Type 1 Error") +
+  		theme(legend.position="bottom")  +
+  		geom_hline(yintercept=.05, linetype=2)
+
+  	return(p)
+}
+
 
  make_avg_h2_se_barplot <- function(df) {
 
@@ -360,18 +388,18 @@ make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_prior_method <- function(df,
 	df$fdr_ub = 1.0 - df$coverage_lb
 
 	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(300,500,1000))
-	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene", "tglr_sparse_variant_gene_tissue", "iterative_variant_gene_tissue", "iterative_variant_gene_tissue_bootstrapped"))
-	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "iterative_variant_gene_tissue_bootstrapped"))
+
+	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped", "sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"))
 
 	df=df[!is.na(df$ln_pi_method),]	
-
-	df$ln_pi_method = recode(df$ln_pi_method, uniform="Uniform prior", iterative_variant_gene_tissue_bootstrapped="Genome-wide prior")
+	df=df[!is.na(df$eQTL_sample_size),]	
+	df$ln_pi_method = recode(df$ln_pi_method, uniform="Uniform", pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped="Iterative VGT pmces", sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped="Iterative VGT sampler")
 
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=fdr, fill=ln_pi_method)) +
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.4, position=position_dodge(.9))  +
   		figure_theme() +
-    	scale_fill_manual(values=c("#56B4E9", "darkorchid3"))+
+    	#scale_fill_manual(values=c("#56B4E9", "darkorchid3"))+
   		labs(x="eQTL sample size", y="FDR", fill="", title=paste0("PIP=", pip_threshold, " / ", element_class, " / ", new_method))  +
   		geom_hline(yintercept=(1.0-pip_threshold), linetype=2) +
   		theme(plot.title = element_text(hjust = 0.5,size=12))
@@ -382,15 +410,15 @@ make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_prior_method <- function(df,
 make_tgfm_pip_power_plot_varying_eqtl_sample_size_and_prior_method <- function(df, pip_threshold, twas_method, element_class) {
 
 	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(300,500,1000))
-	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene", "tglr_sparse_variant_gene_tissue", "iterative_variant_gene_tissue", "iterative_variant_gene_tissue_bootstrapped"))
-	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "iterative_variant_gene_tissue_bootstrapped"))
+	#df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene", "tglr_sparse_variant_gene_tissue", "iterative_variant_gene_tissue", "iterative_variant_gene_tissue_bootstrapped"))
+	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped", "sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"))
 	df=df[!is.na(df$ln_pi_method),]	
-	df$ln_pi_method = recode(df$ln_pi_method, uniform="Uniform prior", iterative_variant_gene_tissue_bootstrapped="Genome-wide prior")
+	df$ln_pi_method = recode(df$ln_pi_method, uniform="Uniform", pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped="Iterative VGT pmces", sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped="Iterative VGT sampler")
 
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=power, fill=ln_pi_method)) +
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
-  		scale_fill_manual(values=c("#56B4E9", "darkorchid3"))+
+  		#scale_fill_manual(values=c("#56B4E9", "darkorchid3"))+
   		figure_theme() +
   		labs(x="eQTL sample size", y="Power", fill="", title=paste0("PIP=", pip_threshold, " / ", element_class, " / ", new_method)) +
   		theme(plot.title = element_text(hjust = 0.5,size=12))
@@ -420,7 +448,6 @@ n_genes_se_barplot <- make_n_detected_genes_se_barplot(n_genes_df)
 ggsave(n_genes_se_barplot, file=output_file, width=7.2, height=3.2, units="in")
 }
 
-if (FALSE) {
 #####################################################################
 # Genome-wide analysis
 #####################################################################
@@ -479,7 +506,7 @@ ggsave(avg_per_tissue_h2_se_barplot, file=output_file, width=7.2, height=4.5, un
 # Make barplot with standard error showing Power
 #####################################################################
 # load in data
-power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_mediated_h2_power.txt")
+power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_full_anno_mediated_h2_power.txt")
 power_h2_df <- read.table(power_h2_file, header=TRUE)
 # Make plot
 power_se_barplot <- make_power_med_h2_se_barplot(power_h2_df)
@@ -488,12 +515,11 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(power_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
 
 
-
 #####################################################################
 # Make barplot with standard error showing Type 1 error
 #####################################################################
 # load in data
-t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_mediated_h2_type_1_error.txt")
+t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_full_anno_mediated_h2_type_1_error.txt")
 t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
 # Make plot
 t1e_se_barplot <- make_type_1_error_med_h2_se_barplot(t1e_h2_df)
@@ -514,7 +540,6 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(power_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
 
 
-
 #####################################################################
 # Make barplot with standard error showing Type 1 error with sparse model
 #####################################################################
@@ -526,12 +551,134 @@ t1e_se_barplot <- make_type_1_error_med_h2_se_barplot(t1e_h2_df)
 # Save to output
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_sparse_med_h2.pdf")
 ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
-}
+
+#####################################################################
+# Make barplot with standard error showing Type 1 error across thresholds for bootstrapped non-negative TGLR
+#####################################################################
+# load in data
+t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_full_anno_nonnegative_bootstrapped_mediated_h2_type_1_error_across_thresholds.txt")
+t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
+# Make plot
+t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_across_thresholds(t1e_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_tglr_nonnegative_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+#####################################################################
+# Make barplot with standard error showing Power across thresholds for bootstrapped non-negative TGLR
+#####################################################################
+# load in data
+power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_full_anno_nonnegative_bootstrapped_mediated_h2_power_across_thresholds.txt")
+power_h2_df <- read.table(power_h2_file, header=TRUE)
+# Make plot
+power_se_barplot <- make_power_med_h2_se_barplot_across_thresholds(power_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_power_tglr_nonnegative_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(power_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+# Make joint plot
+joint_plot <- plot_grid(t1e_se_barplot, power_se_barplot, ncol=1)
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_tglr_nonnegative_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(joint_plot, file=output_file, width=7.2, height=7.5, units="in")
+
+
+#####################################################################
+# Make barplot with standard error showing Type 1 error across thresholds for bootstrapped non-negative TGLR (genotype intercept)
+#####################################################################
+# load in data
+t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_genotype_intercept_nonnegative_bootstrapped_mediated_h2_type_1_error_across_thresholds.txt")
+t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
+# Make plot
+t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_across_thresholds(t1e_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_tglr_genotype_intercept_nonnegative_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+#####################################################################
+# Make barplot with standard error showing Power across thresholds for bootstrapped non-negative TGLR (genotype intercept)
+#####################################################################
+# load in data
+power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_genotype_intercept_nonnegative_bootstrapped_mediated_h2_power_across_thresholds.txt")
+power_h2_df <- read.table(power_h2_file, header=TRUE)
+# Make plot
+power_se_barplot <- make_power_med_h2_se_barplot_across_thresholds(power_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_power_tglr_genotype_intercept_nonnegative_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(power_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+# Make joint plot
+joint_plot <- plot_grid(t1e_se_barplot, power_se_barplot, ncol=1)
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_tglr_genotype_intercept_nonnegative_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(joint_plot, file=output_file, width=7.2, height=7.5, units="in")
+
+
+
+#####################################################################
+# Make barplot with standard error showing Type 1 error across thresholds for bootstrapped iterative VGT PMCES
+#####################################################################
+# load in data
+t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_h2_type_1_error_across_thresholds.txt")
+t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
+# Make plot
+t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_across_thresholds(t1e_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+#####################################################################
+# Make barplot with standard error showing Power across thresholds for bootstrapped iterative VGT PMCES
+#####################################################################
+# load in data
+power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_mediated_h2_power_across_thresholds.txt")
+power_h2_df <- read.table(power_h2_file, header=TRUE)
+# Make plot
+power_se_barplot <- make_power_med_h2_se_barplot_across_thresholds(power_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_power_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(power_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+# Make joint plot
+joint_plot <- plot_grid(t1e_se_barplot, power_se_barplot, ncol=1)
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(joint_plot, file=output_file, width=7.2, height=7.5, units="in")
+
+
+#####################################################################
+# Make barplot with standard error showing Type 1 error across thresholds for bootstrapped iterative VGT Sampler
+#####################################################################
+# load in data
+t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_sampler_uniform_iterative_variant_gene_prior_pip_level_h2_type_1_error_across_thresholds.txt")
+t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
+# Make plot
+t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_across_thresholds(t1e_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_iterative_VGT_sampler_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+#####################################################################
+# Make barplot with standard error showing Power across thresholds for bootstrapped iterative VGT Sampler
+#####################################################################
+# load in data
+power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_sampler_uniform_iterative_variant_gene_prior_pip_level_mediated_h2_power_across_thresholds.txt")
+power_h2_df <- read.table(power_h2_file, header=TRUE)
+# Make plot
+power_se_barplot <- make_power_med_h2_se_barplot_across_thresholds(power_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_power_iterative_VGT_sampler_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(power_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+# Make joint plot
+joint_plot <- plot_grid(t1e_se_barplot, power_se_barplot, ncol=1)
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_sampler_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(joint_plot, file=output_file, width=7.2, height=7.5, units="in")
 
 
 
 
 
+
+
+if (FALSE) {
 #####################################################################
 # TGFM
 #####################################################################
@@ -683,7 +830,7 @@ ggsave(joint, file=output_file, width=7.2, height=6.7, units="in")
 # PMCES
 twas_method="susie_pmces"
 element_class="gene"
-pip_threshold_arr <- c("0.5", "0.7", "0.9")
+pip_threshold_arr <- c("0.5", "0.7", "0.9", "0.99")
 plots <- list()
 for (pip_iter in 1:length(pip_threshold_arr)) {
 	pip_threshold=pip_threshold_arr[pip_iter]
@@ -713,7 +860,7 @@ ggsave(joint, file=output_file, width=7.2, height=6.7, units="in")
 # Sampler
 twas_method="susie_sampler"
 element_class="gene"
-pip_threshold_arr <- c("0.5", "0.7", "0.9")
+pip_threshold_arr <- c("0.5", "0.7", "0.9", "0.99")
 plots <- list()
 for (pip_iter in 1:length(pip_threshold_arr)) {
 	pip_threshold=pip_threshold_arr[pip_iter]
@@ -757,7 +904,7 @@ ggsave(joint, file=output_file, width=7.2, height=6.7, units="in")
 # Gene
 twas_method="susie_sampler"
 element_class="gene"
-pip_threshold_arr <- c("0.5", "0.7", "0.9")
+pip_threshold_arr <- c("0.5", "0.7", "0.9", "0.99")
 plots <- list()
 for (pip_iter in 1:length(pip_threshold_arr)) {
 	pip_threshold=pip_threshold_arr[pip_iter]
@@ -789,7 +936,7 @@ ggsave(joint, file=output_file, width=7.2, height=6.7, units="in")
 # Variant
 twas_method="susie_sampler"
 element_class="variant"
-pip_threshold_arr <- c("0.5", "0.7", "0.9")
+pip_threshold_arr <- c("0.5", "0.7", "0.9", "0.99")
 plots <- list()
 for (pip_iter in 1:length(pip_threshold_arr)) {
 	pip_threshold=pip_threshold_arr[pip_iter]
@@ -815,6 +962,6 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(joint, file=output_file, width=7.2, height=6.7, units="in")
 
 
-
+}
 
 
