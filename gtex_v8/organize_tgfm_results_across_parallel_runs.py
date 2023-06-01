@@ -532,6 +532,16 @@ def component_in_middle_of_window(alpha_phi_vec, beta_phi_vec, middle_gene_indic
 			booler = True
 	return booler
 
+def component_in_middle_of_window_hack(alpha_phi_vec, middle_gene_indices_dicti, middle_variant_indices_dicti):
+	booler = False
+	# Gene wins
+	if True:
+		best_index = np.argmax(alpha_phi_vec)
+		if best_index in middle_gene_indices_dicti:
+			booler = True
+	return booler
+
+
 def generate_component_level_summary_data(concatenated_pip_summary_file, component_level_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem):
 	f = open(concatenated_pip_summary_file)
 	t = open(component_level_summary_file,'w')
@@ -586,9 +596,11 @@ def generate_component_level_summary_data(concatenated_pip_summary_file, compone
 			for sample_iter in range(n_samples):
 				sample_valid_components = tgfm_results['valid_components'][sample_iter]
 				for component_iter in sample_valid_components:
-					if component_in_middle_of_window(tgfm_results['alpha_phis'][component_iter][sample_iter,:], tgfm_results['beta_phis'][component_iter][sample_iter,:], middle_gene_indices_dicti, middle_variant_indices_dicti):
-						non_mediated_prob = np.sum(tgfm_results['beta_phis'][component_iter][sample_iter,:])
+					#if component_in_middle_of_window(tgfm_results['alpha_phis'][component_iter][sample_iter,:], tgfm_results['beta_phis'][component_iter][sample_iter,:], middle_gene_indices_dicti, middle_variant_indices_dicti):
+					if component_in_middle_of_window_hack(tgfm_results['alpha_phis'][component_iter][sample_iter,:], middle_gene_indices_dicti, middle_variant_indices_dicti):
+						#non_mediated_prob = np.sum(tgfm_results['beta_phis'][component_iter][sample_iter,:])
 						mediated_probs = extract_mediated_probs(tgfm_results['alpha_phis'][component_iter][sample_iter,:], len(tissue_names), tiss_to_position_mapping, tgfm_results['genes'])
+						non_mediated_prob = 1.0 - np.sum(tgfm_results['alpha_phis'][component_iter][sample_iter,:])
 						t.write(window_name + '\t' + str(sample_iter) + '\t' + str(component_iter) + '\t' + str(non_mediated_prob) + '\t' + '\t'.join(mediated_probs.astype(str)) + '\n')
 		else:
 			print('assumption eroror: unknown model verison')
@@ -621,13 +633,12 @@ def generate_component_level_summary_data(concatenated_pip_summary_file, compone
 	avg_non_mediated_prob = np.mean(nm_probs)
 	tissue_probs = np.sum(mediated_probs,axis=0)/np.sum(np.sum(mediated_probs,axis=0))
 
-	'''
 	print('N_components: ' + str(n_components))
 	print('Avg non-mediated prob: ' + str(avg_non_mediated_prob))
 
 	for tiss_iter in np.argsort(-tissue_probs):
 		print(tissue_names[tiss_iter] + ': ' + str(tissue_probs[tiss_iter]))
-	'''
+
 	return
 
 
@@ -873,8 +884,172 @@ def correlate_fraction_mediated_h2_with_fraction_of_components_mediated(componen
 	t.write('trait_name\ttgfm_fraction_med\ttgfm_fraction_med_lb\ttgfm_fraction_med_ub\ttglr_fraction_med\ttglr_fraction_med_lb\ttglr_fraction_med_ub\n')
 	t.write(trait_name + '\t' + str(avg_med_prob) + '\t' + str(avg_med_prob_lb) + '\t' + str(avg_med_prob_ub) + '\t' + str(tglr_fraction_med) + '\t' + str(tglr_fraction_med_lb) + '\t' + str(tglr_fraction_med_ub) + '\n')
 	t.close()
+	return
+
+def tally_number_of_causal_genetic_elements(concatenated_pip_summary_file, n_causal_genetic_elements_summary_file, n_causal_genetic_elements_by_tissue_summary_file, pip_threshold, tissue_names):
+	f = open(concatenated_pip_summary_file)
+	counts_dicti = {}
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		if len(data) != 3:
+			continue
+		ele_names = data[1].split(';')
+		ele_probs = np.asarray(data[2].split(';')).astype(float)
+		n_ele = len(ele_names)
+		for ele_iter in range(n_ele):
+			ele_name = ele_names[ele_iter]
+			ele_prob = ele_probs[ele_iter]
+			if ele_prob < pip_threshold:
+				continue
+			if ele_name.startswith('ENSG'):
+				ele_class = '_'.join(ele_name.split('_')[1:])
+			else:
+				ele_class = 'variant'
+			if ele_class not in counts_dicti:
+				counts_dicti[ele_class] = 0
+			counts_dicti[ele_class] = counts_dicti[ele_class] + 1
+	f.close()
+	# Do tissue stratefied version
+	t = open(n_causal_genetic_elements_by_tissue_summary_file, 'w')
+	t.write('element_name\tcount\n')
+	ele_name = 'variant'
+	t.write(ele_name + '\t' + str(counts_dicti[ele_name]) + '\n')
+	gene_counts = 0
+	for tissue_name in tissue_names:
+		if tissue_name in counts_dicti:
+			gene_counts = gene_counts + counts_dicti[tissue_name]
+			t.write(tissue_name + '\t' + str(counts_dicti[tissue_name]) + '\n')
+		else:
+			t.write(tissue_name + '\t' + '0.0\n')
+	t.close()
+
+	t = open(n_causal_genetic_elements_summary_file, 'w')
+	t.write('element_name\tcount\n')
+	ele_name = 'variant'
+	t.write(ele_name + '\t' + str(counts_dicti[ele_name]) + '\n')
+	t.write('gene\t' + str(gene_counts) + '\n')
+	t.close()
+
+	n_genes = gene_counts
+	n_var = counts_dicti['variant']
+	print('total: ' + str(n_genes+n_var))
+	print('fraction:' + str(n_genes/(n_genes+n_var)))
+
+	return
+
+def compute_tgfm_tissue_overlap_jaccard(concatenated_pip_summary_file, tissue_overlap_jaccard_file, tissue_names, pip_threshold=.1):
+	# tissue info
+	n_tissues = len(tissue_names)
+	tissue_to_index = {}
+	for tissue_index, tissue_name in enumerate(tissue_names):
+		tissue_to_index[tissue_name] = tissue_index
+
+	# Intersection
+	intersection = np.zeros((n_tissues, n_tissues))
+	# union
+	marginal = np.zeros(n_tissues)
+
+	f = open(concatenated_pip_summary_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		if len(data) != 3:
+			continue
+		ele_names = data[1].split(';')
+		ele_probs = np.asarray(data[2].split(';')).astype(float)
+		n_ele = len(ele_names)
+
+		window_tissues = []
+		for ele_iter in range(n_ele):
+			ele_name = ele_names[ele_iter]
+			ele_prob = ele_probs[ele_iter]
+			if ele_prob < pip_threshold:
+				continue
+			if ele_name.startswith('ENSG'):
+				tissue_name = '_'.join(ele_name.split('_')[1:])
+				window_tissues.append(tissue_name)
+		if len(window_tissues) == 0:
+			continue
+
+		window_tissues = np.sort(np.unique(window_tissues))
+		n_window_tissues = len(window_tissues)
+		for window_tissue in window_tissues:
+			tissue_index = tissue_to_index[window_tissue]
+			marginal[tissue_index] = marginal[tissue_index] + 1
+
+		if len(window_tissues) <= 1:
+			continue
+
+		for tiss_iter in range(n_window_tissues):
+			for tiss_iter2 in range(tiss_iter+1, n_window_tissues):
+
+				tissue1_name = window_tissues[tiss_iter]
+				tissue2_name = window_tissues[tiss_iter2]
+
+				tissue1_index = tissue_to_index[tissue1_name]
+				tissue2_index = tissue_to_index[tissue2_name]
+
+				intersection[tissue1_index, tissue2_index] = intersection[tissue1_index, tissue2_index] + 1
+				intersection[tissue2_index, tissue1_index] = intersection[tissue2_index, tissue1_index] + 1
+	f.close()
+
+	t = open(tissue_overlap_jaccard_file,'w')
+	t.write('tissue1\ttissue2\tjaccard_index\n')
+	for tiss_iter in range(n_tissues):
+		for tiss_iter2 in range(tiss_iter+1, n_tissues):
+			tissue1 = tissue_names[tiss_iter]
+			tissue2 = tissue_names[tiss_iter2]
+			if marginal[tiss_iter] == 0.0 or marginal[tiss_iter2] == 0.0:
+				continue
+			jacard_index = intersection[tiss_iter, tiss_iter2]/(marginal[tiss_iter] + marginal[tiss_iter2] - intersection[tiss_iter, tiss_iter2])
+			t.write(tissue1 + '\t' + tissue2 + '\t' + str(jacard_index) + '\n')
+	t.close()
+
+	return
 
 
+def compute_causal_tissue_pvalues(concatenated_pip_summary_file, causal_tissue_pvalue_file, tissue_names, pip_threshold=.1):
+	f = open(concatenated_pip_summary_file)
+	pvalue_dicti = {}
+	for tissue_name in tissue_names:
+		pvalue_dicti[tissue_name] = 1.0
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		if len(data) != 3:
+			continue
+		ele_names = data[1].split(';')
+		ele_probs = np.asarray(data[2].split(';')).astype(float)
+		n_ele = len(ele_names)
+		for ele_iter in range(n_ele):
+			ele_name = ele_names[ele_iter]
+			ele_prob = ele_probs[ele_iter]
+			if ele_prob < pip_threshold:
+				continue
+			if ele_name.startswith('ENSG'):
+				tissue_name = '_'.join(ele_name.split('_')[1:])
+				pvalue_dicti[tissue_name] = pvalue_dicti[tissue_name]*(1.0 - ele_prob)
+	f.close()		
+
+	# Write to output
+	t = open(causal_tissue_pvalue_file,'w')
+	t.write('tissue_name\tpvalue\n')
+	for tissue_name in tissue_names:
+		t.write(tissue_name + '\t' + str(pvalue_dicti[tissue_name]) + '\n')
+	t.close()
 	return
 
 
@@ -890,7 +1065,8 @@ tgfm_sldsc_results_dir = sys.argv[9]
 
 
 model_versions = ['susie_pmces_variant_gene', 'susie_sampler_variant_gene', 'susie_pmces_sparse_variant_gene_tissue', 'susie_sampler_sparse_variant_gene_tissue']
-model_versions = ['susie_sampler_iterative_variant_gene_tissue']
+model_versions = ['susie_sampler_uniform', 'susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler', 'susie_sampler_tglr_bootstrapped_nonnegative_sampler']
+model_versions = ['susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler']
 
 
 #Extract tissue names
@@ -901,11 +1077,8 @@ tissue_categories, tissue_category_to_tissue_names, tissue_name_to_broad_categor
 
 # Extract trait names
 trait_names = extract_trait_names(trait_names_file)
-print(trait_names)
 
 valid_trait_names = {'biochemistry_Cholesterol':1, 'blood_MEAN_PLATELET_VOL':1, 'blood_MONOCYTE_COUNT':1, 'body_BMIz':1, 'body_WHRadjBMIz':1, 'bp_DIASTOLICadjMEDz':1, 'biochemistry_VitaminD':1, 'blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT':1, 'lung_FEV1FVCzSMOKE':1}
-
-#valid_trait_names = {'blood_MEAN_PLATELET_VOL':1, 'blood_MONOCYTE_COUNT':1, 'body_BMIz':1, 'body_WHRadjBMIz':1, 'bp_DIASTOLICadjMEDz':1, 'lung_FEV1FVCzSMOKE':1}
 
 
 
@@ -924,13 +1097,65 @@ for trait_name in trait_names:
 		file_stem = tgfm_results_dir + 'tgfm_results_' + trait_name + '_' + gene_type + '_' + model_version
 		suffix = 'tgfm_pip_summary.txt'
 		concatenated_pip_summary_file = file_stem + '_' + suffix
-		concatenate_results_across_parallel_jobs(file_stem, suffix, num_jobs, concatenated_pip_summary_file)
+		#concatenate_results_across_parallel_jobs(file_stem, suffix, num_jobs, concatenated_pip_summary_file)
+
+		###################################################
+		# Create gene-Tissue pip summary file
+		###################################################
+		per_gene_tissue_pip_summary_file = file_stem + '_tgfm_per_gene_tissue_pip_summary.txt'
+		#generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per_gene_tissue_pip_summary_file, tissue_name_to_broad_category)
+
+		###################################################
+		# Tally up number of causal genetic elements
+		###################################################
+		pip_threshold = .5
+		for pip_threshold in [.25, .5, .75]:
+			n_causal_genetic_elements_summary_file = file_stem + '_tgfm_n_causal_genetic_elements_pip_' + str(pip_threshold) + '.txt'
+			n_causal_genetic_elements_by_tissue_summary_file = file_stem + '_tgfm_n_causal_genetic_elements_tissue_stratefied_pip_' + str(pip_threshold) + '.txt'
+			tally_number_of_causal_genetic_elements(concatenated_pip_summary_file, n_causal_genetic_elements_summary_file, n_causal_genetic_elements_by_tissue_summary_file, pip_threshold, tissue_names)
+
+		###################################################
+		# Calculate causal tissue pvalues
+		###################################################
+		causal_tissue_pvalue_file = file_stem + '_tgfm_causal_tissue_pvalues.txt'
+		#compute_causal_tissue_pvalues(concatenated_pip_summary_file, causal_tissue_pvalue_file, tissue_names)
+
+		###################################################
+		# Calculate tissue overlap jaccrard index
+		###################################################
+		tissue_overlap_jaccard_file = file_stem + '_tgfm_tissue_overlap_jaccard.txt'
+		#compute_tgfm_tissue_overlap_jaccard(concatenated_pip_summary_file, tissue_overlap_jaccard_file, tissue_names)
+
+
+		###################################################
+		# Create tissue pip summary file
+		###################################################
+		per_tissue_pip_summary_file = file_stem + '_tgfm_per_tissue_pip_summary.txt'
+		#generate_per_tissue_pip_summary_file(concatenated_pip_summary_file, per_tissue_pip_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem)
+
+		###################################################
+		# Create tissue-category pip summary file
+		###################################################
+		per_tissue_category_pip_summary_file = file_stem + '_tgfm_per_tissue_category_pip_summary.txt'
+		#generate_per_tissue_category_pip_summary_file(concatenated_pip_summary_file, per_tissue_category_pip_summary_file, tissue_names,tissue_categories, tissue_category_to_tissue_names, file_stem, model_version, processed_tgfm_input_stem)
+
 
 		###################################################
 		# Create component level summary data
 		###################################################
 		component_level_summary_file = file_stem + '_tgfm_component_level_summary.txt'
-		generate_component_level_summary_data(concatenated_pip_summary_file, component_level_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem)
+		#generate_component_level_summary_data(concatenated_pip_summary_file, component_level_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem)
+
+
+
+
+
+
+
+
+
+
+
 
 		##################################################
 		# Correlate fraction mediated h2 with fraction of components mediated
@@ -945,12 +1170,6 @@ for trait_name in trait_names:
 		sldsc_mediated_h2_file = tgfm_sldsc_results_dir + trait_name + '_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_organized_mediated_h2_5_50.txt'
 		per_tissue_sldsc_comparison_summary_file = file_stem + '_tgfm_per_tissue_sldsc_comparison_component_level.txt'
 		#correlate_per_tissue_h2_with_number_of_components_identified_in_each_tissue(component_level_summary_file, sldsc_mediated_h2_file, per_tissue_sldsc_comparison_summary_file, model_version, trait_name, tissue_names, tissue_name_to_broad_category)
-
-		###################################################
-		# Create gene-Tissue pip summary file
-		###################################################
-		per_gene_tissue_pip_summary_file = file_stem + '_tgfm_per_gene_tissue_pip_summary.txt'
-		generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per_gene_tissue_pip_summary_file, tissue_name_to_broad_category)
 
 		###################################################
 		# Correlate per tissue h2 with number of components identified in each tissue
@@ -968,14 +1187,3 @@ for trait_name in trait_names:
 		per_gene_tissue_high_pip_high_confidence_extensive_summary_file = file_stem + '_tgfm_per_high_pip_high_confidence_gene_tissue_extensive_summary.txt'
 		#generate_extensive_per_gene_tissue_pip_summary_file(per_gene_tissue_pip_summary_file, per_gene_tissue_high_pip_extensive_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem,pip_threshold, ukbb_preprocessed_for_genome_wide_susie_dir, trait_name, per_gene_tissue_high_pip_high_confidence_extensive_summary_file)
 
-		###################################################
-		# Create tissue pip summary file
-		###################################################
-		per_tissue_pip_summary_file = file_stem + '_tgfm_per_tissue_pip_summary.txt'
-		#generate_per_tissue_pip_summary_file(concatenated_pip_summary_file, per_tissue_pip_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem)
-
-		###################################################
-		# Create tissue-category pip summary file
-		###################################################
-		per_tissue_category_pip_summary_file = file_stem + '_tgfm_per_tissue_category_pip_summary.txt'
-		#generate_per_tissue_category_pip_summary_file(concatenated_pip_summary_file, per_tissue_category_pip_summary_file, tissue_names,tissue_categories, tissue_category_to_tissue_names, file_stem, model_version, processed_tgfm_input_stem)

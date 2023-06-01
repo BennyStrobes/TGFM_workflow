@@ -18,7 +18,7 @@ ukbb_preprocessed_for_genome_wide_susie_dir="$8"
 tgfm_sldsc_results_dir="$9"
 
 
-
+if false; then
 source ~/.bash_profile
-
+fi
 python3 organize_tgfm_results_across_parallel_runs.py $tgfm_results_dir $gene_type $num_jobs $trait_names_file $gtex_pseudotissue_file $gtex_pseudotissue_category_file $processed_tgfm_input_stem $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir

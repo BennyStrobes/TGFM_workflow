@@ -89,6 +89,22 @@ make_avg_fraction_h2_se_barplot <- function(df) {
   	return(p)
 }
 
+make_avg_per_tissue_tau_se_barplot_for_single_class <- function(df, titler, min_height, max_height) {
+	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
+	df$tissue_number = factor(df$tissue_number)
+	p<-ggplot(data=df, aes(x=tissue_number, y=tau, fill=eqtl_sample_size)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=tau_lb, ymax=tau_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="Tissue number", y="TGLR tau", fill="eQTL sample size", title=titler) +
+  		theme(legend.position="bottom") +
+  		#geom_hline(yintercept=sim_value, linetype=2) +
+  		ylim(min_height, max_height) +
+  		theme(plot.title = element_text(hjust = 0.5))
+  	return(p)
+
+}
+
 make_avg_per_tissue_h2_se_barplot_for_single_class <- function(df, titler, sim_value, min_height, max_height) {
 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
 	df$tissue_number = factor(df$tissue_number)
@@ -103,9 +119,25 @@ make_avg_per_tissue_h2_se_barplot_for_single_class <- function(df, titler, sim_v
   		theme(plot.title = element_text(hjust = 0.5))
   	return(p)
 
-
+}
+make_avg_per_tissue_fraction_causal_se_barplot_for_single_class <- function(df, titler, min_height, max_height) {
+	#df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
+	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(300,500,1000))
+	df$tissue_number = factor(df$tissue_number)
+	print(summary(df))
+	p<-ggplot(data=df, aes(x=tissue_number, y=fraction_causal, fill=eqtl_sample_size)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=fraction_causal_lb, ymax=fraction_causal_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="Tissue number", y="Fraction causal", fill="eQTL sample size", title=titler) +
+  		theme(legend.position="bottom") +
+  		#geom_hline(yintercept=sim_value, linetype=2) +
+  		ylim(min_height, max_height) +
+  		theme(plot.title = element_text(hjust = 0.5))
+  	return(p)
 
 }
+
 
 make_avg_per_tissue_h2_se_barplot <- function(df) {
 
@@ -120,6 +152,49 @@ make_avg_per_tissue_h2_se_barplot <- function(df) {
 
 	causal_plot <- make_avg_per_tissue_h2_se_barplot_for_single_class(causal_df, "Causal tissues", .015, min_height, max_height)
 	null_plot <- make_avg_per_tissue_h2_se_barplot_for_single_class(null_df, "Null tissues", .0, min_height, max_height)
+	legender <- get_legend(causal_plot)
+
+	joint_plot <- plot_grid(causal_plot +theme(legend.position="none"), null_plot +theme(legend.position="none")+labs(y=""), ncol=2, rel_widths=c(.29,.8))
+
+	joint_plot2 <- plot_grid(joint_plot, legender, ncol=1, rel_heights=c(1,.2))
+	return(joint_plot2)
+}
+
+make_avg_per_tissue_tau_se_barplot <- function(df) {
+
+	causal_df <- df[as.character(df$causal_status)=="causal",]
+	null_df <- df[as.character(df$causal_status)=="null",]
+
+	min_height = min(df$tau_lb)
+	min_height = min(c(min_height, 0.0))
+	max_height = max(df$tau_ub)
+	#max_height = max(c(max_height, .0152))
+
+
+
+	causal_plot <- make_avg_per_tissue_tau_se_barplot_for_single_class(causal_df, "Causal tissues", min_height, max_height)
+	null_plot <- make_avg_per_tissue_tau_se_barplot_for_single_class(null_df, "Null tissues", min_height, max_height)
+	legender <- get_legend(causal_plot)
+
+	joint_plot <- plot_grid(causal_plot +theme(legend.position="none"), null_plot +theme(legend.position="none")+labs(y=""), ncol=2, rel_widths=c(.29,.8))
+
+	joint_plot2 <- plot_grid(joint_plot, legender, ncol=1, rel_heights=c(1,.2))
+	return(joint_plot2)
+}
+
+make_avg_per_tissue_fraction_causal_se_barplot <- function(df) {
+	causal_df <- df[as.character(df$causal_status)=="causal",]
+	null_df <- df[as.character(df$causal_status)=="null",]
+
+	min_height = min(df$fraction_causal_lb)
+	min_height = min(c(min_height, 0.0))
+	max_height = max(df$fraction_causal_ub)
+	#max_height = max(c(max_height, .0152))
+
+
+
+	causal_plot <- make_avg_per_tissue_fraction_causal_se_barplot_for_single_class(causal_df, "Causal tissues", min_height, max_height)
+	null_plot <- make_avg_per_tissue_fraction_causal_se_barplot_for_single_class(null_df, "Null tissues", min_height, max_height)
 	legender <- get_legend(causal_plot)
 
 	joint_plot <- plot_grid(causal_plot +theme(legend.position="none"), null_plot +theme(legend.position="none")+labs(y=""), ncol=2, rel_widths=c(.29,.8))
@@ -389,11 +464,11 @@ make_tgfm_pip_fdr_plot_varying_eqtl_sample_size_and_prior_method <- function(df,
 
 	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(300,500,1000))
 
-	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped", "sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"))
+	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_bootstrapped_nonnegative_pmces", "tglr_bootstrapped_nonnegative_sampler", "pmces_uniform_iterative_variant_gene_prior_pip_level_pmces", "pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"))
 
 	df=df[!is.na(df$ln_pi_method),]	
 	df=df[!is.na(df$eQTL_sample_size),]	
-	df$ln_pi_method = recode(df$ln_pi_method, uniform="Uniform", pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped="Iterative VGT pmces", sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped="Iterative VGT sampler")
+	df$ln_pi_method = recode(df$ln_pi_method, uniform="Uniform", tglr_bootstrapped_nonnegative_pmces="TGLR VGT pmces", tglr_bootstrapped_nonnegative_sampler="TGLR VGT sampler",pmces_uniform_iterative_variant_gene_prior_pip_level_pmces="Iterative VGT pmces", pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped="Iterative VGT sampler")
 
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=fdr, fill=ln_pi_method)) +
   		geom_bar(stat="identity", position=position_dodge()) +
@@ -411,9 +486,9 @@ make_tgfm_pip_power_plot_varying_eqtl_sample_size_and_prior_method <- function(d
 
 	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(300,500,1000))
 	#df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_variant_gene", "tglr_sparse_variant_gene_tissue", "iterative_variant_gene_tissue", "iterative_variant_gene_tissue_bootstrapped"))
-	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped", "sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"))
+	df$ln_pi_method = factor(df$ln_pi_method, levels=c("uniform", "tglr_bootstrapped_nonnegative_pmces", "tglr_bootstrapped_nonnegative_sampler", "pmces_uniform_iterative_variant_gene_prior_pip_level_pmces", "pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"))
 	df=df[!is.na(df$ln_pi_method),]	
-	df$ln_pi_method = recode(df$ln_pi_method, uniform="Uniform", pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped="Iterative VGT pmces", sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped="Iterative VGT sampler")
+	df$ln_pi_method = recode(df$ln_pi_method, uniform="Uniform", tglr_bootstrapped_nonnegative_pmces="TGLR VGT pmces", tglr_bootstrapped_nonnegative_sampler="TGLR VGT sampler",pmces_uniform_iterative_variant_gene_prior_pip_level_pmces="Iterative VGT pmces", pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped="Iterative VGT sampler")
 
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=power, fill=ln_pi_method)) +
   		geom_bar(stat="identity", position=position_dodge()) +
@@ -502,6 +577,47 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(avg_per_tissue_h2_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
 
 
+#####################################################################
+# Make barplot with standard error showing AVG tau estimates per tissue given nonnegative estimates
+#####################################################################
+# Load in data
+per_tissue_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_full_anno_avg_mediated_nonnegative_tau_tissue_est.txt")
+per_tissue_h2_df <- read.table(per_tissue_h2_file, header=TRUE)
+# Make plot
+avg_per_tissue_h2_se_barplot <- make_avg_per_tissue_tau_se_barplot(per_tissue_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_avg_tau_per_tissue_nonnegative_tglr_est.pdf")
+ggsave(avg_per_tissue_h2_se_barplot, file=output_file, width=7.2, height=3.5, units="in")
+
+
+#####################################################################
+# Make barplot with standard error showing AVG fraction-mediated per tissue
+#####################################################################
+version="pmces"
+# Load in data
+per_tissue_fraction_causal_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_", version, "_uniform_iterative_variant_gene_prior_pip_level_avg_fraction_causal_by_tissue.txt")
+
+per_tissue_fraction_causal_df <- read.table(per_tissue_fraction_causal_file, header=TRUE)
+# Make plot
+avg_per_tissue_fraction_causal_se_barplot <- make_avg_per_tissue_fraction_causal_se_barplot(per_tissue_fraction_causal_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_iterative_susie_", version, "_avg_fraction_causal_per_tissue.pdf")
+ggsave(avg_per_tissue_fraction_causal_se_barplot, file=output_file, width=7.2, height=3.5, units="in")
+
+version="sampler"
+# Load in data
+per_tissue_fraction_causal_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_", version, "_uniform_iterative_variant_gene_prior_pip_level_avg_fraction_causal_by_tissue.txt")
+
+per_tissue_fraction_causal_df <- read.table(per_tissue_fraction_causal_file, header=TRUE)
+# Make plot
+avg_per_tissue_fraction_causal_se_barplot <- make_avg_per_tissue_fraction_causal_se_barplot(per_tissue_fraction_causal_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_iterative_susie_", version, "_avg_fraction_causal_per_tissue.pdf")
+ggsave(avg_per_tissue_fraction_causal_se_barplot, file=output_file, width=7.2, height=3.5, units="in")
+
+
+
+if (FALSE) {
 #####################################################################
 # Make barplot with standard error showing Power
 #####################################################################
@@ -672,9 +788,7 @@ joint_plot <- plot_grid(t1e_se_barplot, power_se_barplot, ncol=1)
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_sampler_bootstrapped_med_h2_across_thresholds.pdf")
 ggsave(joint_plot, file=output_file, width=7.2, height=7.5, units="in")
 
-
-
-
+}
 
 
 
@@ -823,7 +937,6 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(joint, file=output_file, width=7.2, height=6.7, units="in")
 
 
-
 #####################################################################
 # Calibration at varying pip thresholds (plots) while just showing gene FDR stratefied by sample size (x-axis) and prior methods
 #####################################################################
@@ -963,5 +1076,4 @@ ggsave(joint, file=output_file, width=7.2, height=6.7, units="in")
 
 
 }
-
 

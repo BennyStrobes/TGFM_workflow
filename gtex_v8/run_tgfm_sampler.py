@@ -12,6 +12,8 @@ import rpy2
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as ro
 import scipy.stats
+import pylzma
+import lzma
 ro.conversion.py2ri = numpy2ri
 numpy2ri.activate()
 from rpy2.robjects.packages import importr
@@ -510,7 +512,82 @@ def extract_log_prior_probabilities_for_tglr_bs_nn_sampler(prior_file, variants,
 	return np.log(norm_var_probs), np.log(norm_gene_probs)
 
 
+def extract_log_prior_probabilities_for_iterative_prior_sampler_sampler(prior_file, variants, genes):
+	element_name_to_h2 = {}
+	head_count = 0
+	f = open(prior_file)
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count +1
+			continue
+		ele_name = data[0]
+		bs_probs = np.asarray(data[3].split(';')).astype(float)
+		new_bs_probs = []
+		for bs_prob in bs_probs:
+			if bs_prob == 0:
+				new_bs_probs.append(1e-100)
+			else:
+				new_bs_probs.append(bs_prob)
+		new_bs_probs = np.asarray(new_bs_probs)
+		element_name_to_h2[ele_name] = new_bs_probs
+	f.close()
 
+	n_var = len(variants)
+	n_genes = len(genes)
+	n_bs = len(element_name_to_h2['variant'])
+	var_probs = np.zeros((n_var, n_bs))
+	gene_probs = np.zeros((n_genes, n_bs))
+
+	for var_iter in range(n_var):
+		var_probs[var_iter, :] = element_name_to_h2['variant']
+	for gene_iter, gene_name in enumerate(genes):
+		tissue_name = '_'.join(gene_name.split('_')[1:])
+		gene_probs[gene_iter, :] = element_name_to_h2[tissue_name]
+	
+	# Normalize rows
+	normalizers = np.sum(gene_probs,axis=0) + np.sum(var_probs,axis=0)
+	norm_var_probs = var_probs/normalizers
+	norm_gene_probs = gene_probs/normalizers
+
+	return np.log(norm_var_probs), np.log(norm_gene_probs)
+
+def extract_log_prior_probabilities_for_iterative_prior_pmces(prior_file, variants, genes):
+	element_name_to_h2 = {}
+	head_count = 0
+	f = open(prior_file)
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count +1
+			continue
+		ele_name = data[0]
+		bs_prob = float(data[1])
+		if bs_prob == 0:
+			bs_prob = 1e-100
+		element_name_to_h2[ele_name] = bs_prob
+	f.close()
+
+	n_var = len(variants)
+	n_genes = len(genes)
+	#n_bs = len(element_name_to_h2['variant'])
+	var_probs = np.zeros(n_var)
+	gene_probs = np.zeros(n_genes)
+
+	for var_iter in range(n_var):
+		var_probs[var_iter] = element_name_to_h2['variant']
+	for gene_iter, gene_name in enumerate(genes):
+		tissue_name = '_'.join(gene_name.split('_')[1:])
+		gene_probs[gene_iter] = element_name_to_h2[tissue_name]
+	
+	# Normalize rows
+	normalizers = np.sum(gene_probs,axis=0) + np.sum(var_probs,axis=0)
+	norm_var_probs = var_probs/normalizers
+	norm_gene_probs = gene_probs/normalizers
+
+	return np.log(norm_var_probs), np.log(norm_gene_probs)
 
 
 
@@ -658,6 +735,13 @@ for window_iter in range(n_windows):
 		prior_file = tmp_sldsc_dir + trait_name + '_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_nonnegative_eqtl_bootstrapped_sldsc_per_element_h2.txt'
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_tglr_bs_nn_sampler(prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
+	elif ln_pi_method_name == 'uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler':
+		log_prior_file = tgfm_output_stem.split('_component_gene')[0] + '_component_gene_susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
+		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_iterative_prior_sampler_sampler(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
+		bootstrap_prior = True
+	elif ln_pi_method_name == 'uniform_pmces_iterative_variant_gene_tissue_pip_level_pmces':
+		log_prior_file = tgfm_output_stem.split('_component_gene')[0] + '_component_gene_susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
+		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_iterative_prior_pmces(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
 	else:
 		print('assumption erororo: ' + str(ln_pi_method_name) + ' is not yet implemented')
 		pdb.set_trace()		
@@ -720,6 +804,7 @@ for window_iter in range(n_windows):
 	t_pip.write(';'.join(ordered_middle_pips.astype(str)) + '\n')
 
 	# Save all TGFM results to pkl
+	'''
 	tgfm_results = {}
 	tgfm_results['variants'] = tgfm_data['variants']
 	tgfm_results['genes'] = tgfm_data['genes']
@@ -733,12 +818,27 @@ for window_iter in range(n_windows):
 	tgfm_results['expected_beta_pips'] = tgfm_obj.expected_beta_pips
 	tgfm_results['valid_components'] = valid_tgfm_sampler_components
 	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
+	'''
+	tgfm_results = {}
+	tgfm_results['variants'] = tgfm_data['variants']
+	tgfm_results['genes'] = tgfm_data['genes']
+	tgfm_results['alpha_phis'] = tgfm_obj.alpha_phis
+	#tgfm_results['beta_phis'] = tgfm_obj.beta_phis
+	#tgfm_results['alpha_lbfs'] = tgfm_obj.alpha_lbfs
+	#tgfm_results['beta_lbfs'] = tgfm_obj.beta_lbfs
+	tgfm_results['alpha_pips'] = tgfm_obj.alpha_pips
+	#tgfm_results['beta_pips'] = tgfm_obj.beta_pips
+	tgfm_results['expected_alpha_pips'] = tgfm_obj.expected_alpha_pips
+	tgfm_results['expected_beta_pips'] = tgfm_obj.expected_beta_pips
+	tgfm_results['valid_components'] = valid_tgfm_sampler_components
+	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
 
 	# Write pickle file
 	window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
 	g = open(window_tgfm_output_file, "wb")
 	pickle.dump(tgfm_results, g)
 	g.close()
+
 
 
 # Close file handles

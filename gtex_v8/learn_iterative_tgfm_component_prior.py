@@ -110,7 +110,6 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 		if model_version.startswith('pmces'):
 			for component_iter in tgfm_results['valid_components']:
 				if component_in_middle_of_window(tgfm_results['alpha_phi'][component_iter, :], tgfm_results['beta_phi'][component_iter, :], middle_gene_indices_dicti, middle_variant_indices_dicti):
-					
 					# Extract log abf
 					log_abf = np.hstack((tgfm_results['alpha_lbf'][component_iter, :], tgfm_results['beta_lbf'][component_iter, :]))
 					element_names = np.hstack((tgfm_results['genes'], tgfm_results['variants']))
@@ -669,7 +668,6 @@ tgfm_input_summary_file = sys.argv[6]
 
 #Extract tissue names
 tissue_names = extract_pseudotissue_names(gtex_pseudotissue_file, ignore_testis=True)
-
 ###################################################
 # Concatenate PIP summary file across parallel runs (one line for each window)
 ###################################################
@@ -710,7 +708,7 @@ print_log_prior_across_tgfm_windows(variant_gene_distr_prior_output_file, tgfm_i
 # Learn iterative distribution variant-gene-tissue prior (bootstrapping ci intervals)
 ###################################################
 n_bootstraps=200
-variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=40, n_bootstraps=n_bootstraps)
+variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=100, n_bootstraps=n_bootstraps)
 
 # Print to output
 variant_gene_distr_prior_output_file = new_tgfm_stem + '_iterative_variant_gene_prior_bootstrapped.txt'
@@ -722,11 +720,11 @@ for tiss_iter, tissue_name in enumerate(tissue_names):
 t.close()
 
 
-print_log_prior_across_tgfm_windows(variant_gene_distr_prior_output_file, tgfm_input_summary_file, new_tgfm_stem + '_iterative_prior_bootstrapped')
+#print_log_prior_across_tgfm_windows(variant_gene_distr_prior_output_file, tgfm_input_summary_file, new_tgfm_stem + '_iterative_prior_bootstrapped')
 
 
 # Clear up some space
-os.system('rm ' + per_window_abf_output_stem + '*npy')
+#os.system('rm ' + per_window_abf_output_stem + '*npy')
 
 
 
