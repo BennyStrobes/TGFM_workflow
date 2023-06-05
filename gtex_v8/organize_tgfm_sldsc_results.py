@@ -254,7 +254,6 @@ def extract_and_print_per_element_h2_for_nonnegative_bootstrapped_models(nonnega
 sldsc_output_root = sys.argv[1]
 anno_stem = sys.argv[2]
 
-'''
 # Extract relevent info from log file
 sldsc_log_file = sldsc_output_root + '.log'
 example_anno_file = anno_stem + '.21.l2.ldscore'
@@ -263,7 +262,7 @@ tau, tau_se = extract_tau_and_tau_se_from_log_file(sldsc_log_file, anno_names)
 tau_z = tau/tau_se
 # Print to output
 print_organized_summary_file(sldsc_output_root + 'organized_res.txt', anno_names, tau, tau_se)
-'''
+
 
 # Total counts
 m_vec = load_in_mvec(anno_stem, '.M')
@@ -276,7 +275,7 @@ nonnegative_bootstrapped_per_element_h2_file = sldsc_output_root + 'nonnegative_
 extract_and_print_per_element_h2_for_nonnegative_bootstrapped_models(nonnegative_bootstrapped_coefficient_file, m_vec, nonnegative_bootstrapped_per_element_h2_file)
 nonnegative_bootstrapped_per_element_h2_5_50_file = sldsc_output_root + 'nonnegative_eqtl_bootstrapped_sldsc_per_element_h2_5_50.txt'
 extract_and_print_per_element_h2_for_nonnegative_bootstrapped_models(nonnegative_bootstrapped_coefficient_file, m_5_50_vec, nonnegative_bootstrapped_per_element_h2_5_50_file)
-'''
+
 # Print partioned h2 to output
 print_organized_summary_file(sldsc_output_root + 'organized_mediated_h2.txt', anno_names, tau*m_vec, tau_se*m_vec)
 print_organized_summary_file(sldsc_output_root + 'organized_mediated_h2_5_50.txt', anno_names, tau*m_5_50_vec, tau_se*m_5_50_vec)
@@ -333,7 +332,8 @@ print_average_per_snp_and_per_gene_h2(jacknifed_taus, eqtl_start_index-1, m_5_50
 # Compute average per-snp and per-gene-tissue h2
 print_average_per_snp_and_per_gene_tissue_h2(jacknifed_taus, eqtl_start_index-1, m_vec, sldsc_output_root + 'avg_per_snp_and_gene_tissue_h2.txt', anno_names[1:])
 print_average_per_snp_and_per_gene_tissue_h2(jacknifed_taus, eqtl_start_index-1, m_5_50_vec, sldsc_output_root + 'avg_per_snp_and_gene_tissue_h2_5_50.txt', anno_names[1:])
-'''
+
+
 # TEMP HACK
 #jacknifed_tau_mean2 = np.loadtxt(sldsc_output_root + 'coef_estimate.txt')
 #jacknifed_tau_covariance2 = np.loadtxt(sldsc_output_root + 'coef_cov_estimate.txt')

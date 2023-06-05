@@ -490,7 +490,7 @@ make_violin_plot_showing_distribution_of_bootstrapped_taus_of_each_tissue <- fun
 }
 
 
-make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue <- function(iterative_prior_file, method_version, trait_name_readable, threshold=1e-4) {
+make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue <- function(iterative_prior_file, method_version, trait_name_readable, threshold=1e-8) {
 	# Load in input data
 	df <- read.table(iterative_prior_file, header=TRUE)
 	# Skip variants
@@ -786,6 +786,7 @@ tgfm_results_dir <- args[3]
 processed_tgfm_sldsc_data_dir <- args[4]
 gtex_tissue_colors_file <- args[5]
 visualize_tgfm_dir <- args[6]
+iterative_tgfm_prior_dir <- args[7]
 
 
 
@@ -800,43 +801,48 @@ gtex_colors_df$tissue_site_detail_id[23] = "Cells_Cultured_fibroblasts"
 
 
 # Extract trait names
+print(independent_trait_names_file)
 trait_df <- read.table(independent_trait_names_file, header=TRUE, sep="\t")
 trait_names <- as.character(trait_df$study_name)
-trait_names <- c("biochemistry_Cholesterol", "biochemistry_VitaminD", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "blood_MEAN_PLATELET_VOL", "blood_MONOCYTE_COUNT", "body_BMIz", "body_WHRadjBMIz", "bp_DIASTOLICadjMEDz", "lung_FEV1FVCzSMOKE")
-trait_names_readable <- c("Cholesterol", "VitaminD", "Reticulocyte_count", "Platelet_vol", "Monocyte_count", "BMI", "WHRadjBMI", "Diastolic_BP", "FEV1FVC")
+trait_names_readable <- as.character(trait_df$study_name_readable)
+#trait_names <- c("biochemistry_Cholesterol", "biochemistry_VitaminD", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "blood_MEAN_PLATELET_VOL", "blood_MONOCYTE_COUNT", "body_BMIz", "body_WHRadjBMIz", "bp_DIASTOLICadjMEDz", "lung_FEV1FVCzSMOKE")
+#trait_names_readable <- c("Cholesterol", "VitaminD", "Reticulocyte_count", "Platelet_vol", "Monocyte_count", "BMI", "WHRadjBMI", "Diastolic_BP", "FEV1FVC")
+
+
+
 
 # Extract tissue names
-iterative_prior_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_names[1], "_component_gene_", "susie_pmces_uniform", "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
+iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_names[1], "_component_gene_", "susie_pmces_uniform", "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
 aa = read.table(iterative_prior_file, header=TRUE,sep="\t")
 tissue_names = as.character(aa$element_name[2:length(aa$element_name)])
 
-if (FALSE) {
 ##################################################
 # Violin plot showing bootstrapped prior distributions 
 ##################################################
 for (trait_iter in 1:length(trait_names)) {
 	trait_name <- trait_names[trait_iter]
 	trait_name_readable <- trait_names_readable[trait_iter]
+	print(trait_name)
 	# PMCES approach
-	method_version="susie_pmces_uniform"
-	iterative_prior_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_v1_pip_level_bootstrapped.txt")
-	iterative_pmces_violin_plot <- make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
+	#method_version="susie_pmces_uniform"
+	#iterative_prior_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_v1_pip_level_bootstrapped.txt")
+	#iterative_pmces_violin_plot <- make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
 
 	# Sampler approach
 	method_version="susie_pmces_uniform"
-	iterative_prior_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
+	iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
 	iterative_sampler_violin_plot <- make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
 
 	# Sampler approach
-	method_version="susie_pmces_uniform"
-	iterative_prior_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_v3_pip_level_bootstrapped.txt")
-	iterative_sampler_violin_plot2 <- make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
+	#method_version="susie_pmces_uniform"
+	#iterative_prior_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_v3_pip_level_bootstrapped.txt")
+	#iterative_sampler_violin_plot2 <- make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
 
 
 	# Join plots together
-	pp <- plot_grid(iterative_pmces_violin_plot, iterative_sampler_violin_plot, iterative_sampler_violin_plot2, ncol=1)
-	output_file <- paste0(visualize_tgfm_dir, "tissue_violinplot_of_distribution_prior_probabilities_joint_", trait_name_readable,".pdf")
-	ggsave(pp, file=output_file, width=10.2, height=8.6, units="in")
+	#pp <- plot_grid(iterative_pmces_violin_plot, iterative_sampler_violin_plot, iterative_sampler_violin_plot2, ncol=1)
+	#output_file <- paste0(visualize_tgfm_dir, "tissue_violinplot_of_distribution_prior_probabilities_joint_", trait_name_readable,".pdf")
+	#ggsave(pp, file=output_file, width=10.2, height=8.6, units="in")
 
 	# Iterative version
 	output_file <- paste0(visualize_tgfm_dir, "tissue_violinplot_of_distribution_prior_probabilities_", trait_name_readable,".pdf")
@@ -844,11 +850,14 @@ for (trait_iter in 1:length(trait_names)) {
 
 
 	# TGLR version
-	bs_nn_sldsc_file <- paste0(tgfm_sldsc_results_dir, trait_name, "_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_nonnegative_eqtl_bootstrapped_sldsc_coefficients.txt")
-	bs_nn_tglr_violin_plot <- make_violin_plot_showing_distribution_of_bootstrapped_taus_of_each_tissue(bs_nn_sldsc_file, "bootstrapped nn TGLR", trait_name_readable, threshold=1e-8)
-	output_file <- paste0(visualize_tgfm_dir, "tissue_violinplot_of_distribution_bs_nn_tglr_", trait_name_readable,".pdf")
-	ggsave(bs_nn_tglr_violin_plot, file=output_file, width=10.2, height=4.6, units="in")
+	#bs_nn_sldsc_file <- paste0(tgfm_sldsc_results_dir, trait_name, "_baseline_no_qtl_component_gene_no_testis_pmces_gene_adj_ld_scores_nonnegative_eqtl_bootstrapped_sldsc_coefficients.txt")
+	#bs_nn_tglr_violin_plot <- make_violin_plot_showing_distribution_of_bootstrapped_taus_of_each_tissue(bs_nn_sldsc_file, "bootstrapped nn TGLR", trait_name_readable, threshold=1e-8)
+	#output_file <- paste0(visualize_tgfm_dir, "tissue_violinplot_of_distribution_bs_nn_tglr_", trait_name_readable,".pdf")
+	#ggsave(bs_nn_tglr_violin_plot, file=output_file, width=10.2, height=4.6, units="in")
 }
+
+
+if (FALSE) {
 
 
 ##########################################################
@@ -932,7 +941,6 @@ for (trait_iter in 1:length(trait_names)) {
 
 }
 
-}
 
 
 ##########################################################
@@ -950,6 +958,7 @@ method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_le
 output_file <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_average_fraction_of_genetic_elements_from_gene_expression_se_barplot.pdf")
 med_prob_se_barplot <- make_fraction_of_genetic_elements_from_gene_expression_se_barplot(trait_names, trait_names_readable, method_version, tgfm_results_dir)
 ggsave(med_prob_se_barplot, file=output_file, width=7.2, height=3.7, units="in")
+}
 
 
 if (FALSE) {

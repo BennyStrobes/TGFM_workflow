@@ -209,63 +209,54 @@ def update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_obj):
 
 def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld, init_method, est_resid_var_bool):
 	# Hacky: Initialize old TGFM object using only one iter of optimization
-	tgfm_obj = tgfm.TGFM(L=7, estimate_prior_variance=False, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
+	tgfm_obj = tgfm.TGFM(L=10, estimate_prior_variance=False, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
 	tgfm_obj.fit(twas_data_obj=tgfm_data)
 	# More hack: need to redo twas z
 	variant_z = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
 	new_gene_z = np.dot(tgfm_data['gene_eqtl_pmces'], variant_z)
 
-	#tgfm_obj_temp = tgfm.TGFM(L=20, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-8, max_iter=10)
-	#tgfm_obj_temp.fit(twas_data_obj=tgfm_data)
-
 	tgfm_obj.nominal_twas_z = new_gene_z
 
 	# Create vector of concatenated z-scores
 	z_vec = np.hstack((new_gene_z,variant_z))
-	#tgfm_obj_temp_elbo = elbo_calc(z_vec, gene_variant_full_ld, tgfm_data['gwas_sample_size'], np.hstack((tgfm_obj_temp.alpha_phi, tgfm_obj_temp.beta_phi)), np.hstack((tgfm_obj_temp.alpha_mu, tgfm_obj_temp.beta_mu)), np.square(np.hstack((tgfm_obj_temp.alpha_mu, tgfm_obj_temp.beta_mu))) + np.hstack((tgfm_obj_temp.alpha_var, tgfm_obj_temp.beta_var)), tgfm_obj_temp.KL_terms)
-
 
 	# Create concatenated vector of prior probs
 	prior_probs = np.hstack((np.exp(gene_log_prior), np.exp(var_log_prior)))
 
-
-
-	#susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
-
-	#elbo = temp_elbo_calc(z_vec, gene_variant_full_ld, tgfm_data['gwas_sample_size'], susie_null_init.rx2('alpha'), susie_null_init.rx2('mu'), susie_null_init.rx2('mu2'), susie_null_init.rx2('KL'))
 
 	if init_method == 'best':
 		rpy2.robjects.r['options'](warn=1)
 
 
 		# Run susie with null initialization
-		susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=7, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
+		susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=10, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
+		susie_null_init_elbo = susie_null_init.rx2('elbo')[-1]
 		tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
+		del susie_null_init
 
 		# Only run alternative variant-only inititialization if we have high pip genes
-		if np.max(tgfm_obj.alpha_pip) > .5:
+		if np.max(tgfm_obj.alpha_pip) > .05:
+			print('extra')
 			# Run susie with only variants
 			p_var_only = np.ones(len(z_vec))
 			p_var_only[:len(tgfm_obj.nominal_twas_z)] = 0.0
 			p_var_only = p_var_only/np.sum(p_var_only)
-			susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=7, prior_weights=p_var_only.reshape((len(p_var_only),1)), estimate_residual_variance=est_resid_var_bool)
+			susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=10, prior_weights=p_var_only.reshape((len(p_var_only),1)), estimate_residual_variance=est_resid_var_bool)
 	
 			# Run susie with variant initialization
 			init_obj = {'alpha':susie_variant_only.rx2('alpha'), 'mu':susie_variant_only.rx2('mu'),'mu2':susie_variant_only.rx2('mu2')}
 			init_obj2 = ro.ListVector(init_obj)
+			del susie_variant_only
 			init_obj2.rclass = rpy2.robjects.StrVector(("list", "susie"))
-			susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=7, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
+			susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=10, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
 
 			# Select model with largest elbo
-			susie_null_init_elbo = susie_null_init.rx2('elbo')[-1]
 			susie_variant_init_elbo = susie_variant_init.rx2('elbo')[-1]
 
 			if susie_variant_init_elbo > susie_null_init_elbo:
 				# Variant init wins
 				tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_variant_init)
-			else:
-				# Null init wins
-				tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
+				del susie_variant_init
 	elif init_method == 'refine_best':
 		rpy2.robjects.r['options'](warn=1)
 		# Run susie with only variants
@@ -416,6 +407,27 @@ def extract_log_prior_probabilities_from_summary_file(log_prior_file, existing_v
 
 
 	return np.asarray(var_probs), np.asarray(gene_probs)
+
+
+def component_in_middle_of_window(alpha_phi_vec, beta_phi_vec, middle_gene_arr, middle_variant_arr):
+	middle_gene_indices_dicti = {}
+	for middle_gene_index in middle_gene_arr:
+		middle_gene_indices_dicti[middle_gene_index] = 1
+	middle_variant_indices_dicti = {}
+	for middle_variant_index in middle_variant_arr:
+		middle_variant_indices_dicti[middle_variant_index] = 1
+
+	booler = False
+	# Gene wins
+	if np.max(alpha_phi_vec) > np.max(beta_phi_vec):
+		best_index = np.argmax(alpha_phi_vec)
+		if best_index in middle_gene_indices_dicti:
+			booler = True
+	else:
+		best_index = np.argmax(beta_phi_vec)
+		if best_index in middle_variant_indices_dicti:
+			booler = True
+	return booler
 
 
 ######################
@@ -585,6 +597,14 @@ for window_iter in range(n_windows):
 	# Extract components that pass purity filter
 	valid_tgfm_components = extract_valid_joint_susie_components_from_full_ld(tgfm_obj.alpha_phi, tgfm_obj.beta_phi, gene_variant_full_ld, .5)
 
+	# Extract middle valid tgfm components
+	valid_middle_tgfm_components = []
+	for valid_tgfm_component in valid_tgfm_components:
+		if component_in_middle_of_window(tgfm_obj.alpha_phi[valid_tgfm_component, :], tgfm_obj.beta_phi[valid_tgfm_component, :], tgfm_data['middle_gene_indices'], tgfm_data['middle_variant_indices']):
+			valid_middle_tgfm_components.append(valid_tgfm_component)
+
+
+
 	# Extract names of genetic elements
 	genetic_element_names = np.hstack((tgfm_data['genes'], tgfm_data['variants']))
 	# Extract dictionary list of genetic elements in the middel of this window
@@ -661,14 +681,15 @@ for window_iter in range(n_windows):
 	tgfm_results['beta_phi'] = tgfm_obj.beta_phi
 	tgfm_results['alpha_lbf'] = tgfm_obj.alpha_lbf
 	tgfm_results['beta_lbf'] = tgfm_obj.beta_lbf
-	tgfm_results['alpha_mu'] = tgfm_obj.alpha_mu
-	tgfm_results['beta_mu'] = tgfm_obj.beta_mu
-	tgfm_results['alpha_var'] = tgfm_obj.alpha_var
-	tgfm_results['beta_var'] = tgfm_obj.beta_var
+	#tgfm_results['alpha_mu'] = tgfm_obj.alpha_mu
+	#tgfm_results['beta_mu'] = tgfm_obj.beta_mu
+	#tgfm_results['alpha_var'] = tgfm_obj.alpha_var
+	#tgfm_results['beta_var'] = tgfm_obj.beta_var
 	tgfm_results['alpha_pip'] = tgfm_obj.alpha_pip
 	tgfm_results['beta_pip'] = tgfm_obj.beta_pip
 	tgfm_results['component_variances'] = tgfm_obj.component_variances
 	tgfm_results['valid_components'] = valid_tgfm_components
+	tgfm_results['valid_middle_components'] = valid_middle_tgfm_components
 	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
 
 	# Write pickle file

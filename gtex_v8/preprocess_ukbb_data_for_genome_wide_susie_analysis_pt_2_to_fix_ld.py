@@ -48,10 +48,10 @@ for line in f:
 		continue
 	print('_'.join(data[:3]))
 	old_in_sample_ld_file = data[10]
-	ld_mat = np.load(old_in_sample_ld_file)
-	fixed_ld_mat = correct_ld_mat_for_af_standardization(ld_mat)
+	#ld_mat = np.load(old_in_sample_ld_file)
+	#fixed_ld_mat = correct_ld_mat_for_af_standardization(ld_mat)
 	new_in_sample_ld_file = old_in_sample_ld_file.split('.np')[0] + '_af_corrected.npy'
-	np.save(new_in_sample_ld_file, fixed_ld_mat)
+	#np.save(new_in_sample_ld_file, fixed_ld_mat)
 
 	string_to_print = '\t'.join(data[:10]) + '\t' + new_in_sample_ld_file + '\t' + data[11] + '\n'
 	t.write(string_to_print)

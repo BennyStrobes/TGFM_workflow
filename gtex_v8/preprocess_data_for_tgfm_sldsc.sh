@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-20:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-15:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
 
@@ -17,7 +17,6 @@ gtex_susie_gene_models_dir="$7"
 preprocessed_tgfm_sldsc_data_dir="$8"
 gene_type="${9}"
 
-chrom_num="21"
 
 num_chrom="22"
 
@@ -25,7 +24,6 @@ num_chrom="22"
 
 for chrom_num in $(seq 1 $(($num_chrom))); do 
 	echo $chrom_num
-	if false; then
 	##################################
 	# Create variant annotation files
 	###################################
@@ -82,6 +80,7 @@ for chrom_num in $(seq 1 $(($num_chrom))); do
 		--annot ${preprocessed_tgfm_sldsc_data_dir}baseline_no_qtl.${chrom_num}.annot.gz\
 		--out ${preprocessed_tgfm_sldsc_data_dir}baseline_no_qtl.${chrom_num}\
 		--print-snps ${hapmap3_rsid_file}
+	if false; then
 	# Run standard S-LDSC preprocessing on baseline_plus_LDanno
 	python ${ldsc_code_dir}ldsc.py\
 		--l2\
@@ -98,7 +97,6 @@ for chrom_num in $(seq 1 $(($num_chrom))); do
 		--annot ${preprocessed_tgfm_sldsc_data_dir}LDanno_only.${chrom_num}.annot\
 		--out ${preprocessed_tgfm_sldsc_data_dir}LDanno_only.${chrom_num}\
 		--print-snps ${hapmap3_rsid_file}
-
 	fi
 
 	source ~/.bash_profile
@@ -119,64 +117,5 @@ for chrom_num in $(seq 1 $(($num_chrom))); do
 
 
 done
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##################################
-# No longer used in this analysis
-###################################
-
-
-##################################
-# Create gene-level LD-scores
-###################################
-if false; then
-source ~/.bash_profile
-variant_level_ld_score_file=${preprocessed_tgfm_sldsc_data_dir}baselineLD_no_qtl.${chrom_num}.l2.ldscore.gz
-gene_level_sldsc_output_root=${preprocessed_tgfm_sldsc_data_dir}tissue_eqtl.${chrom_num}.
-python3 create_gene_level_ld_scores.py $variant_level_ld_score_file ${ref_1kg_genotype_dir}1000G.EUR.hg38.${chrom_num} $gtex_pseudotissue_file $gtex_susie_gene_models_dir $chrom_num $gene_type $gene_level_sldsc_output_root
-fi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##############
-# OLD
-##############
-
-
-if false; then
-source ~/.bash_profile
-python3 tmp_debug_generate_ld_scores.py ${ref_1kg_genotype_dir}1000G.EUR.hg38.${chrom_num} ${hapmap3_rsid_file}
-fi
-
-
 
 

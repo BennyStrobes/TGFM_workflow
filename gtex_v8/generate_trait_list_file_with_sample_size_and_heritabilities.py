@@ -58,10 +58,9 @@ for line in f:
 	sample_size, h2 = extract_sample_size_and_h2_from_log_file(bolt_lmm_log_file)
 
 	# Min heritability threshold
-	if h2 > .1:
-		# print to output
-		edited_trait_file = output_dir + trait_file.split('/')[-1]
-		t.write(trait_name + '\t' + edited_trait_file + '\t' + str(sample_size) + '\t' + str(h2) + '\n')
+	# print to output
+	edited_trait_file = output_dir + trait_file.split('/')[-1]
+	t.write(trait_name + '\t' + edited_trait_file + '\t' + str(sample_size) + '\t' + str(h2) + '\n')
 
 f.close()
 t.close()

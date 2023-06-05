@@ -698,6 +698,7 @@ for line in f:
 
 	# Throw out windows with fewer than 50 variants
 	if len(sample_ld_variant_indices) < 50:
+		print('skipped')
 		continue
 
 	# NOW GET LD matrix

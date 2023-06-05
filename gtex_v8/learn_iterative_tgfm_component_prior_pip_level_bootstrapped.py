@@ -965,6 +965,7 @@ def update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_s
 
 
 	variant_prob_distr = variant_posterior_sum/variant_counts
+	tissue_counts[tissue_counts == 0.0] = .1
 	tissue_probs_distr = tissue_posterior_sum/tissue_counts
 
 	return variant_prob_distr, tissue_probs_distr
@@ -1221,7 +1222,9 @@ tgfm_version = sys.argv[3]
 processed_tgfm_input_stem = sys.argv[4]
 gtex_pseudotissue_file = sys.argv[5]
 tgfm_input_summary_file = sys.argv[6]
+iterative_tgfm_prior_results_dir = sys.argv[7]
 
+perm_iterative_prior_results = iterative_tgfm_prior_results_dir + new_tgfm_stem.split('/')[-1] 
 
 
 #Extract tissue names
@@ -1231,11 +1234,43 @@ tissue_names = extract_pseudotissue_names(gtex_pseudotissue_file, ignore_testis=
 # Concatenate PIP summary file across parallel runs (one line for each window)
 ###################################################
 suffix = 'tgfm_pip_summary.txt'
-num_jobs=50
+num_jobs=8
 concatenated_pip_summary_file = new_tgfm_stem + '_iterative_prior_' + suffix
 concatenate_results_across_parallel_jobs(new_tgfm_stem, suffix, num_jobs, concatenated_pip_summary_file)
 
 
+###################################################
+# Create component level summary data
+###################################################
+component_level_abf_summary_file = new_tgfm_stem + '_iterative_prior_v2' + '_tgfm_component_level_abf_summary.txt'
+per_window_abf_output_stem = new_tgfm_stem + '_iterative_prior_v2_per_window_abf_'
+generate_component_level_abf_summary_data(concatenated_pip_summary_file, component_level_abf_summary_file, tissue_names, new_tgfm_stem, tgfm_version, processed_tgfm_input_stem, per_window_abf_output_stem, version='v2')
+
+
+###################################################
+# Learn iterative distribution variant-gene-tissue prior (bootstrapping ci intervals)
+###################################################
+n_bootstraps=100
+variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=400, n_bootstraps=n_bootstraps)
+
+# Print to output
+variant_gene_distr_prior_output_file = perm_iterative_prior_results + '_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
+t = open(variant_gene_distr_prior_output_file,'w')
+t.write('element_name\tprior\texp_E_ln_prior\tprior_distribution\n')
+t.write('variant\t' + str(np.mean(variant_prob_emperical_distr)) + '\t' + str(np.exp(np.mean(np.log(variant_prob_emperical_distr)))) + '\t' + ';'.join(variant_prob_emperical_distr.astype(str)) + '\n')
+for tiss_iter, tissue_name in enumerate(tissue_names):
+	t.write(tissue_name + '\t' + str(np.mean(tissue_probs_emperical_distr[tiss_iter,:])) + '\t' + str(np.exp(np.mean(np.log(tissue_probs_emperical_distr[tiss_iter,:])))) + '\t' + ';'.join(tissue_probs_emperical_distr[tiss_iter,:].astype(str)) + '\n')
+t.close()
+print(variant_gene_distr_prior_output_file)
+# Delete unneccessary files
+os.system('rm ' + component_level_abf_summary_file)
+os.system('rm ' + per_window_abf_output_stem + '*')
+
+
+
+
+
+'''
 ###################################################
 # Create component level summary data
 ###################################################
@@ -1262,7 +1297,7 @@ print(variant_gene_distr_prior_output_file)
 # Delete unneccessary files
 #os.system('rm ' + component_level_abf_summary_file)
 #os.system('rm ' + per_window_abf_output_stem + '*')
-
+'''
 
 
 

@@ -31,3 +31,5 @@ for job_number in range(int(num_jobs)):
 		t.write(line + '\n')
 	f.close()
 t.close()
+
+print(agg_output_file)

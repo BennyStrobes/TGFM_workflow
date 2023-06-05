@@ -1158,7 +1158,6 @@ for window_iter in range(num_windows):
 	gwas_beta = np.loadtxt(window_gwas_beta_file)
 	gwas_beta_se = np.loadtxt(window_gwas_beta_se_file)
 
-
 	# Organize TGFM trait agnostic input for single window
 	tgfm_data_obj = organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, window_variant_names, LD, pseudotissues, tissue_to_gene_model_df, short_variant_name_to_annotation_vec, n_bs)
 
@@ -1177,8 +1176,8 @@ for window_iter in range(num_windows):
 
 	# Extract log-prior probabilities of each element being causal
 	uniform_ln_prior_gene, uniform_ln_prior_variant = extract_uniform_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names, tgfm_sldsc_results_dir)
-	variant_gene_ln_prior_gene, variant_gene_ln_prior_variant = extract_variant_gene_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names, tgfm_sldsc_results_dir)
-	sparse_variant_gene_tissue_ln_prior_gene, sparse_variant_gene_tissue_ln_prior_variant = extract_sparse_variant_gene_tissue_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names, tgfm_sldsc_results_dir)
+	#variant_gene_ln_prior_gene, variant_gene_ln_prior_variant = extract_variant_gene_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names, tgfm_sldsc_results_dir)
+	#sparse_variant_gene_tissue_ln_prior_gene, sparse_variant_gene_tissue_ln_prior_variant = extract_sparse_variant_gene_tissue_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names, tgfm_sldsc_results_dir)
 
 	# Add trait data
 	tgfm_trait_data = {}
@@ -1188,10 +1187,10 @@ for window_iter in range(num_windows):
 	tgfm_trait_data['gwas_study_names'] = study_names
 	tgfm_trait_data['uniform_ln_prior_gene'] = uniform_ln_prior_gene
 	tgfm_trait_data['uniform_ln_prior_variant'] = uniform_ln_prior_variant
-	tgfm_trait_data['variant_gene_ln_prior_gene'] = variant_gene_ln_prior_gene
-	tgfm_trait_data['variant_gene_ln_prior_variant'] = variant_gene_ln_prior_variant
-	tgfm_trait_data['sparse_variant_gene_tissue_ln_prior_gene'] = sparse_variant_gene_tissue_ln_prior_gene
-	tgfm_trait_data['sparse_variant_gene_tissue_ln_prior_variant'] = sparse_variant_gene_tissue_ln_prior_variant
+	#tgfm_trait_data['variant_gene_ln_prior_gene'] = variant_gene_ln_prior_gene
+	#tgfm_trait_data['variant_gene_ln_prior_variant'] = variant_gene_ln_prior_variant
+	#tgfm_trait_data['sparse_variant_gene_tissue_ln_prior_gene'] = sparse_variant_gene_tissue_ln_prior_gene
+	#tgfm_trait_data['sparse_variant_gene_tissue_ln_prior_variant'] = sparse_variant_gene_tissue_ln_prior_variant
 
 	# Save TGFM input data object
 	trait_pkl_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_ukbb_data_obj.pkl'

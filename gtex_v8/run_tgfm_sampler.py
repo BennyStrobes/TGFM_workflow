@@ -345,26 +345,27 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_
 		z_vec = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
 
 		# Now run tgfm sampler with null init
-		tgfm_obj = bootstrapped_tgfm.TGFM(L=7, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5, bootstrap_prior=bootstrap_prior)
+		tgfm_obj = bootstrapped_tgfm.TGFM(L=10, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5, bootstrap_prior=bootstrap_prior)
 		tgfm_obj.fit(twas_data_obj=tgfm_data)
 		#elbo_null_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
 
-		if np.max(np.max(tgfm_obj.expected_alpha_pips)) > .5:
+		if np.max(np.max(tgfm_obj.expected_alpha_pips)) > .2:
 			# Create initialization alpha, mu, and mu_var
-			susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=ld_mat, n=tgfm_data['gwas_sample_size'], L=7, estimate_residual_variance=False)
+			susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=ld_mat, n=tgfm_data['gwas_sample_size'], L=10, estimate_residual_variance=False)
 
 			num_snps = len(z_vec)
 			num_genes = len(tgfm_data['genes'])
-			alpha_init = np.zeros((7, num_genes + num_snps))
-			mu_init = np.zeros((7, num_genes + num_snps))
-			mu_var_init = np.zeros((7, num_genes + num_snps))
+			alpha_init = np.zeros((10, num_genes + num_snps))
+			mu_init = np.zeros((10, num_genes + num_snps))
+			mu_var_init = np.zeros((10, num_genes + num_snps))
 			alpha_init[:, num_genes:] = susie_variant_only.rx2('alpha')
 			mu_init[:, num_genes:] = susie_variant_only.rx2('mu')
 			variant_only_mu_var = susie_variant_only.rx2('mu2') - np.square(susie_variant_only.rx2('mu'))
 			mu_var_init[:, num_genes:] = variant_only_mu_var
+			del susie_variant_only
 
 			# Run tgfm sampler with variant init
-			tgfm_obj_variant_init = bootstrapped_tgfm.TGFM(L=7, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5, bootstrap_prior=bootstrap_prior)
+			tgfm_obj_variant_init = bootstrapped_tgfm.TGFM(L=10, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5, bootstrap_prior=bootstrap_prior)
 			tgfm_obj_variant_init.fit(twas_data_obj=tgfm_data, phi_init=alpha_init, mu_init=mu_init, mu_var_init=mu_var_init)
 			#elbo_variant_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj_variant_init, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
 
@@ -590,6 +591,25 @@ def extract_log_prior_probabilities_for_iterative_prior_pmces(prior_file, varian
 	return np.log(norm_var_probs), np.log(norm_gene_probs)
 
 
+def component_in_middle_of_window(alpha_phi_vec, beta_phi_vec, middle_gene_arr, middle_variant_arr):
+	middle_gene_indices_dicti = {}
+	for middle_gene_index in middle_gene_arr:
+		middle_gene_indices_dicti[middle_gene_index] = 1
+	middle_variant_indices_dicti = {}
+	for middle_variant_index in middle_variant_arr:
+		middle_variant_indices_dicti[middle_variant_index] = 1
+
+	booler = False
+	# Gene wins
+	if np.max(alpha_phi_vec) > np.max(beta_phi_vec):
+		best_index = np.argmax(alpha_phi_vec)
+		if best_index in middle_gene_indices_dicti:
+			booler = True
+	else:
+		best_index = np.argmax(beta_phi_vec)
+		if best_index in middle_variant_indices_dicti:
+			booler = True
+	return booler
 
 ######################
 # Command line args
@@ -736,7 +756,9 @@ for window_iter in range(n_windows):
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_tglr_bs_nn_sampler(prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
 	elif ln_pi_method_name == 'uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler':
+		prior_dir = '/n/groups/price/ben/causal_eqtl_gwas/gtex_v8/iterative_tgfm_prior/'
 		log_prior_file = tgfm_output_stem.split('_component_gene')[0] + '_component_gene_susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
+		log_prior_file = prior_dir + log_prior_file.split('/')[-1]
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_iterative_prior_sampler_sampler(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
 	elif ln_pi_method_name == 'uniform_pmces_iterative_variant_gene_tissue_pip_level_pmces':
@@ -767,6 +789,15 @@ for window_iter in range(n_windows):
 	# Extract valid tgfm components
 	###############################
 	valid_tgfm_sampler_components = extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, ld_mat)
+
+	# Extract middle valid tgfm components
+	valid_middle_tgfm_components = []
+	for sample_iter in range(len(valid_tgfm_sampler_components)):
+		middle_tmp = []
+		for valid_tgfm_component in valid_tgfm_sampler_components[sample_iter]:
+			if component_in_middle_of_window(tgfm_obj.alpha_phis[valid_tgfm_component][sample_iter, :], tgfm_obj.beta_phis[valid_tgfm_component][sample_iter, :], tgfm_data['middle_gene_indices'], tgfm_data['middle_variant_indices']):
+				middle_tmp.append(valid_tgfm_component)
+		valid_middle_tgfm_components.append(np.asarray(middle_tmp))
 
 	##############################
 	# Organize TGFM data and print to results
@@ -831,6 +862,7 @@ for window_iter in range(n_windows):
 	tgfm_results['expected_alpha_pips'] = tgfm_obj.expected_alpha_pips
 	tgfm_results['expected_beta_pips'] = tgfm_obj.expected_beta_pips
 	tgfm_results['valid_components'] = valid_tgfm_sampler_components
+	tgfm_results['valid_middle_components'] = valid_middle_tgfm_components
 	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
 
 	# Write pickle file
