@@ -940,7 +940,7 @@ def tally_number_of_causal_genetic_elements(concatenated_pip_summary_file, n_cau
 	print('total: ' + str(n_genes+n_var))
 	print('fraction:' + str(n_genes/(n_genes+n_var)))
 
-	return
+	return n_genes, n_genes+n_var
 
 def compute_tgfm_tissue_overlap_jaccard(concatenated_pip_summary_file, tissue_overlap_jaccard_file, tissue_names, pip_threshold=.1):
 	# tissue info
@@ -1077,18 +1077,18 @@ tissue_categories, tissue_category_to_tissue_names, tissue_name_to_broad_categor
 
 # Extract trait names
 trait_names = extract_trait_names(trait_names_file)
-
-valid_trait_names = {'biochemistry_Cholesterol':1, 'blood_MEAN_PLATELET_VOL':1, 'blood_MONOCYTE_COUNT':1, 'body_BMIz':1, 'body_WHRadjBMIz':1, 'bp_DIASTOLICadjMEDz':1, 'biochemistry_VitaminD':1, 'blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT':1, 'lung_FEV1FVCzSMOKE':1}
-
+#valid_trait_names = {'biochemistry_Cholesterol':1, 'blood_MEAN_PLATELET_VOL':1, 'blood_MONOCYTE_COUNT':1, 'body_BMIz':1, 'body_WHRadjBMIz':1, 'bp_DIASTOLICadjMEDz':1, 'biochemistry_VitaminD':1, 'blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT':1, 'lung_FEV1FVCzSMOKE':1}
 
 
+arr1 = []
+arr2 = []
 # Concatenate parrallelized results across runs for each trait
 for trait_name in trait_names:
 	print('###################################')
 	print('###################################')
 	print(trait_name)
-	if trait_name not in valid_trait_names:
-		continue
+	#if trait_name not in valid_trait_names:
+		#continue
 	for model_version in model_versions:
 		print(model_version)
 		###################################################
@@ -1097,13 +1097,13 @@ for trait_name in trait_names:
 		file_stem = tgfm_results_dir + 'tgfm_results_' + trait_name + '_' + gene_type + '_' + model_version
 		suffix = 'tgfm_pip_summary.txt'
 		concatenated_pip_summary_file = file_stem + '_' + suffix
-		#concatenate_results_across_parallel_jobs(file_stem, suffix, num_jobs, concatenated_pip_summary_file)
+		concatenate_results_across_parallel_jobs(file_stem, suffix, num_jobs, concatenated_pip_summary_file)
 
 		###################################################
 		# Create gene-Tissue pip summary file
 		###################################################
 		per_gene_tissue_pip_summary_file = file_stem + '_tgfm_per_gene_tissue_pip_summary.txt'
-		#generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per_gene_tissue_pip_summary_file, tissue_name_to_broad_category)
+		generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per_gene_tissue_pip_summary_file, tissue_name_to_broad_category)
 
 		###################################################
 		# Tally up number of causal genetic elements
@@ -1112,13 +1112,15 @@ for trait_name in trait_names:
 		for pip_threshold in [.25, .5, .75]:
 			n_causal_genetic_elements_summary_file = file_stem + '_tgfm_n_causal_genetic_elements_pip_' + str(pip_threshold) + '.txt'
 			n_causal_genetic_elements_by_tissue_summary_file = file_stem + '_tgfm_n_causal_genetic_elements_tissue_stratefied_pip_' + str(pip_threshold) + '.txt'
-			tally_number_of_causal_genetic_elements(concatenated_pip_summary_file, n_causal_genetic_elements_summary_file, n_causal_genetic_elements_by_tissue_summary_file, pip_threshold, tissue_names)
-
+			n_genes, n_tot = tally_number_of_causal_genetic_elements(concatenated_pip_summary_file, n_causal_genetic_elements_summary_file, n_causal_genetic_elements_by_tissue_summary_file, pip_threshold, tissue_names)
+			if pip_threshold == .5:
+				arr1.append(n_genes/n_tot)
+				arr2.append(n_tot)
 		###################################################
 		# Calculate causal tissue pvalues
 		###################################################
 		causal_tissue_pvalue_file = file_stem + '_tgfm_causal_tissue_pvalues.txt'
-		#compute_causal_tissue_pvalues(concatenated_pip_summary_file, causal_tissue_pvalue_file, tissue_names)
+		compute_causal_tissue_pvalues(concatenated_pip_summary_file, causal_tissue_pvalue_file, tissue_names)
 
 		###################################################
 		# Calculate tissue overlap jaccrard index
@@ -1187,3 +1189,5 @@ for trait_name in trait_names:
 		per_gene_tissue_high_pip_high_confidence_extensive_summary_file = file_stem + '_tgfm_per_high_pip_high_confidence_gene_tissue_extensive_summary.txt'
 		#generate_extensive_per_gene_tissue_pip_summary_file(per_gene_tissue_pip_summary_file, per_gene_tissue_high_pip_extensive_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem,pip_threshold, ukbb_preprocessed_for_genome_wide_susie_dir, trait_name, per_gene_tissue_high_pip_high_confidence_extensive_summary_file)
 
+
+pdb.set_trace()

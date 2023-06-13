@@ -41,6 +41,11 @@ gtex_genotype_dir="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_e
 # Downloaded from https://storage.googleapis.com/gtex_analysis_v8/reference/gencode.v26.GRCh38.genes.gtf on Jan 19 2022
 gene_annotation_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/input_data/gencode.v26.GRCh38.genes.gtf"
 
+# Drug target gene list
+# Downloaded here: https://www.nature.com/articles/s41588-022-01167-z on 6/9/23
+drug_target_gene_list_file="/n/groups/price/ben/gene_annotation_files/scdrs_gold_geneset.txt"
+
+
 # Genotype data from 1KG
 ref_1kg_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/plink_files/"
 
@@ -58,6 +63,9 @@ ldsc_baseline_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Pha
 
 # Ldscore regression code
 ldsc_code_dir="/n/groups/price/ben/tools/ldsc/"
+
+# Directory containing epimap data
+epimap_data_dir="/n/groups/price/nolan/epimap/"
 
 # Mod-ldscore regression code
 curr_dir=`pwd`
@@ -138,10 +146,19 @@ standard_sldsc_processed_data_dir=$output_root"standard_sldsc_processed_data/"
 # Directory containing standard sldsc results
 standard_sldsc_results_dir=$output_root"standard_sldsc_results/"
 
+# Directory containing drug target gene set enrichment analyses
+drug_target_gene_set_enrichment_dir=$perm_output_root"drug_target_gene_set_enrichment/"
+
+# Directory containing Epimap enrichment raw data
+epimap_enrichment_raw_data_dir=$output_root"raw_epimap_enrichment_data/"
+
+# Directory containing Epimap enrichments
+epimap_enrichment_dir=$perm_output_root"epimap_enrichment/"
+
 # Sparse heritability visualization dir
 visualize_sparse_h2_dir=$output_root"visualize_sparse_h2/"
 
-tgfm_sldsc_results_dir=$output_root"tgfm_sldsc_results/"
+tgfm_sldsc_results_dir=$perm_output_root"tgfm_sldsc_results/"
 
 visualize_tgfm_sldsc_dir=$output_root"visualize_tgfm_sldsc/"
 
@@ -268,9 +285,10 @@ fi
 ########################################
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
-	sh run_tgfm_sldsc.sh $preprocessed_tgfm_sldsc_data_dir $full_sumstat_dir $ldsc_code_dir $sldsc_h38_weights_dir $ref_1kg_genotype_dir $tgfm_sldsc_results_dir $trait_name $mod_ldsc_code_dir $quasi_independent_ld_blocks_hg38_dir
+	sbatch run_tgfm_sldsc.sh $preprocessed_tgfm_sldsc_data_dir $full_sumstat_dir $ldsc_code_dir $sldsc_h38_weights_dir $ref_1kg_genotype_dir $tgfm_sldsc_results_dir $trait_name $mod_ldsc_code_dir $quasi_independent_ld_blocks_hg38_dir
 done
 fi
+
 
 
 
@@ -321,9 +339,8 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 done
 fi
 
-
 if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_v3.txt" | while read trait_name study_file sample_size h2; do
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
 	for job_number in $(seq 0 $(($num_jobs-1))); do
 		tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 		tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
@@ -332,25 +349,6 @@ sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_v3.
 done
 fi
 
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_v4.txt" | while read trait_name study_file sample_size h2; do
-	for job_number in $(seq 0 $(($num_jobs-1))); do
-		tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-		tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-		sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
-	done
-done
-fi
-
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_v5.txt" | while read trait_name study_file sample_size h2; do
-	for job_number in $(seq 0 $(($num_jobs-1))); do
-		tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-		tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-		sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
-	done
-done
-fi
 
 
 
@@ -361,6 +359,12 @@ fi
 # Compute iterative prior
 ########################################
 tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+
+if false; then
+trait_name="blood_RED_COUNT"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir
+fi
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
 	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
@@ -374,27 +378,43 @@ fi
 #################################
 gene_type="component_gene"
 num_jobs="8"
-trait_name="blood_EOSINOPHIL_COUNT"
-
-
-
-
-
-# Rerun 0, 1, 2,3, 5,
-
 if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+echo $trait_name
+
 for job_number in $(seq 0 $(($num_jobs-1))); do
 	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
 done
+done
 fi
+
+
+
+
 
 #################################
 # Organize TGFM Results across parallel runs
 #################################
 if false; then
-sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_expr_mediated.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir
+sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir
+fi
+
+#################################
+# Run drug target gene set enrichment analysis
+#################################
+if false; then
+sh run_drug_target_gene_set_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gene_annotation_file $gtex_susie_gene_models_dir $drug_target_gene_list_file $drug_target_gene_set_enrichment_dir 
+fi
+
+
+#################################
+# Run epimap cell type enrichment analysis
+#################################
+independent_trait_list_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_independent_sumstat_files_with_samp_size_and_h2_readable.txt"
+if false; then
+sh run_epimap_enrichment_analysis.sh $tgfm_results_dir $gtex_susie_gene_models_dir $liftover_directory $gtex_pseudotissue_file $independent_trait_list_file $epimap_data_dir $epimap_enrichment_raw_data_dir $epimap_enrichment_dir
 fi
 
 #################################

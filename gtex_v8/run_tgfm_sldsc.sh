@@ -25,7 +25,7 @@ trait_file=$full_sumstat_dir"UKB_460K."$trait_name".sumstats"
 
 
 
-variant_models=( "genotype_intercept" "baseline_no_qtl" "baselineLD_no_qtl" "baseline_plus_LDanno")
+)
 
 gene_types=( "component_gene")
 gene_models=( "pmces_gene_adj_ld_scores")

@@ -205,6 +205,9 @@ def update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_obj):
 	tgfm_obj.alpha_lbf = lbf[:, :(tgfm_obj.G)]
 	tgfm_obj.beta_lbf = lbf[:, (tgfm_obj.G):]
 
+
+	tgfm_obj.component_variances = susie_obj.rx2('V')
+
 	return tgfm_obj
 
 def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld, init_method, est_resid_var_bool):
@@ -681,10 +684,10 @@ for window_iter in range(n_windows):
 	tgfm_results['beta_phi'] = tgfm_obj.beta_phi
 	tgfm_results['alpha_lbf'] = tgfm_obj.alpha_lbf
 	tgfm_results['beta_lbf'] = tgfm_obj.beta_lbf
-	#tgfm_results['alpha_mu'] = tgfm_obj.alpha_mu
-	#tgfm_results['beta_mu'] = tgfm_obj.beta_mu
-	#tgfm_results['alpha_var'] = tgfm_obj.alpha_var
-	#tgfm_results['beta_var'] = tgfm_obj.beta_var
+	tgfm_results['alpha_mu'] = tgfm_obj.alpha_mu
+	tgfm_results['beta_mu'] = tgfm_obj.beta_mu
+	tgfm_results['alpha_var'] = tgfm_obj.alpha_var
+	tgfm_results['beta_var'] = tgfm_obj.beta_var
 	tgfm_results['alpha_pip'] = tgfm_obj.alpha_pip
 	tgfm_results['beta_pip'] = tgfm_obj.beta_pip
 	tgfm_results['component_variances'] = tgfm_obj.component_variances

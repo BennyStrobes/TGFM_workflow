@@ -25,7 +25,7 @@ date
 
 
 ########################
-# PMCES
+# PMCES (Existing best approach)
 #########################
 # Variant-gene prior
 init_ln_pi_method="uniform"
@@ -35,100 +35,14 @@ python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $trait_na
 
 
 
-
-
-
-
-
-
-
-if false; then
-#######################
-# PMCES w null weights
-#########################
 # Variant-gene prior
+if false; then
 init_ln_pi_method="uniform"
 new_tgfm_stem=${tgfm_stem}"_susie_pmces_"${init_ln_pi_method}
 version="pmces"
-python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped_null_weights.py $trait_name $new_tgfm_stem $version $processed_tgfm_input_stem $gtex_pseudotissue_file $tgfm_input_summary_file
+python3 learn_iterative_tgfm_component_prior_w_ard_pip_level_bootstrapped.py $trait_name $new_tgfm_stem $version $processed_tgfm_input_stem $gtex_pseudotissue_file $tgfm_input_summary_file $iterative_tgfm_prior_results_dir
 fi
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-########################
-# PMCES
-#########################
-if false; then
-# Variant-gene prior
-init_ln_pi_method="variant_gene"
-new_tgfm_stem=${tgfm_stem}"_susie_pmces_"${init_ln_pi_method}
-version="pmces"
-python3 learn_iterative_tgfm_component_prior.py $trait_name $new_tgfm_stem $version $processed_tgfm_input_stem $gtex_pseudotissue_file $tgfm_input_summary_file
-date
-fi
-
-if false; then
-########################
-# Sampler
-#########################
-init_ln_pi_method="variant_gene"
-new_tgfm_stem=${tgfm_stem}"_susie_sampler_"${init_ln_pi_method}
-version="sampler"
-python3 learn_iterative_tgfm_component_prior.py $trait_name $new_tgfm_stem $version $processed_tgfm_input_stem $gtex_pseudotissue_file $tgfm_input_summary_file
-date
-fi
