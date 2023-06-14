@@ -45,10 +45,23 @@ def extract_track_names(epimap_track_file):
 def get_number_of_overlapping_variants(overlap_file):
 	f = open(overlap_file)
 	counter = 0
+	dicti = {}
+	for line in f:
+		counter = counter + 1
+		line = line.rstrip()
+		data = line.split('\t')
+		dicti[data[3]] = 1
+	f.close()
+	return len(dicti)
+
+def get_number_of_lines(overlap_file):
+	f = open(overlap_file)
+	counter = 0
 	for line in f:
 		counter = counter + 1
 	f.close()
 	return counter
+
 
 
 def intersect_nm_snps_with_epimap_tracks(track_names, epimap_data_dir, epimap_enrichment_dir, pip_thresh):
@@ -68,9 +81,42 @@ def intersect_nm_snps_with_epimap_tracks(track_names, epimap_data_dir, epimap_en
 		# Extract number of overlapping variants
 		n_overlapping_nm_variants = get_number_of_overlapping_variants(overlap_file)
 
+		if n_nm_var < n_overlapping_nm_variants:
+			print('assumption eroror')
+			pdb.set_trace()
+
 		mapping[track_name] = (n_overlapping_nm_variants, n_nm_var)
 
 	return mapping
+
+
+def intersect_null_snps_with_epimap_tracks(track_names, epimap_data_dir, epimap_enrichment_dir):
+	nm_variant_file = epimap_enrichment_dir + 'tgfm_null_variants_nearby_genes.txt'
+	n_nm_var = np.loadtxt(nm_variant_file, dtype=str).shape[0]
+
+	mapping = {}
+	# Loop through tracks
+	for track_name in track_names:
+		track_file = epimap_data_dir + 'Epimap.' + track_name + '.hg38.bed'
+		overlap_file = epimap_data_dir + 'null_variant_nearby_gene_' + track_name + '_overlap.txt'
+
+		# Bedtools command
+		bedtools_cmd = 'bedtools intersect -a ' + nm_variant_file + ' -b ' + track_file + ' > ' + overlap_file
+		os.system(bedtools_cmd)
+
+		# Extract number of overlapping variants
+		n_overlapping_nm_variants = get_number_of_overlapping_variants(overlap_file)
+
+		if n_overlapping_nm_variants > n_nm_var:
+			print('assumption eroror')
+			pdb.set_trace()
+
+		mapping[track_name] = (n_overlapping_nm_variants, n_nm_var)
+
+	return mapping
+
+
+
 
 
 def intersect_tissue_snps_with_epimap_tracks(tissue_name, track_names, track_cts, epimap_data_dir, epimap_enrichment_dir, pip_thresh, tissue_track_enrichment_summary_file, epi_map_track_name_to_nm_overlap_numbers):
@@ -78,7 +124,7 @@ def intersect_tissue_snps_with_epimap_tracks(tissue_name, track_names, track_cts
 	t.write('track_name\ttrack_cell_type\taa\tbb\tcc\tdd\torat\torat_p\n')
 
 	tissue_variant_file = epimap_enrichment_dir + 'tgfm_' + tissue_name + '_mediating_variants_' + str(pip_thresh) + '_' + str(pip_thresh) + '.txt'
-	n_tissue_var = get_number_of_overlapping_variants(tissue_variant_file)
+	n_tissue_var = get_number_of_lines(tissue_variant_file)
 	
 	# Loop through tracks
 	for ii, track_name in enumerate(track_names):
@@ -94,8 +140,12 @@ def intersect_tissue_snps_with_epimap_tracks(tissue_name, track_names, track_cts
 		n_overlapping_nm_variants = get_number_of_overlapping_variants(overlap_file)
 
 		aa = n_overlapping_nm_variants
-		bb = n_tissue_var
+		bb = n_tissue_var - n_overlapping_nm_variants
+		if n_overlapping_nm_variants > n_tissue_var:
+			print('assumption eroror')
+			pdb.set_trace()
 		cc, dd = epi_map_track_name_to_nm_overlap_numbers[track_name]
+		dd = dd - cc
 
 		orat, orat_p = scipy.stats.fisher_exact(np.asarray([[aa,bb],[cc,dd]]))
 		t.write(track_name + '\t' + track_ct + '\t' + str(aa) + '\t' + str(bb) + '\t' + str(cc) + '\t' + str(dd) + '\t' + str(orat) + '\t' + str(orat_p) + '\n')
@@ -135,22 +185,44 @@ tissue_names = extract_tissue_names(gtex_pseudotissue_file)
 track_names, track_cts = extract_track_names(epimap_track_file)
 track_names = track_names
 
+
+'''
 #########################
 # intersect nm snps with epimap tracks
-#epi_map_track_name_to_nm_overlap_numbers = intersect_nm_snps_with_epimap_tracks(track_names, epimap_data_dir, epimap_enrichment_dir, pip_thresh)
+epi_map_track_name_to_nm_overlap_numbers = intersect_nm_snps_with_epimap_tracks(track_names, epimap_data_dir, epimap_enrichment_dir, pip_thresh)
 
 #########################
 # intersect tissue snps with epimap tracks
+tissue_names = np.asarray(['Artery_Tibial', 'Brain_Cerebellum', 'Cells_Cultured_fibroblasts', 'Liver', 'Lung', 'Skin_Sun_Exposed_Lower_leg', 'Spleen', 'Whole_Blood'])
 for tissue_name in tissue_names:
 	print(tissue_name)
-	tissue_track_enrichment_summary_file = epimap_enrichment_dir + tissue_name + '_' + str(pip_thresh) + '_epimap_enrichment_summary.txt'
-	#intersect_tissue_snps_with_epimap_tracks(tissue_name, track_names, track_cts, epimap_data_dir, epimap_enrichment_dir, pip_thresh, tissue_track_enrichment_summary_file, epi_map_track_name_to_nm_overlap_numbers)
-
+	tissue_track_enrichment_summary_file = epimap_enrichment_dir + tissue_name + '_' + str(pip_thresh) + '_epimap_enrichment_non_med_background_summary.txt'
+	intersect_tissue_snps_with_epimap_tracks(tissue_name, track_names, track_cts, epimap_data_dir, epimap_enrichment_dir, pip_thresh, tissue_track_enrichment_summary_file, epi_map_track_name_to_nm_overlap_numbers)
+	print(tissue_track_enrichment_summary_file)
 
 	# Order output file by odds ratios
-	tissue_track_enrichment_summary_or_ordered_file = epimap_enrichment_dir + tissue_name + '_' + str(pip_thresh) + '_epimap_enrichment_summary_or_ordered.txt'
+	tissue_track_enrichment_summary_or_ordered_file = epimap_enrichment_dir + tissue_name + '_' + str(pip_thresh) + '_epimap_enrichment_non_med_background_summary_or_ordered.txt'
 	order_summary_file_by_odds_ratios(tissue_track_enrichment_summary_file, tissue_track_enrichment_summary_or_ordered_file)
+'''
 
+
+#########################
+# intersect nm snps with epimap tracks
+epi_map_track_name_to_null_var_overlap_numbers = intersect_null_snps_with_epimap_tracks(track_names, epimap_data_dir, epimap_enrichment_dir)
+
+
+#########################
+# intersect tissue snps with epimap tracks
+tissue_names = np.asarray(['Artery_Tibial', 'Brain_Cerebellum', 'Cells_Cultured_fibroblasts', 'Liver', 'Lung', 'Skin_Sun_Exposed_Lower_leg', 'Spleen', 'Whole_Blood'])
+for tissue_name in tissue_names:
+	print(tissue_name)
+	tissue_track_enrichment_summary_file = epimap_enrichment_dir + tissue_name + '_' + str(pip_thresh) + '_epimap_enrichment_null_near_gene_background_summary.txt'
+	intersect_tissue_snps_with_epimap_tracks(tissue_name, track_names, track_cts, epimap_data_dir, epimap_enrichment_dir, pip_thresh, tissue_track_enrichment_summary_file, epi_map_track_name_to_null_var_overlap_numbers)
+
+	# Order output file by odds ratios
+	tissue_track_enrichment_summary_or_ordered_file = epimap_enrichment_dir + tissue_name + '_' + str(pip_thresh) + '_epimap_enrichment_null_near_gene_background_summary_or_ordered.txt'
+	order_summary_file_by_odds_ratios(tissue_track_enrichment_summary_file, tissue_track_enrichment_summary_or_ordered_file)
+	print(tissue_track_enrichment_summary_or_ordered_file)
 
 
 

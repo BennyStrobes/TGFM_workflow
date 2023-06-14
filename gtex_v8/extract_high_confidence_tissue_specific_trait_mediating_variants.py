@@ -176,9 +176,35 @@ def extract_non_mediated_variants(tgfm_results_dir, trait_names, non_mediated_va
 	t.close()
 	return
 
+def extract_null_variants_nearby_genes(gtex_susie_gene_models_dir, tissue_names, null_variants_nearby_genes_output_file, n_var_per_tissue=100):
+	# Open output file handle
+	t = open(null_variants_nearby_genes_output_file,'w')
+	# Print header
+	#t.write('variant_name\tchrom_num\tvariant_position\ttrait_name\tvariant_trait_pip\n')
 
+	# Loop through tissues
+	for tissue_name in tissue_names:
+		print(tissue_name)
+		tissue_gene_file = gtex_susie_gene_models_dir + tissue_name + '/' + tissue_name + '_component_gene_pos_file.txt'
+		tissue_gene_data = np.loadtxt(tissue_gene_file,dtype=str,delimiter='\t')[1:,:]
+		n_genes = tissue_gene_data.shape[0]
+		randomly_selected_genes = np.random.choice(np.arange(n_genes), size=n_var_per_tissue, replace=False, p=None)
+		subset_tissue_gene_data = tissue_gene_data[randomly_selected_genes, :]
+		for row_iter in range(subset_tissue_gene_data.shape[0]):
+			gene_model_file = subset_tissue_gene_data[row_iter,0]
+			
+			# Load gene-tissue model from gene-tissue weight file
+			gene_tissue_model = pyreadr.read_r(gene_model_file)
 
+			# Gene model variant names
+			gene_model_variant_names = np.asarray(gene_tissue_model['variant_names'])[:,0]
 
+			variant_name = np.random.choice(gene_model_variant_names)
+			var_info = variant_name.split('_')
+			var_chrom = var_info[0]
+			var_pos = var_info[1]
+			t.write(var_chrom + '\t' + var_pos + '\t' + str(int(var_pos) + 1) + '\t' + variant_name + '\t' + tissue_name + '\t' + 'NA' + '\n')
+	t.close()
 
 #####################
 # Command line args
@@ -199,6 +225,14 @@ tissue_names = extract_tissue_names(gtex_pseudotissue_file)
 # Extract trait names
 trait_names = extract_trait_names(trait_list_file)
 
+
+# Extract null variants nearby genes
+
+# Output file
+null_variants_nearby_genes_output_file = output_dir + 'tgfm_null_variants_nearby_genes.txt'
+# Extract non-mediating variants across traits
+extract_null_variants_nearby_genes(gtex_susie_gene_models_dir, tissue_names, null_variants_nearby_genes_output_file)
+'''
 #########################
 # Set filters on what to call a trait mediating variant from a given tissue
 gene_trait_pip_thresh = .5
@@ -209,10 +243,8 @@ for tissue_name in tissue_names:
 	print(tissue_name)
 	################################################################
 	# Extract trait-mediating variants corresponding to this tissue
-
 	# Output file
 	tissue_variants_output_file = output_dir + 'tgfm_' + tissue_name + '_mediating_variants_' + str(variant_gene_pip_thresh) + '_' + str(gene_trait_pip_thresh) + '.txt'
-
 	# Extract variants across traits
 	extract_tissue_specific_variants(tissue_name, tgfm_results_dir, gtex_susie_gene_models_dir, trait_names, tissue_variants_output_file, gene_trait_pip_thresh=gene_trait_pip_thresh, variant_gene_pip_thresh=variant_gene_pip_thresh)
 
@@ -227,10 +259,8 @@ for tissue_name in tissue_names:
 	print(tissue_name)
 	################################################################
 	# Extract trait-mediating variants corresponding to this tissue
-
 	# Output file
 	tissue_variants_output_file = output_dir + 'tgfm_' + tissue_name + '_mediating_variants_' + str(variant_gene_pip_thresh) + '_' + str(gene_trait_pip_thresh) + '.txt'
-
 	# Extract variants across traits
 	extract_tissue_specific_variants(tissue_name, tgfm_results_dir, gtex_susie_gene_models_dir, trait_names, tissue_variants_output_file, gene_trait_pip_thresh=gene_trait_pip_thresh, variant_gene_pip_thresh=variant_gene_pip_thresh)
 
@@ -255,10 +285,9 @@ variant_gene_pip_thresh = .25
 
 # Output file
 non_mediated_variants_output_file = output_dir + 'tgfm_non_mediating_variants_' + str(variant_gene_pip_thresh) + '_' + str(gene_trait_pip_thresh) + '.txt'
-
 # Extract non-mediating variants across traits
 extract_non_mediated_variants(tgfm_results_dir, trait_names, non_mediated_variants_output_file, variant_pip_thresh=variant_gene_pip_thresh)
-
+'''
 
 
 

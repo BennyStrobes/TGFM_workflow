@@ -866,6 +866,25 @@ make_tissue_overlap_jaccard_index_heatmap <- function(trait_name, trait_name_rea
   	return(p)
 }
 
+make_enrichment_boxplot <- function(df, titler) {
+	cts = unique(as.character(df$track_cell_type))
+	mean_values <- c()
+	for (ct_iter in 1:length(cts)) {
+		ct = cts[ct_iter]
+		mean_value = mean(df$orat[as.character(df$track_cell_type)==ct])
+		mean_values <- c(mean_values, mean_value)
+	}
+
+	ct_ordering = order(mean_values)
+
+	df$track_cell_type = factor(df$track_cell_type, levels=cts[ct_ordering])
+	p <- ggplot(df, aes(x=track_cell_type, y=orat)) + 
+  		geom_boxplot() +
+  		theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  		labs(title=titler, x="Cell type", "Odds ratio")
+  	return(p)
+}
+
 
 
 ##################################
@@ -879,7 +898,7 @@ processed_tgfm_sldsc_data_dir <- args[4]
 gtex_tissue_colors_file <- args[5]
 visualize_tgfm_dir <- args[6]
 iterative_tgfm_prior_dir <- args[7]
-
+epimap_enrichment_dir <- args[8]
 
 
 ##########################################################
@@ -901,6 +920,64 @@ trait_names_readable <- as.character(trait_df$study_name_readable)
 
 
 
+##########################################################
+# Visualize epimap enrichments
+##########################################################
+tissue_name <- "Whole_Blood"
+
+tissue_names <- c("Artery_Tibial", "Brain_Cerebellum", "Cells_Cultured_fibroblasts", "Liver", "Lung", "Skin_Sun_Exposed_Lower_leg", "Spleen", "Whole_Blood")
+
+for (tissue_iter in 1:length(tissue_names)) {
+tissue_name <- tissue_names[tissue_iter]
+# Aggregate over all marks
+enrichment_file <- paste0(epimap_enrichment_dir, tissue_name, "_0.25_epimap_enrichment_null_near_gene_background_summary_or_ordered.txt")
+enrichment_df <- read.table(enrichment_file, header=TRUE, sep="\t")
+
+# All marks
+enrichment_boxplot <- make_enrichment_boxplot(enrichment_df, paste0(tissue_name, "_", "aggregate_marks"))
+output_file <- paste0(visualize_tgfm_dir, "epimap_enrichment_", tissue_name, "_aggregate_marks_boxplot.pdf")
+ggsave(enrichment_boxplot, file=output_file, width=7.2, height=4.7, units="in")
+
+
+mark_name = "H3K27ac"
+mark_indices = startsWith(as.character(enrichment_df$track_name), mark_name)
+enrichment_boxplot <- make_enrichment_boxplot(enrichment_df[mark_indices,], paste0(tissue_name, "_", mark_name))
+output_file <- paste0(visualize_tgfm_dir, "epimap_enrichment_", tissue_name, "_", mark_name, "_boxplot.pdf")
+ggsave(enrichment_boxplot, file=output_file, width=7.2, height=4.7, units="in")
+
+
+mark_name = "H3K4me1"
+mark_indices = startsWith(as.character(enrichment_df$track_name), mark_name)
+enrichment_boxplot_1 <- make_enrichment_boxplot(enrichment_df[mark_indices,], paste0(tissue_name, "_", mark_name))
+
+mark_name = "H3K4me2"
+mark_indices = startsWith(as.character(enrichment_df$track_name), mark_name)
+enrichment_boxplot_2 <- make_enrichment_boxplot(enrichment_df[mark_indices,], paste0(tissue_name, "_", mark_name))
+
+mark_name = "H3K4me3"
+mark_indices = startsWith(as.character(enrichment_df$track_name), mark_name)
+enrichment_boxplot_3 <- make_enrichment_boxplot(enrichment_df[mark_indices,], paste0(tissue_name, "_", mark_name))
+
+mark_name = "H3K9ac"
+mark_indices = startsWith(as.character(enrichment_df$track_name), mark_name)
+enrichment_boxplot_4 <- make_enrichment_boxplot(enrichment_df[mark_indices,], paste0(tissue_name, "_", mark_name))
+
+mark_name = "H3K27ac"
+mark_indices = startsWith(as.character(enrichment_df$track_name), mark_name)
+enrichment_boxplot_5 <- make_enrichment_boxplot(enrichment_df[mark_indices,], paste0(tissue_name, "_", mark_name))
+
+mark_name = "DNase"
+mark_indices = startsWith(as.character(enrichment_df$track_name), mark_name)
+enrichment_boxplot_6 <- make_enrichment_boxplot(enrichment_df[mark_indices,], paste0(tissue_name, "_", mark_name))
+
+
+joint_enrichment_plot <- plot_grid(enrichment_boxplot_1, enrichment_boxplot_2, enrichment_boxplot_3, enrichment_boxplot_4, enrichment_boxplot_5, enrichment_boxplot_6, ncol=2)
+output_file <- paste0(visualize_tgfm_dir, "epimap_enrichment_", tissue_name, "_joint_boxplot.pdf")
+ggsave(joint_enrichment_plot, file=output_file, width=10.2, height=10.7, units="in")
+}
+print("DONE")
+
+if (FALSE) {
 # Extract tissue names
 iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_names[1], "_component_gene_", "susie_pmces_uniform", "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
 aa = read.table(iterative_prior_file, header=TRUE,sep="\t")
@@ -950,7 +1027,7 @@ for (trait_iter in 1:length(trait_names)) {
 	}
 }
 
-print("DONE")
+
 
 ##########################################################
 # Bar plot TGFM causal tissue p-values
@@ -1063,6 +1140,8 @@ method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_le
 output_file <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_average_fraction_of_genetic_elements_from_gene_expression_se_barplot.pdf")
 #med_prob_se_barplot <- make_fraction_of_genetic_elements_from_gene_expression_se_barplot(trait_names, trait_names_readable, method_version, tgfm_results_dir)
 #ggsave(med_prob_se_barplot, file=output_file, width=7.2, height=3.7, units="in")
+}
+
 
 
 if (FALSE) {

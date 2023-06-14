@@ -32,6 +32,19 @@ def get_track_names(dir_name):
 	arr = np.sort(np.asarray(arr))
 	return arr
 
+def create_mapping_from_bs_id_to_tissue_class(file_name):
+	f = open(file_name)
+	mapping = {}
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		mapping[data[0]] = data[1]
+	f.close()
+	return mapping
 
 
 
@@ -44,13 +57,15 @@ ordered_bs_ids = np.loadtxt(epimap_data_dir + 'samplelist_833_final.tsv', dtype=
 
 # create mapping from bs_id to tissue group
 bs_id_to_tissue_group = create_mapping_from_bs_id_to_tissue_group(epimap_data_dir + 'mnemonic_mapping.tsv')
-
+bs_id_to_tissue_class = create_mapping_from_bs_id_to_tissue_class(epimap_data_dir + 'main_metadata_table.tsv')
 
 # Print Epimap sample file
 t = open(epimap_sample_file, 'w')
-t.write('standard_sample_name\tbs_id\ttissue_group\n')
+t.write('standard_sample_name\tbs_id\ttissue_class\ttissue_group\n')
 for itera, bs_id in enumerate(ordered_bs_ids):
-	t.write(str(itera+1) + '\t' + bs_id + '\t' + bs_id_to_tissue_group[bs_id] + '\n')
+	if bs_id_to_tissue_class[bs_id] == 'Cancer':
+		continue
+	t.write(str(itera+1) + '\t' + bs_id + '\t' + bs_id_to_tissue_class[bs_id] + '\t' + bs_id_to_tissue_group[bs_id] + '\n')
 t.close()
 
 
@@ -59,14 +74,17 @@ track_names = get_track_names(epimap_data_dir + 'bed_from_signal/')
 
 # Print track names
 t = open(epimap_track_file,'w')
-t.write('track_name\tstandard_sample_name\tbs_id\ttissue_group\ttrack_type\n')
+t.write('track_name\tstandard_sample_name\tbs_id\ttissue_class\ttissue_group\ttrack_type\n')
 for track_name in track_names:
 	info = track_name.split('.')
 	track_type = info[0]
 	sample_name = info[1]
 	bs_id = ordered_bs_ids[int(sample_name) -1]
 	tissue_group = bs_id_to_tissue_group[bs_id]
-	t.write(track_name + '\t' + sample_name + '\t' + bs_id + '\t' + tissue_group + '\t' + track_type + '\n')
+	tissue_class = bs_id_to_tissue_class[bs_id]
+	if tissue_class == 'Cancer':
+		continue
+	t.write(track_name + '\t' + sample_name + '\t' + bs_id + '\t' + tissue_class + '\t' + tissue_group + '\t' + track_type + '\n')
 t.close()
 
 

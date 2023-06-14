@@ -47,6 +47,7 @@ fi
 #################################################################
 # Intersect variants and bed files
 #################################################################
+
 python3 intersect_variants_with_epimap_bed_files.py $gtex_pseudotissue_file $epimap_track_file $epimap_enrichment_raw_data_dir $epimap_enrichment_dir 
 
 
