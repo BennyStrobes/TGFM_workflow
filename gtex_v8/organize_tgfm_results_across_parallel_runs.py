@@ -1078,8 +1078,8 @@ tissue_categories, tissue_category_to_tissue_names, tissue_name_to_broad_categor
 # Extract trait names
 trait_names = extract_trait_names(trait_names_file)
 #valid_trait_names = {'biochemistry_Cholesterol':1, 'blood_MEAN_PLATELET_VOL':1, 'blood_MONOCYTE_COUNT':1, 'body_BMIz':1, 'body_WHRadjBMIz':1, 'bp_DIASTOLICadjMEDz':1, 'biochemistry_VitaminD':1, 'blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT':1, 'lung_FEV1FVCzSMOKE':1}
-
-
+print(trait_names)
+print(len((trait_names)))
 arr1 = []
 arr2 = []
 # Concatenate parrallelized results across runs for each trait
@@ -1133,20 +1133,20 @@ for trait_name in trait_names:
 		# Create tissue pip summary file
 		###################################################
 		per_tissue_pip_summary_file = file_stem + '_tgfm_per_tissue_pip_summary.txt'
-		#generate_per_tissue_pip_summary_file(concatenated_pip_summary_file, per_tissue_pip_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem)
+		generate_per_tissue_pip_summary_file(concatenated_pip_summary_file, per_tissue_pip_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem)
 
 		###################################################
 		# Create tissue-category pip summary file
 		###################################################
 		per_tissue_category_pip_summary_file = file_stem + '_tgfm_per_tissue_category_pip_summary.txt'
-		#generate_per_tissue_category_pip_summary_file(concatenated_pip_summary_file, per_tissue_category_pip_summary_file, tissue_names,tissue_categories, tissue_category_to_tissue_names, file_stem, model_version, processed_tgfm_input_stem)
+		generate_per_tissue_category_pip_summary_file(concatenated_pip_summary_file, per_tissue_category_pip_summary_file, tissue_names,tissue_categories, tissue_category_to_tissue_names, file_stem, model_version, processed_tgfm_input_stem)
 
 
 		###################################################
 		# Create component level summary data
 		###################################################
 		component_level_summary_file = file_stem + '_tgfm_component_level_summary.txt'
-		#generate_component_level_summary_data(concatenated_pip_summary_file, component_level_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem)
+		generate_component_level_summary_data(concatenated_pip_summary_file, component_level_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem)
 
 
 

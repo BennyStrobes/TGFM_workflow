@@ -80,6 +80,10 @@ sldsc_h38_weights_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg3
 # Directory containing quasi-independent ld bllocks
 quasi_independent_dir="/n/groups/price/ben/quasi_independent_ld_blocks/"
 
+# Directory containing pops results
+# Downloaded from https://www.finucanelab.org/data on 6/20/23
+pops_results_summary_file="/n/groups/price/ben/pops_data/PoPS_FULLRESULTS.txt.gz"
+
 
 ##################
 # Output data
@@ -154,6 +158,9 @@ epimap_enrichment_raw_data_dir=$output_root"raw_epimap_enrichment_data/"
 
 # Directory containing Epimap enrichments
 epimap_enrichment_dir=$perm_output_root"epimap_enrichment/"
+
+#Directory containing pops enrichments
+pops_enrichment_dir=$perm_output_root"pops_enrichment/"
 
 # Sparse heritability visualization dir
 visualize_sparse_h2_dir=$output_root"visualize_sparse_h2/"
@@ -398,16 +405,21 @@ fi
 # Organize TGFM Results across parallel runs
 #################################
 if false; then
-sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir
+sbatch organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir
 fi
 
 #################################
 # Run drug target gene set enrichment analysis
 #################################
-if false; then
-sh run_drug_target_gene_set_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gene_annotation_file $gtex_susie_gene_models_dir $drug_target_gene_list_file $drug_target_gene_set_enrichment_dir 
-fi
+sh run_drug_target_gene_set_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gene_annotation_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $drug_target_gene_list_file $drug_target_gene_set_enrichment_dir 
 
+
+#################################
+# Run POPs enrichment analysis
+#################################
+if false; then
+sh run_pops_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $pops_results_summary_file $pops_enrichment_dir 
+fi
 
 #################################
 # Run epimap cell type enrichment analysis
@@ -417,6 +429,13 @@ if false; then
 sh run_epimap_enrichment_analysis.sh $tgfm_results_dir $gtex_susie_gene_models_dir $liftover_directory $gtex_pseudotissue_file $independent_trait_list_file $epimap_data_dir $epimap_enrichment_raw_data_dir $epimap_enrichment_dir
 fi
 
+
+#################################
+# Run gene set enrichment analysis
+#################################
+if false; then
+sh run_gene_set_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $gene_set_enrichment_dir 
+fi
 #################################
 # Visualize TGFM results
 #################################
@@ -424,8 +443,9 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
+if false; then
 Rscript visualize_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_dir $iterative_tgfm_prior_results_dir $epimap_enrichment_dir
-
+fi
 
 
 

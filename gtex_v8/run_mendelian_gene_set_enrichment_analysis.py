@@ -136,11 +136,10 @@ def create_mapping_from_trait_name_to_drug_target_gene_list(drug_target_gene_lis
 		if study_name.startswith('UKB_460K.') == False:
 			continue
 		short_study_name = study_name.split('460K.')[1]
-		#if data[7] == '':
-		if data[4] == '':
+		if data[7] == '':
 			continue
-		#drug_target_gene_names = np.asarray(data[7].split('"')[1].split(','))
-		drug_target_gene_names = np.asarray(data[4].split('"')[1].split(','))
+		drug_target_gene_names = np.asarray(data[7].split('"')[1].split(','))
+		#drug_target_gene_names = np.asarray(data[4].split('"')[1].split(','))
 		mapping[short_study_name] = drug_target_gene_names
 	f.close()
 	return mapping
@@ -236,10 +235,11 @@ def compute_weighted_contingency_table(drug_target_gene_dicti, tgfm_prioritized_
 			dd = dd + 1.0
 	return aa, bb, cc,dd
 
+
 def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, preprocessed_tgfm_data_dir):
 	# Use this file just to get windows
-	results_summary_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_tgfm_pip_summary.txt'
-	#results_summary_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_pmces_uniform_iterative_prior_tgfm_pip_summary.txt'
+	#results_summary_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_tgfm_pip_summary.txt'
+	results_summary_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_pmces_uniform_iterative_prior_tgfm_pip_summary.txt'
 
 	# Use dictionary to keep track of gene-tissue pairs and max pips
 	tgfm_genetissue_to_pip = {}
@@ -257,8 +257,8 @@ def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, preproc
 		window_name = data[0]
 
 		# Load in TGFM results dir
-		tgfm_results_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_' + window_name + '_results.pkl'
-		#tgfm_results_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_pmces_uniform_' + window_name + '_results.pkl'
+		#tgfm_results_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_' + window_name + '_results.pkl'
+		tgfm_results_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_pmces_uniform_' + window_name + '_results.pkl'
 		g = open(tgfm_results_file, 'rb')
 		tgfm_res = pickle.load(g)
 		g.close()
@@ -280,9 +280,8 @@ def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, preproc
 		if len(middle_gene_indices) == 0:
 			continue
 
-		gene_pips = tgfm_res['expected_alpha_pips'][middle_gene_indices]
-		#gene_pips = tgfm_res['alpha_pip'][middle_gene_indices]
-		pdb.set_trace()
+		#gene_pips = tgfm_res['expected_alpha_pips'][middle_gene_indices]
+		gene_pips = tgfm_res['alpha_pip'][middle_gene_indices]
 		gene_names = tgfm_res['genes'][middle_gene_indices]
 		gene_abs_twas_z = np.abs(tgfm_pmces_res['nominal_twas_z'][middle_gene_indices])
 		#gene_twas_z = tgfm_res['nominal_twas_z'][middle_gene_indices]
@@ -346,16 +345,11 @@ trait_names = extract_trait_names(trait_name_file)
 # Create mapping from trait_name to gold standard gene list (if mapping exists)
 trait_to_drug_target_gene_list = create_mapping_from_trait_name_to_drug_target_gene_list(drug_target_gene_list_file)
 
-'''
-table_1 = np.zeros((2,2))
-table_25 = np.zeros((2,2))
-table_5 = np.zeros((2,2))
-'''
 
 # Open up output file handle
-output_file = drug_target_gene_set_enrichment_dir + 'drug_target_gene_set_overlap_summary_file.txt'
+output_file = drug_target_gene_set_enrichment_dir + 'mendelian_gene_set_overlap_summary_file.txt'
 t = open(output_file,'w')
-t.write('trait_name\tgene_name\tensamble_id\tmax_tgfm_pip\tsum_tgfm_pip\tmax_abs_twas_z\tdrug_target_gene\n')
+t.write('trait_name\tgene_name\tensamble_id\tmax_tgfm_pip\tsum_tgfm_pip\tmax_abs_twas_z\tmendelian_gene\n')
 
 
 # Loop through trait names
