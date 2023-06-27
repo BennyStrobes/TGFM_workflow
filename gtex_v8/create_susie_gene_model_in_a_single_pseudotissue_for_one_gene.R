@@ -270,6 +270,7 @@ if (num_composit_tissues == 3) {
 
 # Run SuSiE
 susie_ss = susie_rss(bhat=meta_beta, shat=meta_beta_se,R=meta_ld, n=meta_sample_size)
+print(summary(susie_ss))
 # Extract relevent fields
 susie_mu=data.frame(susie_ss$mu)
 susie_mu2=data.frame(susie_ss$mu2)
@@ -282,6 +283,8 @@ if (is.null(susie_cs)) {
 } else {
 	component_bool=TRUE
 }
+
+print(component_bool)
 
 
 # Save results to output

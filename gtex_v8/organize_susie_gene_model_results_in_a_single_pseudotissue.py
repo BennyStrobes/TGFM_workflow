@@ -271,6 +271,9 @@ pseudotissue_gene_model_dir = gtex_susie_gene_models_dir + pseudotissue_name + '
 
 # gene_summary_file is a file containing a list of genes that we attempted to make gene models for in this pseudotissue
 gene_summary_file = gtex_pseudotissue_gene_model_input_dir + pseudotissue_name + '_gene_summary.txt'
+if os.path.isfile(gene_summary_file) == False:
+	gene_summary_file = gtex_pseudotissue_gene_model_input_dir + 'cell_types_' + pseudotissue_name + '_fusion_ready_gene_summary.txt'
+
 
 
 # Generate pos file with only component genes

@@ -84,6 +84,27 @@ quasi_independent_dir="/n/groups/price/ben/quasi_independent_ld_blocks/"
 # Downloaded from https://www.finucanelab.org/data on 6/20/23
 pops_results_summary_file="/n/groups/price/ben/pops_data/PoPS_FULLRESULTS.txt.gz"
 
+# Input single cell expression data 
+input_sc_h5py_file="/n/groups/price/scdata/Perez_Science_2021/lupus.h5ad"
+
+# pseudobulk h5ad file
+input_sc_h5py_pseudobulk_file="/n/groups/price/scdata/Perez_Science_2021/lupus-pseudobulk.h5ad"
+
+# Gene annotation file (hg19)
+hg19_gene_annotation_file="/n/groups/price/ben/reference_data/gene_annotation_files/gencode.v19.annotation.gff3"
+
+# Gene annotation file (hg38)
+hg38_gene_annotation_file="/n/groups/price/ben/reference_data/gene_annotation_files/gencode.v38.annotation.gtf.gz"
+
+# Directory containing genotype data
+sc_genotype_data_dir="/n/groups/price/scdata/Perez_Science_2021/genotype/plink_maf10/"
+
+# individual file
+sc_individual_info_file="/n/groups/price/scdata/Perez_Science_2021/genotype/indv_info_from_scdata.tsv"
+
+
+
+
 
 ##################
 # Output data
@@ -171,6 +192,27 @@ visualize_tgfm_sldsc_dir=$output_root"visualize_tgfm_sldsc/"
 
 visualize_tgfm_dir=$output_root"visualize_tgfm/"
 
+# Directory containing processed sc expression data
+processed_sc_expression_dir=$output_root"processed_sc_expression/"
+
+# Processed single cell genotype dir
+processed_sc_genotype_dir=$output_root"processed_sc_genotype/"
+
+# Processed single cell pseudobulk expression
+sc_pseudobulk_expression_dir=$output_root"sc_pseudobulk_expression/"
+
+# Visualize processed single cell expression dir
+visualize_processed_sc_expression_dir=$perm_output_root"visualize_processed_sc_expression/"
+
+# Input data for fusion
+sc_fusion_input_dir=$output_root"sc_fusion_input/"
+
+# Directory containing sc PBMC Susie gene models
+sc_pbmc_susie_gene_models_dir=$perm_output_root"sc_pbmc_susie_gene_models/"
+
+
+# Directory containing preprocessed sc TGFM data
+preprocessed_sc_tgfm_data_dir=$output_root"preprocessed_sc_tgfm_data/"
 
 ##################
 # Analysis
@@ -411,8 +453,9 @@ fi
 #################################
 # Run drug target gene set enrichment analysis
 #################################
+if false; then
 sh run_drug_target_gene_set_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gene_annotation_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $drug_target_gene_list_file $drug_target_gene_set_enrichment_dir 
-
+fi
 
 #################################
 # Run POPs enrichment analysis
@@ -447,6 +490,93 @@ if false; then
 Rscript visualize_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_dir $iterative_tgfm_prior_results_dir $epimap_enrichment_dir
 fi
 
+
+
+
+
+
+
+
+
+
+#################################
+# Process SC expression
+#################################
+if false; then
+sbatch process_sc_expression.sh $input_sc_h5py_file $input_sc_h5py_pseudobulk_file $processed_sc_expression_dir $sc_individual_info_file $sc_genotype_data_dir $visualize_processed_sc_expression_dir $processed_sc_genotype_dir 
+fi
+
+#################################
+# Process SC genotype data
+#################################
+filtered_sample_info_file=$processed_sc_expression_dir"individual_info_european_rna_and_dna.txt"
+if false; then
+sh process_sc_genotype.sh $processed_sc_genotype_dir $sc_genotype_data_dir $filtered_sample_info_file $liftover_directory $ukbb_preprocessed_for_genome_wide_susie_dir
+fi
+
+
+
+
+#################################
+# Generate pseudobulk expression
+#################################
+if false; then
+sh generate_pseudobulk_expression.sh $processed_sc_expression_dir $input_sc_h5py_file $processed_sc_genotype_dir $sc_pseudobulk_expression_dir $hg19_gene_annotation_file $gene_annotation_file $xt_gene_list_file
+fi
+
+
+#################################
+# Prepare sc expression data for fusion weights analysiss
+#################################
+pb_cell_type_file=${sc_pseudobulk_expression_dir}"pseudobulk_data_set_summary_filtered.txt"
+num_parallel_jobs="10"
+echo $pb_cell_type_file
+if false; then
+sed 1d $pb_cell_type_file | while read data_set_name cluster_method pb_cell_type_name expr_file cov_file num_donors num_genes num_cells_per_indi_file; do
+	sh preprocess_sc_data_for_fusion_weights_analysis_in_single_pseudobulk_cell_type.sh $pb_cell_type_name $sc_pseudobulk_expression_dir $sc_fusion_input_dir $num_parallel_jobs $processed_sc_genotype_dir
+done
+fi
+
+
+########################################
+# Run sc pseudobulk gene model analysis (in each pseudobulk cell type seperately)
+########################################
+pb_cell_type_name="B"
+job_number="0"
+if false; then
+sed 1d $pb_cell_type_file | while read data_set_name cluster_method pb_cell_type_name expr_file cov_file num_donors num_genes num_cells_per_indi_file; do
+	for job_number in $(seq 0 $(($num_parallel_jobs-1))); do
+		sbatch create_susie_gene_model_in_a_single_pseudobulk_cell_type.sh $pb_cell_type_name $pb_cell_type_name $sc_fusion_input_dir $sc_pbmc_susie_gene_models_dir $job_number
+	done
+done
+fi
+
+
+########################################
+# Organize sc pseudobulk gene model results (create pos file)
+########################################
+if false; then
+sed 1d $pb_cell_type_file | while read data_set_name cluster_method pb_cell_type_name expr_file cov_file num_donors num_genes num_cells_per_indi_file; do
+	sbatch organize_susie_gene_model_results_in_a_single_pseudotissue.sh $pb_cell_type_name $sc_fusion_input_dir${pb_cell_type_name}"/" $sc_pbmc_susie_gene_models_dir
+done
+fi
+
+
+
+########################################
+# Preprocess data for SC TGFM
+########################################
+# Number of parallel jobs
+num_jobs="40"
+#gene_type="cis_heritable_gene"
+gene_type="component_gene"
+# FIle summarizing ukkbb windows
+ukkbb_window_summary_file=$ukbb_preprocessed_for_genome_wide_susie_dir"genome_wide_susie_windows_and_processed_data.txt"
+if false; then
+for job_number in $(seq 0 $(($num_jobs-1))); do 
+	sbatch preprocess_data_for_sc_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_sc_tgfm_data_dir $job_number $num_jobs $gene_type $preprocessed_tgfm_sldsc_data_dir $pb_cell_type_file $sc_pbmc_susie_gene_models_dir
+done
+fi
 
 
 
