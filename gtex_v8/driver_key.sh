@@ -214,6 +214,13 @@ sc_pbmc_susie_gene_models_dir=$perm_output_root"sc_pbmc_susie_gene_models/"
 # Directory containing preprocessed sc TGFM data
 preprocessed_sc_tgfm_data_dir=$output_root"preprocessed_sc_tgfm_data/"
 
+# Directory containing TGFM results
+sc_tgfm_results_dir=$output_root"sc_tgfm_results/"
+
+# Directory containing TGFM iterative prior results
+iterative_sc_tgfm_prior_results_dir=$perm_output_root"iterative_sc_tgfm_prior/"
+
+
 ##################
 # Analysis
 ##################
@@ -434,7 +441,7 @@ echo $trait_name
 for job_number in $(seq 0 $(($num_jobs-1))); do
 	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
 done
 done
 fi
@@ -479,20 +486,21 @@ fi
 if false; then
 sh run_gene_set_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $gene_set_enrichment_dir 
 fi
-#################################
-# Visualize TGFM results
-#################################
-if false; then
-source ~/.bash_profile
-module load R/3.5.1
-fi
-if false; then
-Rscript visualize_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_dir $iterative_tgfm_prior_results_dir $epimap_enrichment_dir
-fi
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+######################################################################################################################################
 
 
 
@@ -530,7 +538,6 @@ fi
 #################################
 pb_cell_type_file=${sc_pseudobulk_expression_dir}"pseudobulk_data_set_summary_filtered.txt"
 num_parallel_jobs="10"
-echo $pb_cell_type_file
 if false; then
 sed 1d $pb_cell_type_file | while read data_set_name cluster_method pb_cell_type_name expr_file cov_file num_donors num_genes num_cells_per_indi_file; do
 	sh preprocess_sc_data_for_fusion_weights_analysis_in_single_pseudobulk_cell_type.sh $pb_cell_type_name $sc_pseudobulk_expression_dir $sc_fusion_input_dir $num_parallel_jobs $processed_sc_genotype_dir
@@ -561,6 +568,34 @@ sed 1d $pb_cell_type_file | while read data_set_name cluster_method pb_cell_type
 done
 fi
 
+########################################
+# Preprocess data for TGFM-S-LDSC (Add on to existing gtex data)
+########################################
+# Only components of genes
+#gene_type="cis_heritable_gene"
+gene_type="component_gene"
+if false; then
+sed 1d $pb_cell_type_file | while read data_set_name cluster_method pb_cell_type_name expr_file cov_file num_donors num_genes num_cells_per_indi_file; do
+	chromosome_group="odd"
+	sbatch preprocess_gene_ld_scores_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $pb_cell_type_name $chromosome_group $sc_pbmc_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $gene_type
+	chromosome_group="even"
+	sbatch preprocess_gene_ld_scores_for_tgfm_sldsc.sh $ldsc_code_dir $hapmap3_rsid_file $ldsc_baseline_annotation_dir $ldsc_baseline_ld_annotation_dir $ref_1kg_genotype_dir $pb_cell_type_name $chromosome_group $sc_pbmc_susie_gene_models_dir $preprocessed_tgfm_sldsc_data_dir $gene_type
+done
+fi
+
+if false; then
+sh organize_gene_ld_scores_for_sc_tgfm_sldsc.sh $gtex_pseudotissue_file $pb_cell_type_file $preprocessed_tgfm_sldsc_data_dir $gene_type $gtex_susie_gene_models_dir $sc_pbmc_susie_gene_models_dir
+fi
+########################################
+# Run TGFM-S-LDSC
+########################################
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+	sbatch run_sc_tgfm_sldsc.sh $preprocessed_tgfm_sldsc_data_dir $full_sumstat_dir $ldsc_code_dir $sldsc_h38_weights_dir $ref_1kg_genotype_dir $tgfm_sldsc_results_dir $trait_name $mod_ldsc_code_dir $quasi_independent_ld_blocks_hg38_dir
+done
+fi
+
+
 
 
 ########################################
@@ -579,6 +614,74 @@ done
 fi
 
 
+# Organize preprocessed TGFM results across parallel jobs
+if false; then
+sh organize_processed_tgfm_input_data.sh $num_jobs $gene_type $preprocessed_sc_tgfm_data_dir
+fi
+
+# Merge gtex tissue names and cell types
+merged_tissue_cell_type_file=${sc_pseudobulk_expression_dir}"merged_gtex_tissue_single_cell_cell_type_summary.txt"
+if false; then
+python3 merge_gtex_tissue_names_and_cell_type_names.py $gtex_pseudotissue_file $pb_cell_type_file $merged_tissue_cell_type_file $gtex_susie_gene_models_dir $sc_pbmc_susie_gene_models_dir $sc_pseudobulk_expression_dir
+fi
+
+########################################
+# Run TGFM
+########################################
+gene_type="component_gene"
+num_jobs="8"
+
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+	for job_number in $(seq 0 $(($num_jobs-1))); do
+		tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+		tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+		sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs
+	done
+done
+fi
+
+
+
+########################################
+# Compute iterative prior
+########################################
+tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $merged_tissue_cell_type_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_sc_tgfm_prior_results_dir
+done
+fi
+
+
+#################################
+# Run TGFM with iterative prior
+#################################
+gene_type="component_gene"
+num_jobs="8"
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_sumstat_files_with_samp_size_and_h2_siggy.txt" | while read trait_name study_file sample_size h2; do
+echo $trait_name
+
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sh run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $iterative_sc_tgfm_prior_results_dir $job_number $num_jobs
+done
+done
+fi
+
+#################################
+# Visualize TGFM results
+#################################
+if false; then
+source ~/.bash_profile
+module load R/3.5.1
+fi
+if false; then
+Rscript visualize_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $visualize_tgfm_dir $iterative_tgfm_prior_results_dir $epimap_enrichment_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_sumstat_files_with_samp_size_and_h2.txt" $iterative_sc_tgfm_prior_results_dir $merged_tissue_cell_type_file
+fi
 
 
 

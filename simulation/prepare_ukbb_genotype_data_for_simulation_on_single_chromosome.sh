@@ -2,9 +2,9 @@
 #SBATCH -c 1                               # Request one core
 #SBATCH -t 0-30:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=30GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=50GB                         # Memory total in MiB (for all cores)
 
-
+# First three parts ran at 160GB
 
 
 
@@ -17,18 +17,36 @@ kg_genotype_dir="$6"
 
 source ~/.bash_profile
 
-if false; then
 ###############################
 # Extract list of variants in ldsc baseline analysis
 ###############################
 ldsc_annotation_rs_id_file=${processed_genotype_data_dir}"ldsc_annotation_rsids_chr"${chrom_num}".txt"
+if false; then
 python3 extract_list_of_ldsc_annotation_rs_ids.py $ldsc_baseline_hg19_annotation_dir $chrom_num $kg_genotype_dir $ldsc_annotation_rs_id_file
+
+
 
 
 ###############################
 # Filter UKBB genotype data to only include those variants in ldsc baseline analysis
 ###############################
-plink2 --pfile ${ukbb_genotype_dir}"ukb_imp_chr"${chrom_num}"_v3" --hwe .01 --extract ${ldsc_annotation_rs_id_file} --maf .05 --make-bed --keep-allele-order --threads 1 --out ${processed_genotype_data_dir}"ukb_imp_chr_"${chrom_num}
+plink2 \
+    --bgen /n/groups/price/UKBiobank/download_500K/ukb_imp_chr"${chrom_num}"_v3.bgen ref-unknown\
+    --sample /n/groups/price/UKBiobank/download_500K/ukb14048_imp_chr1_v3_s487395.sample\
+    --keep /n/groups/price/martin/LDSPEC_data/UKBimp_337K_MAF001/unrelated_337K.txt\
+    --extract /n/groups/price/martin/LDSPEC_data/UKBimp_337K_MAF001/snp_info/snp_list_chr${chrom_num}.MAF_001_INFO_06.txt\
+    --rm-dup force-first\
+    --maj-ref\
+    --geno 0.1\
+    --maf 0.001\
+    --hwe 1e-50\
+    --make-pgen \
+    --threads 1\
+    --out ${processed_genotype_data_dir}"ukb_imp_chr"${chrom_num}"_tmper"
+
+plink2 --pfile ${processed_genotype_data_dir}"ukb_imp_chr"${chrom_num}"_tmper" --hwe .01 --extract ${ldsc_annotation_rs_id_file} --maf .05 --make-bed --keep-allele-order --threads 1 --out ${processed_genotype_data_dir}"ukb_imp_chr_"${chrom_num}
+fi
+
 
 ###############################
 # extract lists of Individuals for each data set
@@ -82,7 +100,7 @@ rm ${processed_genotype_data_dir}"ukb_imp_chr_"${chrom_num}*
 genomic_annotation_file=${processed_genotype_data_dir}"baseline."${chrom_num}".annot"
 python3 extract_genomic_annotations_for_simulation_variants.py ${processed_genotype_data_dir}"simulated_gwas_data_"${chrom_num}".bim" ${processed_genotype_data_dir}"100G.EUR.QC.filtered."${chrom_num}".bim" $ldsc_baseline_hg19_annotation_dir"baseline."${chrom_num}".annot.gz" $genomic_annotation_file
 
-fi
+
 
 #########################
 # Create 3MB chromosome windows
@@ -90,10 +108,9 @@ fi
 window_size_mb="3" # In MB
 reference_bim=${processed_genotype_data_dir}"simulated_gwas_data_"${chrom_num}".bim"  # Used to know where end and start on this chromosome
 window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_"${window_size_mb}"_mb.txt"
-if false; then
 python3 create_chromosome_windows.py $window_size_mb $reference_bim $window_file ${chrom_num}
-fi
 
+echo "STARTING"
 
 python3 generate_gwas_in_sample_ld_for_all_windows.py $chrom_num $window_file ${processed_genotype_data_dir}
 

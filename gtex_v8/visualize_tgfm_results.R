@@ -497,14 +497,14 @@ make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tis
 	# Skip variants
 	nrow = dim(df)[1]
 
-	df <- df[(nrow-36):(dim(df)[1]),]
+	df <- df[2:nrow,]
 	df$tissue = df$element_name
 
 	tissue_vec <- c()
 	prior_prob_vec <- c()
 	siggy <- c()
 
-
+	arr <- c()
 	for (tissue_iter in 1:length(df$tissue)) {
 		tissue_name <- as.character(df$tissue[tissue_iter])
 		prob_string = as.character(df$prior_distribution[tissue_iter])
@@ -517,17 +517,27 @@ make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tis
 			sigger = 'non_significant'
 		}
 
+		if ((tissue_name == "B") | (tissue_name == "NK") | (tissue_name == "Prolif") | (tissue_name == "T4") | (tissue_name == "T8") | (tissue_name == "cDC") | (tissue_name == "cM") | (tissue_name == "ncM") | (tissue_name == "pDC")) {
+			arr <- c(arr, pvalue)
+
+		}
+
 		prior_prob_vec <- c(prior_prob_vec, prob_vec)
 		tissue_vec <- c(tissue_vec, rep(tissue_name, length(prob_vec)))
 		siggy <- c(siggy, rep(sigger, length(prob_vec)))
 	}
+	print(min(arr))
+
+
+	df$tissue = str_replace_all(as.character(df$tissue), "-", "_")
+	tissue_vec = str_replace_all(as.character(tissue_vec), "-", "_")
 
 
 	df2 <- data.frame(tissue=factor(tissue_vec, levels=as.character(df$tissue)), probability=prior_prob_vec, significance=factor(siggy))
-	df2$tissue = str_replace_all(as.character(df2$tissue), "-", "_")
+	#df2$tissue = str_replace_all(as.character(df2$tissue), "-", "_")
 	df2$tissue <- recode(df2$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
 
-	df2$tissue = factor(df2$tissue)
+	#df2$tissue = factor(df2$tissue)
 
     p <- ggplot(df2, aes(tissue, probability)) +
   		geom_boxplot(colour = "grey50", outlier.shape = NA) +
@@ -885,6 +895,24 @@ make_enrichment_boxplot <- function(df, titler) {
   	return(p)
 }
 
+make_n_genes_vs_sample_size_scatterplot <- function(merged_tissue_cell_type_file) {
+	df <- read.table(merged_tissue_cell_type_file, header=TRUE, sep="\t")
+	p <- ggplot(df, aes(x=context_sample_size, y=n_gene_model_genes, color=data_set)) + geom_point() +
+	figure_theme() + 
+	labs(x="eQTL sample size", y="Number of genes with gene model",color="")
+	return(p)
+}
+
+make_n_genes_vs_avg_n_cells_per_indi_scatterplot <- function(merged_tissue_cell_type_file) {
+	df <- read.table(merged_tissue_cell_type_file, header=TRUE, sep="\t")
+	df <- df[as.character(df$data_set) == "Perez_sc_pbmc",]
+
+	p <- ggplot(df, aes(x=avg_n_cells_per_individual, y=n_gene_model_genes)) + geom_point() +
+	figure_theme() + 
+	labs(x="Avg. number of cells / individual", y="Number of genes with gene model",color="")
+	return(p)
+}
+
 
 
 ##################################
@@ -899,12 +927,14 @@ gtex_tissue_colors_file <- args[5]
 visualize_tgfm_dir <- args[6]
 iterative_tgfm_prior_dir <- args[7]
 epimap_enrichment_dir <- args[8]
+blood_immune_trait_names_file <- args[9]
+iterative_sc_tgfm_prior_dir <- args[10]
+merged_tissue_cell_type_file <- args[11]
 
 
 ##########################################################
 # Load in data
 ##########################################################
-
 # Load in gtex tissue colors 
 gtex_colors_df <- read.table(gtex_tissue_colors_file, header=TRUE, sep="\t")
 gtex_colors_df$tissue_site_detail_id = as.character(gtex_colors_df$tissue_site_detail_id)
@@ -918,8 +948,27 @@ trait_names_readable <- as.character(trait_df$study_name_readable)
 #trait_names <- c("biochemistry_Cholesterol", "biochemistry_VitaminD", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "blood_MEAN_PLATELET_VOL", "blood_MONOCYTE_COUNT", "body_BMIz", "body_WHRadjBMIz", "bp_DIASTOLICadjMEDz", "lung_FEV1FVCzSMOKE")
 #trait_names_readable <- c("Cholesterol", "VitaminD", "Reticulocyte_count", "Platelet_vol", "Monocyte_count", "BMI", "WHRadjBMI", "Diastolic_BP", "FEV1FVC")
 
+# Blood/ immune traits
+blood_immune_trait_names_df <- read.table(blood_immune_trait_names_file, header=TRUE, sep="\t")
+blood_immune_trait_names <- as.character(blood_immune_trait_names_df$study_name)
 
 
+##########################################################
+# Scatter plot of number of genes per tissue or cell type as a function of sample size
+##########################################################
+scatterplot <- make_n_genes_vs_sample_size_scatterplot(merged_tissue_cell_type_file)
+output_file <- paste0(visualize_tgfm_dir, "number_of_genes_with_gene_model_vs_sample_size_scatterplot.pdf")
+ggsave(scatterplot, file=output_file, width=7.2, height=4.7, units="in")
+
+##########################################################
+# Scatter plot of number of genes per cell type as a function of average number of cells per individual
+##########################################################
+scatterplot <- make_n_genes_vs_avg_n_cells_per_indi_scatterplot(merged_tissue_cell_type_file)
+output_file <- paste0(visualize_tgfm_dir, "number_of_genes_with_gene_model_vs_avg_n_cells_per_indi.pdf")
+ggsave(scatterplot, file=output_file, width=7.2, height=4.7, units="in")
+
+
+if (FALSE) {
 ##########################################################
 # Visualize epimap enrichments
 ##########################################################
@@ -975,7 +1024,38 @@ joint_enrichment_plot <- plot_grid(enrichment_boxplot_1, enrichment_boxplot_2, e
 output_file <- paste0(visualize_tgfm_dir, "epimap_enrichment_", tissue_name, "_joint_boxplot.pdf")
 ggsave(joint_enrichment_plot, file=output_file, width=10.2, height=10.7, units="in")
 }
-print("DONE")
+
+# Extract tissue names
+iterative_prior_file <- paste0(iterative_sc_tgfm_prior_dir, "tgfm_results_", blood_immune_trait_names[1], "_component_gene_", "susie_pmces_uniform", "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
+aa = read.table(iterative_prior_file, header=TRUE,sep="\t")
+tissue_names = as.character(aa$element_name[2:length(aa$element_name)])
+
+
+}
+
+
+##################################################
+# Violin plot showing bootstrapped prior distributions 
+##################################################
+for (trait_iter in 1:length(blood_immune_trait_names)) {
+	trait_name <- blood_immune_trait_names[trait_iter]
+	print(trait_name)
+	# Sampler approach
+	method_version="susie_pmces_uniform"
+	iterative_prior_file <- paste0(iterative_sc_tgfm_prior_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
+	iterative_sampler_violin_plot <- make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name)
+
+	# Iterative version
+	output_file <- paste0(visualize_tgfm_dir, "tissue_violinplot_of_distribution_sc_prior_probabilities_", trait_name,".pdf")
+	ggsave(iterative_sampler_violin_plot, file=output_file, width=10.2, height=4.6, units="in")
+}
+
+
+
+
+
+
+
 
 if (FALSE) {
 # Extract tissue names

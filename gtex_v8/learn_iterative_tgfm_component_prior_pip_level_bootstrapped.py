@@ -1253,6 +1253,7 @@ generate_component_level_abf_summary_data(concatenated_pip_summary_file, compone
 n_bootstraps=100
 variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=400, n_bootstraps=n_bootstraps)
 
+
 # Print to output
 variant_gene_distr_prior_output_file = perm_iterative_prior_results + '_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
 t = open(variant_gene_distr_prior_output_file,'w')

@@ -347,7 +347,7 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_
 		tgfm_obj.fit(twas_data_obj=tgfm_data)
 		#elbo_null_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
 
-		if np.max(np.max(tgfm_obj.expected_alpha_pips)) > .5:
+		if np.max(np.max(tgfm_obj.expected_alpha_pips)) > .2:
 			# Create initialization alpha, mu, and mu_var
 			susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=ld_mat, n=tgfm_data['gwas_sample_size'], L=15, estimate_residual_variance=False)
 
@@ -685,11 +685,11 @@ for window_iter in range(n_windows):
 	tgfm_results['variants'] = tgfm_data['variants']
 	tgfm_results['genes'] = tgfm_data['genes']
 	tgfm_results['alpha_phis'] = tgfm_obj.alpha_phis
-	tgfm_results['beta_phis'] = tgfm_obj.beta_phis
-	tgfm_results['alpha_lbfs'] = tgfm_obj.alpha_lbfs
-	tgfm_results['beta_lbfs'] = tgfm_obj.beta_lbfs
+	#tgfm_results['beta_phis'] = tgfm_obj.beta_phis
+	#tgfm_results['alpha_lbfs'] = tgfm_obj.alpha_lbfs
+	#tgfm_results['beta_lbfs'] = tgfm_obj.beta_lbfs
 	tgfm_results['alpha_pips'] = tgfm_obj.alpha_pips
-	tgfm_results['beta_pips'] = tgfm_obj.beta_pips
+	#tgfm_results['beta_pips'] = tgfm_obj.beta_pips
 	tgfm_results['expected_alpha_pips'] = tgfm_obj.expected_alpha_pips
 	tgfm_results['expected_beta_pips'] = tgfm_obj.expected_beta_pips
 	tgfm_results['valid_components'] = valid_tgfm_sampler_components

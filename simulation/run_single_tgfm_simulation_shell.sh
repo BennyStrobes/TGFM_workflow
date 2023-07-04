@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-40:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-34:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=40GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -54,35 +54,34 @@ tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss
 python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
 
 
+
 # Uniform (sampler)
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
+fi
 
 
-# sparse-variant-gene tissue (PMCES)
-ln_pi_method="tglr_sparse_variant_gene_tissue"
-tmp_anno="pmces"
-python3 extract_tglr_sparse_variant_gene_tissue_log_prior_info_for_tgfm.py $tgfm_input_summary_file $eqtl_sample_size $simulation_name_string $simulated_sldsc_results_dir $tmp_anno
+
+if [ $parr_version == "parallel_2" ]; then
+
+# Iterative prior (PMCES)
+version="pmces"
+ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
-python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method"_"$tmp_anno
+python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $tgfm_input_summary_file $tgfm_output_stem $version
 
 
-# sparse-variant-gene tissue (sampler)
-ln_pi_method="tglr_sparse_variant_gene_tissue"
-tmp_anno="sampler"
-python3 extract_tglr_sparse_variant_gene_tissue_log_prior_info_for_tgfm.py $tgfm_input_summary_file $eqtl_sample_size $simulation_name_string $simulated_sldsc_results_dir $tmp_anno
+ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
-python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method"_"$tmp_anno
-
-
+python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
 
 fi
 
 
 
 
-if [ $parr_version == "parallel_2" ]; then
+if [ $parr_version == "parallel_8" ]; then
 
 echo "PART 2"
 

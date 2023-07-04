@@ -572,6 +572,7 @@ def learn_iterative_variant_gene_tissue_prior_bootstrapped(component_level_abf_s
 
 	# Iterative algorithm
 	for itera in range(max_iter):
+		print(itera)
 		variant_prob_distr, tissue_probs_distr = update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob_distr, tissue_probs_distr, tissue_names, window_to_class_to_indices, n_bootstraps, bs_indices, bs_mapping, window_names, window_to_bootstraps)
 
 
@@ -708,7 +709,9 @@ print_log_prior_across_tgfm_windows(variant_gene_distr_prior_output_file, tgfm_i
 # Learn iterative distribution variant-gene-tissue prior (bootstrapping ci intervals)
 ###################################################
 n_bootstraps=200
-variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=100, n_bootstraps=n_bootstraps)
+n_bootstraps=50
+variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=6, n_bootstraps=n_bootstraps)
+#variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=100, n_bootstraps=n_bootstraps)
 
 # Print to output
 variant_gene_distr_prior_output_file = new_tgfm_stem + '_iterative_variant_gene_prior_bootstrapped.txt'

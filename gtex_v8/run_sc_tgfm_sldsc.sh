@@ -22,9 +22,7 @@ quasi_independent_dir="$9"
 
 trait_file=$full_sumstat_dir"UKB_460K."$trait_name".sumstats"
 
-
-
-
+echo $trait_name
 variant_models=( "genotype_intercept" "baseline_no_qtl" "baselineLD_no_qtl" )
 gene_types=( "component_gene")
 gene_models=( "pmces_gene_adj_ld_scores")
@@ -34,12 +32,12 @@ for gene_type in "${gene_types[@]}"; do
 for gene_model in "${gene_models[@]}"; do
 for tissue_version in "${tissue_versions[@]}"; do
 
-	data_version=${variant_model}"_"${gene_type}"_"${tissue_version}"_"${gene_model}
+	data_version="sc_"${variant_model}"_"${gene_type}"_"${tissue_version}"_"${gene_model}
 	source /n/groups/price/ben/environments/sldsc/bin/activate
 	module load python/2.7.12
 	python ${mod_ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${preprocessed_tgfm_sldsc_data_dir}"regression_weights." --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_"
 	# Bootstrapped version
-	python ${mod_ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${preprocessed_tgfm_sldsc_data_dir}"regression_weights." --bootstrap --nonnegative-coefficient-file ${preprocessed_tgfm_sldsc_data_dir}${variant_model}"_"${tissue_version}"_nonnegative_coefficients.txt" --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_nonnegative_eqtl_bootstrapped_"
+	python ${mod_ldsc_code_dir}ldsc.py --h2 ${trait_file} --ref-ld-chr ${preprocessed_tgfm_sldsc_data_dir}${data_version}"." --w-ld-chr ${preprocessed_tgfm_sldsc_data_dir}"regression_weights." --bootstrap --nonnegative-coefficient-file ${preprocessed_tgfm_sldsc_data_dir}"sc_"${variant_model}"_"${tissue_version}"_nonnegative_coefficients.txt" --print-delete-vals --print-coefficients --out ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_nonnegative_eqtl_bootstrapped_"
 	source ~/.bash_profile
 	python3 organize_tgfm_sldsc_results.py ${tgfm_sldsc_results_dir}${trait_name}"_"${data_version}"_" ${preprocessed_tgfm_sldsc_data_dir}${data_version}
 done

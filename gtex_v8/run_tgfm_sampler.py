@@ -623,6 +623,7 @@ init_method = sys.argv[6]
 est_resid_var_str = sys.argv[7]
 ln_pi_method_name = sys.argv[8]
 gtex_pseudotissue_file = sys.argv[9]
+prior_dir= sys.argv[10]
 
 
 window_pvalue_thresh = 1e-5
@@ -756,7 +757,6 @@ for window_iter in range(n_windows):
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_tglr_bs_nn_sampler(prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
 	elif ln_pi_method_name == 'uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler':
-		prior_dir = '/n/groups/price/ben/causal_eqtl_gwas/gtex_v8/iterative_tgfm_prior/'
 		log_prior_file = tgfm_output_stem.split('_component_gene')[0] + '_component_gene_susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
 		log_prior_file = prior_dir + log_prior_file.split('/')[-1]
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_iterative_prior_sampler_sampler(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])

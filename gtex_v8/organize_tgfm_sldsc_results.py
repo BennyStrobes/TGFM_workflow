@@ -282,8 +282,8 @@ print_organized_summary_file(sldsc_output_root + 'organized_mediated_h2_5_50.txt
 
 
 # Load in annotation names and annotation sdevs
-annotation_sd_file = anno_stem + '_annotation_sdev.txt'
-annotation_names, annotation_sdev = load_in_annotation_sdev_data(annotation_sd_file)
+#annotation_sd_file = anno_stem + '_annotation_sdev.txt'
+#annotation_names, annotation_sdev = load_in_annotation_sdev_data(annotation_sd_file)
 
 
 # Load in jacknifed data
@@ -295,23 +295,23 @@ jacknifed_intercept_file = sldsc_output_root + '.intercept_delete'
 jacknifed_intercept = np.loadtxt(jacknifed_intercept_file)
 
 # Compute standardized jacknifed mean tau and covarianc
-annotation_sdev = annotation_sdev*300000.0
-annotation_sdev = (annotation_sdev*0.0 + 1.0)*300000.0
-standardized_jacknifed_taus = jacknifed_taus*annotation_sdev
+#annotation_sdev = annotation_sdev*300000.0
+#annotation_sdev = (annotation_sdev*0.0 + 1.0)*300000.0
+#standardized_jacknifed_taus = jacknifed_taus*annotation_sdev
 
 ######################
 # Add intercept
-standardized_jacknifed_taus = np.hstack((jacknifed_intercept.reshape(len(jacknifed_intercept),1), standardized_jacknifed_taus))
-annotation_sdev = np.hstack([np.asarray([1.0]), annotation_sdev])
-annotation_names = np.hstack([np.asarray(['intercept']), annotation_names])
+#standardized_jacknifed_taus = np.hstack((jacknifed_intercept.reshape(len(jacknifed_intercept),1), standardized_jacknifed_taus))
+#annotation_sdev = np.hstack([np.asarray([1.0]), annotation_sdev])
+#annotation_names = np.hstack([np.asarray(['intercept']), annotation_names])
 anno_names = np.hstack([np.asarray(['intercept']), anno_names])
 ######################
 
 
 
-jacknifed_tau_covariance, jacknifed_tau_mean = compute_jacknifed_covariance_matrix(standardized_jacknifed_taus)
+#jacknifed_tau_covariance, jacknifed_tau_mean = compute_jacknifed_covariance_matrix(standardized_jacknifed_taus)
 
-jacknifed_tau_z = jacknifed_tau_mean/np.sqrt(np.diag(jacknifed_tau_covariance))
+#jacknifed_tau_z = jacknifed_tau_mean/np.sqrt(np.diag(jacknifed_tau_covariance))
 
 
 # Extract annotations to be fixed (ie the non-eqtl annotations)
@@ -349,10 +349,10 @@ print_average_per_snp_and_per_gene_tissue_h2(jacknifed_taus, eqtl_start_index-1,
 #################
 # Multivariate updates (MV) UPDATES ACROSS range of Regularization parameters
 #for reg_param in [1e-2, 1e-1, 5e-1, 1.0, 2.0, 5.0, 10.0]:
+'''
 for reg_param in [5e-1]:
 	print(reg_param)
 
-	'''
 	non_eqtl_annotations_include_intercept = np.hstack([non_eqtl_annotations])
 	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES_EQTL_INTERCEPT(max_iter=10000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
 	sparse_sldsc_obj.fit(tau=jacknifed_tau_mean, tau_cov=jacknifed_tau_covariance, fixed_coefficients=non_eqtl_annotations_include_intercept)
@@ -364,9 +364,7 @@ for reg_param in [5e-1]:
 	print(anno_names[eqtl_annotations][np.argsort(eqtl_coef)])
 	pdb.set_trace()
 	#print_organized_summary_file(sldsc_output_root + 'organized_' + str(reg_param) + '_sparse_ard_eqtl_coefficients_mv_update_res.txt', anno_names, model_beta_mu/annotation_sdev, np.sqrt(model_beta_var)/annotation_sdev)
-	'''
 
-	'''
 
 	non_eqtl_annotations_include_intercept = np.hstack([non_eqtl_annotations])
 	sparse_sldsc_obj = SPARSE_SLDSC_ARD_SOME_FIXED_MV_UPDATES(max_iter=20000, L=10, nonneg=False, nonneg_int=eqtl_start_index, regularization_param=reg_param)
@@ -385,7 +383,7 @@ for reg_param in [5e-1]:
 	# Compute average per-snp and per-gene-tissue h2 for sparse model
 	print_average_per_snp_and_per_gene_tissue_h2_for_sparse_model((model_beta_mu/annotation_sdev)[1:], eqtl_start_index-1, m_vec, sldsc_output_root + str(reg_param) + '_sparse_ard_all_coefficients_mv_update_avg_per_snp_and_gene_tissue_h2.txt', anno_names[1:])
 
-	'''
+'''
 
 
 
