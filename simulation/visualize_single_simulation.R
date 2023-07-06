@@ -124,7 +124,6 @@ make_avg_per_tissue_fraction_causal_se_barplot_for_single_class <- function(df, 
 	#df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(300,500,1000))
 	df$tissue_number = factor(df$tissue_number)
-	print(summary(df))
 	p<-ggplot(data=df, aes(x=tissue_number, y=fraction_causal, fill=eqtl_sample_size)) +
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=fraction_causal_lb, ymax=fraction_causal_ub), width=.4, position=position_dodge(.9))  +
@@ -509,20 +508,115 @@ simulated_organized_results_dir = args[2]
 visualize_simulated_results_dir = args[3]
 
 
-if (FALSE) {
 #####################################################################
-# Fraction of genes detected
 #####################################################################
-# Load in data
-number_detected_genes_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_fraction_of_detected_heritable_genes.txt")
-n_genes_df <- read.table(number_detected_genes_file, header=TRUE)
-# Output file
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_number_of_susie_detected_genes.pdf")
-# Make plot
-n_genes_se_barplot <- make_n_detected_genes_se_barplot(n_genes_df)
-ggsave(n_genes_se_barplot, file=output_file, width=7.2, height=3.2, units="in")
-}
+# Genome-wide PRIOR
+#####################################################################
+#####################################################################
 
+#####################################################################
+# Make barplot with standard error showing AVG fraction-mediated per tissue
+#####################################################################
+version="pmces"
+# Load in data
+per_tissue_fraction_causal_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_", version, "_uniform_iterative_variant_gene_prior_pip_level_avg_fraction_causal_by_tissue.txt")
+
+per_tissue_fraction_causal_df <- read.table(per_tissue_fraction_causal_file, header=TRUE)
+# Make plot
+avg_per_tissue_fraction_causal_se_barplot <- make_avg_per_tissue_fraction_causal_se_barplot(per_tissue_fraction_causal_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_iterative_susie_", version, "_avg_fraction_causal_per_tissue.pdf")
+ggsave(avg_per_tissue_fraction_causal_se_barplot, file=output_file, width=7.2, height=3.5, units="in")
+
+#####################################################################
+# Make barplot with standard error showing Type 1 error across thresholds for bootstrapped iterative VGT PMCES
+#####################################################################
+# load in data
+t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_h2_type_1_error_across_thresholds.txt")
+t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
+# Make plot
+t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_across_thresholds(t1e_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+#####################################################################
+# Make barplot with standard error showing Power across thresholds for bootstrapped iterative VGT PMCES
+#####################################################################
+# load in data
+power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_mediated_h2_power_across_thresholds.txt")
+power_h2_df <- read.table(power_h2_file, header=TRUE)
+# Make plot
+power_se_barplot <- make_power_med_h2_se_barplot_across_thresholds(power_h2_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_power_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(power_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
+
+# Make joint plot
+joint_plot <- plot_grid(t1e_se_barplot + theme(legend.position="none"), power_se_barplot, ncol=1, rel_heights=c(1, 1.4))
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
+ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if (FALSE) {
 #####################################################################
 # Genome-wide analysis
 #####################################################################
@@ -588,22 +682,10 @@ avg_per_tissue_h2_se_barplot <- make_avg_per_tissue_tau_se_barplot(per_tissue_h2
 # Save to output
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_avg_tau_per_tissue_nonnegative_tglr_est.pdf")
 ggsave(avg_per_tissue_h2_se_barplot, file=output_file, width=7.2, height=3.5, units="in")
+}
 
 
-#####################################################################
-# Make barplot with standard error showing AVG fraction-mediated per tissue
-#####################################################################
-version="pmces"
-# Load in data
-per_tissue_fraction_causal_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_", version, "_uniform_iterative_variant_gene_prior_pip_level_avg_fraction_causal_by_tissue.txt")
-
-per_tissue_fraction_causal_df <- read.table(per_tissue_fraction_causal_file, header=TRUE)
-# Make plot
-avg_per_tissue_fraction_causal_se_barplot <- make_avg_per_tissue_fraction_causal_se_barplot(per_tissue_fraction_causal_df)
-# Save to output
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_iterative_susie_", version, "_avg_fraction_causal_per_tissue.pdf")
-ggsave(avg_per_tissue_fraction_causal_se_barplot, file=output_file, width=7.2, height=3.5, units="in")
-
+if (FALSE) {
 version="sampler"
 # Load in data
 per_tissue_fraction_causal_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_", version, "_uniform_iterative_variant_gene_prior_pip_level_avg_fraction_causal_by_tissue.txt")
@@ -614,7 +696,7 @@ avg_per_tissue_fraction_causal_se_barplot <- make_avg_per_tissue_fraction_causal
 # Save to output
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_iterative_susie_", version, "_avg_fraction_causal_per_tissue.pdf")
 ggsave(avg_per_tissue_fraction_causal_se_barplot, file=output_file, width=7.2, height=3.5, units="in")
-
+}
 
 
 if (FALSE) {
@@ -728,35 +810,6 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(joint_plot, file=output_file, width=7.2, height=7.5, units="in")
 
 
-
-#####################################################################
-# Make barplot with standard error showing Type 1 error across thresholds for bootstrapped iterative VGT PMCES
-#####################################################################
-# load in data
-t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_h2_type_1_error_across_thresholds.txt")
-t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
-# Make plot
-t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_across_thresholds(t1e_h2_df)
-# Save to output
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
-ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
-
-#####################################################################
-# Make barplot with standard error showing Power across thresholds for bootstrapped iterative VGT PMCES
-#####################################################################
-# load in data
-power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_mediated_h2_power_across_thresholds.txt")
-power_h2_df <- read.table(power_h2_file, header=TRUE)
-# Make plot
-power_se_barplot <- make_power_med_h2_se_barplot_across_thresholds(power_h2_df)
-# Save to output
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_power_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
-ggsave(power_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
-
-# Make joint plot
-joint_plot <- plot_grid(t1e_se_barplot, power_se_barplot, ncol=1)
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
-ggsave(joint_plot, file=output_file, width=7.2, height=7.5, units="in")
 
 
 #####################################################################

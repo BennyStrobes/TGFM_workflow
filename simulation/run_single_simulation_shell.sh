@@ -27,6 +27,7 @@ ldsc_code_dir="${18}"
 simulated_sldsc_results_dir="${19}"
 simulated_tgfm_input_data_dir="${20}"
 simulated_tgfm_results_dir="${21}"
+simulated_coloc_results_dir="${22}"
 
 source ~/.bash_profile
 module load R/4.0.1
@@ -45,6 +46,7 @@ echo "Simulation Step 1"
 python3 simulate_gene_expression_and_fit_gene_model.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir
 
 
+if false; then
 #######################################################
 # Step 2: Simulate trait values
 #######################################################
@@ -197,22 +199,42 @@ do
 	trait_file=${simulated_ld_scores_dir}${simulation_name_string}"_ldsc_ready_summary_statistics.txt"
 	python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --n-blocks 200 --chisq-max 1000 --ref-ld ${simulated_ld_scores_dir}${simulation_name_string}"_joint_baseline_variant_"${eqtl_sample_size}"_susie_distr_gene_ld_scores_genotype_intercept" --w-ld ${simulated_ld_scores_dir}${simulation_name_string}"_regression_weights."${chrom_num} --bootstrap --nonnegative-coefficient-file ${non_negative_coefficients_file} --print-delete-vals --print-coefficients --out ${simulated_sldsc_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_distr_sldsc_results_genotype_intercept_nonnegative_eqtl_bootstrapped_"
 done
-
+fi
 source ~/.bash_profile
 #######################################################
 # Step 8: Run GWAS on simulated trait on only snps in TGFM windows.
 #######################################################
 echo "Simulation Step 8"
 global_window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_3_mb.txt"
+if false; then
 python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $global_window_file $simulated_gwas_dir
+fi
+
+# Merge gwas data across windows
+source ~/.bash_profile
+merged_gwas_summary_stat_file=${simulated_gwas_dir}${simulation_name_string}"_merged_gwas_summary_stats.txt"
+python3 generate_merged_gwas_data.py $global_window_file $simulation_number $chrom_num $simulation_name_string ${simulated_gwas_dir} $processed_genotype_data_dir $n_gwas_individuals $merged_gwas_summary_stat_file
 
 
+#######################################################
+# Step 9: Run coloc
+#######################################################
+echo "Simulation Step 9"
+source ~/.bash_profile
+module load R/4.0.1
+eqtl_sample_size_arr=( "300" "500" "1000")
+for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
+do
+	python3 run_coloc_shell.py $merged_gwas_summary_stat_file $simulation_number $chrom_num $simulation_name_string $eqtl_sample_size $n_gwas_individuals $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_coloc_results_dir
+done
 
+if false; then
+source ~/.bash_profile
 
 #######################################################
 # Step 10: Preprocess data for TGFM
 #######################################################
-echo "Simulation Step 9"
+echo "Simulation Step 10"
 annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
 eqtl_type="susie"
 
@@ -223,7 +245,7 @@ do
 	echo $eqtl_sample_size
 	python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir
 done
-
+fi
 
 
 date

@@ -84,6 +84,9 @@ simulated_ld_scores_dir=$temp_output_root"simulated_ld_scores/"
 # Directory containing simulated sldsc results
 simulated_sldsc_results_dir=$temp_output_root"simulated_sldsc_results/"
 
+# Directory containing simulated coloc results
+simulated_coloc_results_dir=$temp_output_root"simulated_coloc_results/"
+
 # Directory containing organized simulation results
 simulated_organized_results_dir=$temp_output_root"simulated_organized_results/"
 
@@ -172,11 +175,17 @@ if false; then
 for simulation_number in $(seq 1 50); do 
 	# Simulation string used for output file
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
-	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir
+	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir
 done
 fi
 
-
+if false; then
+for simulation_number in $(seq 1 20); do 
+	# Simulation string used for output file
+	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
+	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir
+done
+fi
 
 ############################
 # Run single simulation of TGFM
@@ -218,7 +227,20 @@ parr_version="parallel_2"
 sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
 fi
 
-
+if false; then
+for simulation_number in $(seq 2 20); do 
+simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
+eqtl_sample_size="300"
+parr_version="parallel_2"
+sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
+eqtl_sample_size="500"
+parr_version="parallel_2"
+sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
+eqtl_sample_size="1000"
+parr_version="parallel_2"
+sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
+done
+fi
 
 
 
@@ -239,7 +261,7 @@ fi
 # Organize simulation results across parallel simulations
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
 if false; then
-sh organize_simulation_results_across_parallel_simulations.sh $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_sldsc_results_dir $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $simulated_gene_position_file $processed_genotype_data_dir $simulated_ld_scores_dir
+sh organize_simulation_results_across_parallel_simulations.sh $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_sldsc_results_dir $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $simulated_gene_position_file $processed_genotype_data_dir $simulated_ld_scores_dir $simulated_focus_results_dir
 fi
 
 ############################
