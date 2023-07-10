@@ -16,8 +16,7 @@ preprocessed_tgfm_data_dir="$5"
 job_number="$6"
 num_jobs="$7"
 gene_type="$8"
-annotation_dir="$9"
-tgfm_sldsc_results_dir="${10}"
+
 
 source ~/.bash_profile
 
@@ -25,6 +24,6 @@ echo $job_number
 
 date
 
-python3 preprocess_data_for_tgfm.py $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type $annotation_dir $tgfm_sldsc_results_dir
+python3 preprocess_data_for_tgfm.py $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type
 
 date

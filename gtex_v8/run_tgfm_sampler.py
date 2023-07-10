@@ -854,6 +854,8 @@ for window_iter in range(n_windows):
 	tgfm_results['variants'] = tgfm_data['variants']
 	tgfm_results['genes'] = tgfm_data['genes']
 	tgfm_results['alpha_phis'] = tgfm_obj.alpha_phis
+	tgfm_results['alpha_mus'] = tgfm_obj.alpha_mus
+	tgfm_results['alpha_vars'] = tgfm_obj.alpha_vars
 	#tgfm_results['beta_phis'] = tgfm_obj.beta_phis
 	#tgfm_results['alpha_lbfs'] = tgfm_obj.alpha_lbfs
 	#tgfm_results['beta_lbfs'] = tgfm_obj.beta_lbfs

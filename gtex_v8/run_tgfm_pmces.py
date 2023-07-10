@@ -238,7 +238,7 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 		del susie_null_init
 
 		# Only run alternative variant-only inititialization if we have high pip genes
-		if np.max(tgfm_obj.alpha_pip) > .05:
+		if np.max(tgfm_obj.alpha_pip) > .2:
 			print('extra')
 			# Run susie with only variants
 			p_var_only = np.ones(len(z_vec))

@@ -164,7 +164,7 @@ def sample_eqtl_effects_from_susie_distribution(gene_susie_mu, gene_susie_alpha,
 		sampled_eqtl_effects[random_snp_index] = sampled_eqtl_effects[random_snp_index] + random_effect_size
 	return sampled_eqtl_effects
 
-def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, global_variant_arr, LD, pseudotissues, tissue_to_gene_model_df, short_variant_to_annotation_vector, n_bs):
+def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, global_variant_arr, LD, pseudotissues, tissue_to_gene_model_df, n_bs):
 	# Get list of gene_tissue pairs and weight files for this window
 	gene_tissue_pairs, gene_tissue_pair_weight_files, gene_tss_arr = get_list_of_gene_tissue_pairs_and_weight_files_for_window(window_chrom_num, window_start, window_end, pseudotissues, tissue_to_gene_model_df)
 
@@ -276,7 +276,7 @@ def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chro
 
 
 	# Extract annotation mat for these variants
-	annotation_mat = extract_annotation_mat_for_window_variants(short_variant_to_annotation_vector, global_variant_arr)
+	#annotation_mat = extract_annotation_mat_for_window_variants(short_variant_to_annotation_vector, global_variant_arr)
 
 	# Get middle indices
 	window_middle_start = window_start + 1000000
@@ -285,7 +285,7 @@ def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chro
 	middle_variant_indices = np.where((variant_positions >= window_middle_start) & (variant_positions < window_middle_end))[0]
 
 	# Save to global object
-	global_dictionary = {'genes': gene_tissue_pairs,'tss':gene_tss_arr, 'valid_susie_components':global_components, 'variants': global_variant_arr, 'varriant_positions': variant_positions, 'annotation': annotation_mat, 'gene_eqtl_pmces': np.asarray(global_weight_vectors), 'gene_variances': np.asarray(gene_variances), 'full_gene_variances': np.asarray(gene_full_variances), 'sparse_sampled_gene_eqtl_pmces':sparse_sampled_gene_eqtl_pmces, 'middle_gene_indices': middle_gene_indices, 'middle_variant_indices': middle_variant_indices}
+	global_dictionary = {'genes': gene_tissue_pairs,'tss':gene_tss_arr, 'valid_susie_components':global_components, 'variants': global_variant_arr, 'varriant_positions': variant_positions, 'gene_eqtl_pmces': np.asarray(global_weight_vectors), 'gene_variances': np.asarray(gene_variances), 'full_gene_variances': np.asarray(gene_full_variances), 'sparse_sampled_gene_eqtl_pmces':sparse_sampled_gene_eqtl_pmces, 'middle_gene_indices': middle_gene_indices, 'middle_variant_indices': middle_variant_indices}
 
 	return global_dictionary
 
@@ -957,7 +957,7 @@ def create_mapping_from_short_variant_name_to_annotation_vec(used_chrom_arr, ann
 			dicti_mapping[short_variant_name] = annotation_vec
 	return dicti_mapping
 
-def extract_uniform_log_prior_probabilities(gene_names, variant_names, study_names, tgfm_sldsc_results_dir):
+def extract_uniform_log_prior_probabilities(gene_names, variant_names, study_names):
 	# General info
 	n_genes = len(gene_names)
 	n_variants = len(variant_names)
@@ -1077,8 +1077,6 @@ preprocessed_tgfm_data_dir = sys.argv[5] # Output dir
 job_number = int(sys.argv[6])  # For parallelization purposes
 num_jobs = int(sys.argv[7])  # For parallelization purposes
 gene_type = sys.argv[8]
-annotation_dir = sys.argv[9]
-tgfm_sldsc_results_dir = sys.argv[10]
 
 # Number of bootstrap samples
 n_bs = 100
@@ -1108,7 +1106,7 @@ hapmap3_snps = get_dictionary_list_of_hapmap3_snpids(hapmap3_snpid_file)
 # Get chromosome nums in this parallel window
 used_chrom_arr = get_chromosome_names_used_in_this_analysis(ukbb_windows_parr)
 print(used_chrom_arr)
-short_variant_name_to_annotation_vec = create_mapping_from_short_variant_name_to_annotation_vec(used_chrom_arr, annotation_dir)
+#short_variant_name_to_annotation_vec = create_mapping_from_short_variant_name_to_annotation_vec(used_chrom_arr, annotation_dir)
 
 
 
@@ -1159,7 +1157,7 @@ for window_iter in range(num_windows):
 	gwas_beta_se = np.loadtxt(window_gwas_beta_se_file)
 
 	# Organize TGFM trait agnostic input for single window
-	tgfm_data_obj = organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, window_variant_names, LD, pseudotissues, tissue_to_gene_model_df, short_variant_name_to_annotation_vec, n_bs)
+	tgfm_data_obj = organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, window_variant_names, LD, pseudotissues, tissue_to_gene_model_df, n_bs)
 
 	# Save TGFM input data object
 	pkl_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_trait_agnostic_input_data_obj.pkl'
@@ -1175,7 +1173,7 @@ for window_iter in range(num_windows):
 
 
 	# Extract log-prior probabilities of each element being causal
-	uniform_ln_prior_gene, uniform_ln_prior_variant = extract_uniform_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names, tgfm_sldsc_results_dir)
+	uniform_ln_prior_gene, uniform_ln_prior_variant = extract_uniform_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names)
 	#variant_gene_ln_prior_gene, variant_gene_ln_prior_variant = extract_variant_gene_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names, tgfm_sldsc_results_dir)
 	#sparse_variant_gene_tissue_ln_prior_gene, sparse_variant_gene_tissue_ln_prior_variant = extract_sparse_variant_gene_tissue_log_prior_probabilities(tgfm_data_obj['genes'], tgfm_data_obj['variants'], study_names, tgfm_sldsc_results_dir)
 

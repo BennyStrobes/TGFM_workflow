@@ -19,6 +19,7 @@ ukbb_hg38_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg
 liftover_directory="/n/groups/price/ben/tools/liftOver_x86/"
 
 # File containing gtex tissues to do analysis on and their sample size
+# Individual names: /n/groups/price/tiffany/subpheno/AllGTExTissues_restore/Downsampled_Ind
 gtex_pseudotissue_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_info.txt"
 # File containing gtex pseudotissues and their assigned tissue category
 gtex_pseudotissue_category_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_categories.txt"
@@ -369,7 +370,7 @@ gene_type="component_gene"
 ukkbb_window_summary_file=$ukbb_preprocessed_for_genome_wide_susie_dir"genome_wide_susie_windows_and_processed_data.txt"
 if false; then
 for job_number in $(seq 0 $(($num_jobs-1))); do 
-	sbatch preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type $preprocessed_tgfm_sldsc_data_dir $tgfm_sldsc_results_dir
+	sbatch preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $hapmap3_snpid_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type
 done
 fi
 
@@ -387,16 +388,7 @@ gene_type="component_gene"
 num_jobs="8"
 
 if false; then
-trait_name="blood_MONOCYTE_COUNT"
-for job_number in $(seq 0 $(($num_jobs-1))); do
-	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
-done
-fi
-
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_version2.txt" | while read trait_name study_file sample_size h2; do
 	for job_number in $(seq 0 $(($num_jobs-1))); do
 		tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 		tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
@@ -417,12 +409,7 @@ fi
 tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 
 if false; then
-trait_name="blood_RED_COUNT"
-	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir
-fi
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_version2.txt" | while read trait_name study_file sample_size h2; do
 	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir
 done
@@ -435,7 +422,7 @@ fi
 gene_type="component_gene"
 num_jobs="8"
 if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_version2_a.txt" | while read trait_name study_file sample_size h2; do
 echo $trait_name
 
 for job_number in $(seq 0 $(($num_jobs-1))); do
@@ -446,8 +433,17 @@ done
 done
 fi
 
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_version2_b.txt" | while read trait_name study_file sample_size h2; do
+echo $trait_name
 
-
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
+done
+done
+fi
 
 
 #################################
