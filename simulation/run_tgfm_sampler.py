@@ -694,13 +694,15 @@ for window_iter in range(n_windows):
 	tgfm_results['expected_beta_pips'] = tgfm_obj.expected_beta_pips
 	tgfm_results['valid_components'] = valid_tgfm_sampler_components
 	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
+	tgfm_results['middle_gene_indices'] = tgfm_data['middle_gene_indices']
+	tgfm_results['middle_variant_indices'] = tgfm_data['middle_variant_indices']
+
 
 	# Write pickle file
-	if ln_pi_method_name == 'uniform':
-		window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
-		g = open(window_tgfm_output_file, "wb")
-		pickle.dump(tgfm_results, g)
-		g.close()
+	window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
+	g = open(window_tgfm_output_file, "wb")
+	pickle.dump(tgfm_results, g)
+	g.close()
 
 
 # Close file handles

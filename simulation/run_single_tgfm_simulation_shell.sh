@@ -69,14 +69,33 @@ if [ $parr_version == "parallel_2" ]; then
 version="pmces"
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
+if false; then
 python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $tgfm_input_summary_file $tgfm_output_stem $version
-
+fi
 
 ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
 
 fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

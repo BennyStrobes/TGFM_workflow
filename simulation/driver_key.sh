@@ -88,7 +88,7 @@ simulated_sldsc_results_dir=$temp_output_root"simulated_sldsc_results/"
 simulated_coloc_results_dir=$temp_output_root"simulated_coloc_results/"
 
 # Directory containing organized simulation results
-simulated_organized_results_dir=$temp_output_root"simulated_organized_results/"
+simulated_organized_results_dir=$perm_output_root"simulated_organized_results/"
 
 # Directory containing simulated tgfm input data
 simulated_tgfm_input_data_dir=$alkes_temp_output_root"simulated_tgfm_input/"
@@ -213,8 +213,8 @@ fi
 
 
 # Run standard simulation
-simulation_number="1"
 if false; then
+simulation_number="1"
 simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
 eqtl_sample_size="300"
 parr_version="parallel_2"
@@ -256,8 +256,6 @@ fi
 
 
 
-
-
 # Organize simulation results across parallel simulations
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
 if false; then
@@ -271,10 +269,8 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
-
-if false; then
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
 Rscript visualize_single_simulation.R $global_simulation_name_string $simulated_organized_results_dir $visualize_simulated_results_dir
-fi
+
 
 

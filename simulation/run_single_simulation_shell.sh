@@ -38,6 +38,7 @@ date
 
 mkdir ${simulated_learned_gene_models_base_dir}"simulation_"${simulation_number}
 simulated_learned_gene_models_dir=${simulated_learned_gene_models_base_dir}"simulation_"${simulation_number}"/"
+if false; then
 
 #######################################################
 # Step 1: Simulate gene expression and fit gene models
@@ -46,7 +47,6 @@ echo "Simulation Step 1"
 python3 simulate_gene_expression_and_fit_gene_model.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir
 
 
-if false; then
 #######################################################
 # Step 2: Simulate trait values
 #######################################################
@@ -211,6 +211,7 @@ python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows.py $simulation_numbe
 fi
 
 # Merge gwas data across windows
+if false; then
 source ~/.bash_profile
 merged_gwas_summary_stat_file=${simulated_gwas_dir}${simulation_name_string}"_merged_gwas_summary_stats.txt"
 python3 generate_merged_gwas_data.py $global_window_file $simulation_number $chrom_num $simulation_name_string ${simulated_gwas_dir} $processed_genotype_data_dir $n_gwas_individuals $merged_gwas_summary_stat_file
@@ -228,7 +229,8 @@ do
 	python3 run_coloc_shell.py $merged_gwas_summary_stat_file $simulation_number $chrom_num $simulation_name_string $eqtl_sample_size $n_gwas_individuals $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_coloc_results_dir
 done
 
-if false; then
+fi
+
 source ~/.bash_profile
 
 #######################################################
@@ -245,7 +247,7 @@ do
 	echo $eqtl_sample_size
 	python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir
 done
-fi
+
 
 
 date

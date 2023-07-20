@@ -1663,6 +1663,120 @@ def create_file_containing_averaged_focus_cs_power(focus_cs_power_per_component_
 	t.close()
 	return
 
+def create_file_containing_expected_fraction_of_tgfm_elements_mediated_by_gene_expression(global_window_file, eqtl_sample_sizes, simulation_runs, twas_method, ln_pi_method, global_simulation_name_string, simulated_tgfm_results_dir, expected_fraction_of_elements_mediated_by_gene_expression_summary_file):
+	# Get window names
+	window_names = np.loadtxt(global_window_file,dtype=str,delimiter='\t')[1:,0]
+
+	# Keep track of number of high pip elements across windows
+	n_high_pip_elements = {}
+	for eqtl_sample_size in eqtl_sample_sizes:
+		n_high_pip_elements[eqtl_sample_size] = (0.0, 0.0)  # gene, variant
+
+	for simulation_run in simulation_runs:
+		print(simulation_run)
+		for eqtl_sample_size in eqtl_sample_sizes:
+			for window_name in window_names:
+				tgfm_results_pkl = simulated_tgfm_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method + '_' + window_name + '_results.pkl'
+
+				# Skip window if run not successs
+				if os.path.isfile(tgfm_results_pkl) == False:
+					continue
+
+				# Load in pkl file
+				g = open(tgfm_results_pkl, "rb")
+				tgfm_res = pickle.load(g)
+				g.close()
+
+				# Extract pips in middle
+				middle_gene_pips = tgfm_res['expected_alpha_pips'][tgfm_res['middle_gene_indices']]
+				middle_variant_pips = tgfm_res['expected_beta_pips'][tgfm_res['middle_variant_indices']]
+
+				# Update global counter
+				old_tuple = n_high_pip_elements[eqtl_sample_size]
+				new_tuple = (old_tuple[0] + np.sum(middle_gene_pips), old_tuple[1] + np.sum(middle_variant_pips))
+				n_high_pip_elements[eqtl_sample_size] = new_tuple
+
+
+	# Print to output file
+	t = open(expected_fraction_of_elements_mediated_by_gene_expression_summary_file,'w')
+	# Header 
+	t.write('eQTL_sample_size\tnum_genes\tnum_snps\texpression_mediated_fraction\texpression_mediated_fraction_lb\texpression_mediated_fraction_ub\n')
+	for eqtl_sample_size in eqtl_sample_sizes:
+		num_genes = n_high_pip_elements[eqtl_sample_size][0]
+		num_variants = n_high_pip_elements[eqtl_sample_size][1]
+		prop = num_genes/(num_genes + num_variants)
+
+		prop_se = np.sqrt((prop)*(1.0-prop))/np.sqrt(num_genes + num_variants)
+		prop_lb = prop - (1.96*prop_se)
+		prop_ub = prop + (1.96*prop_se)
+
+		t.write(str(eqtl_sample_size) + '\t' + str(num_genes) + '\t' + str(num_variants) + '\t' + str(prop) + '\t' + str(prop_lb) + '\t' + str(prop_ub) + '\n')
+	t.close()
+	return	
+
+def create_file_containing_fraction_of_high_pip_tgfm_elements_mediated_by_gene_expression(global_window_file, eqtl_sample_sizes, simulation_runs, pip_thresholds, twas_method, ln_pi_method, global_simulation_name_string, simulated_tgfm_results_dir, fraction_high_pip_elements_mediated_by_gene_expression_summary_file):
+	# Get window names
+	window_names = np.loadtxt(global_window_file,dtype=str,delimiter='\t')[1:,0]
+
+	# Keep track of number of high pip elements across windows
+	n_high_pip_elements = {}
+	for eqtl_sample_size in eqtl_sample_sizes:
+		n_high_pip_elements[eqtl_sample_size] = {}
+		for pip_threshold in pip_thresholds:
+			n_high_pip_elements[eqtl_sample_size][pip_threshold] = (0.0, 0.0)
+
+	for simulation_run in simulation_runs:
+		print(simulation_run)
+		for eqtl_sample_size in eqtl_sample_sizes:
+			#tgfm_results_pkl = simulated_tgfm_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method + '_' + window_name + '_results.pkl'
+			tgfm_results_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method  + '_tgfm_pip_summary.txt'
+			f = open(tgfm_results_file)
+			head_count = 0
+			for line in f:
+				line = line.rstrip()
+				data = line.split('\t')
+				if head_count == 0:
+					head_count = head_count + 1
+					continue
+				if len(data) != 3:
+					continue
+				if data[1] == 'NA':
+					continue
+				ele_names = np.asarray(data[1].split(';'))
+				ele_pips = np.asarray(data[2].split(';')).astype(float)
+
+				for pip_threshold in pip_thresholds:
+					indices = ele_pips >= pip_threshold
+					high_pip_eles = ele_names[indices]
+					for high_pip_ele in high_pip_eles:
+						if high_pip_ele.startswith('ENSG'):
+							prev_tuple = n_high_pip_elements[eqtl_sample_size][pip_threshold]
+							new_tuple = (prev_tuple[0] + 1, prev_tuple[1])
+							n_high_pip_elements[eqtl_sample_size][pip_threshold] = new_tuple
+						else:
+							prev_tuple = n_high_pip_elements[eqtl_sample_size][pip_threshold]
+							new_tuple = (prev_tuple[0], prev_tuple[1] + 1)
+							n_high_pip_elements[eqtl_sample_size][pip_threshold] = new_tuple
+			f.close()
+
+	# Print to output file
+	t = open(fraction_high_pip_elements_mediated_by_gene_expression_summary_file,'w')
+	# Header 
+	t.write('eQTL_sample_size\tPIP_threshold\tnum_genes\tnum_snps\texpression_mediated_fraction\texpression_mediated_fraction_lb\texpression_mediated_fraction_ub\n')
+	for eqtl_sample_size in eqtl_sample_sizes:
+		for pip_threshold in pip_thresholds:
+			num_genes = n_high_pip_elements[eqtl_sample_size][pip_threshold][0]
+			num_variants = n_high_pip_elements[eqtl_sample_size][pip_threshold][1]
+			prop = num_genes/(num_genes + num_variants)
+
+			prop_se = np.sqrt((prop)*(1.0-prop))/np.sqrt(num_genes + num_variants)
+			prop_lb = prop - (1.96*prop_se)
+			prop_ub = prop + (1.96*prop_se)
+
+			t.write(str(eqtl_sample_size) + '\t' + str(pip_threshold) + '\t' + str(num_genes) + '\t' + str(num_variants) + '\t' + str(prop) + '\t' + str(prop_lb) + '\t' + str(prop_ub) + '\n')
+	t.close()
+	return
+
 
 #######################
 # Command line args
@@ -1693,11 +1807,10 @@ simulated_coloc_results_dir = sys.argv[18]
 #Bim file
 bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + chrom_num + '.bim'
 
-'''
 # Used eQTL sample sizes
 eqtl_sample_sizes = np.asarray([300,500,1000])
 
-
+'''
 # Simulation runs
 # Currently hacky because had some failed simulations
 simulation_runs = np.arange(1,21)
@@ -1746,6 +1859,38 @@ for model_name in model_names:
 '''
 
 #############################################################
+# Fraction of TGFM elements mediated by gene expression
+#############################################################
+# Used eQTL sample sizes
+eqtl_sample_sizes = np.asarray([300,500,1000])
+
+
+# Simulation runs
+# Currently hacky because had some failed simulations
+simulation_runs = np.arange(1,21)
+
+# Thresholds to consider
+pip_thresholds=np.asarray([.1, .3, .5, .7, .9])
+
+# Model specification
+twas_method = 'susie_sampler'
+ln_pi_method = 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped'
+
+# Windows
+global_window_file = processed_genotype_data_dir + 'chromosome_' + str(chrom_num) + '_windows_3_mb.txt'
+
+# Create file containing fraction of high pip elememnts mediated by gene expresssion
+fraction_high_pip_elements_mediated_by_gene_expression_summary_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + twas_method + '_' + ln_pi_method + '_fraction_high_pip_elements_mediated_by_gene_expresssion.txt'
+#create_file_containing_fraction_of_high_pip_tgfm_elements_mediated_by_gene_expression(global_window_file, eqtl_sample_sizes, simulation_runs, pip_thresholds, twas_method, ln_pi_method, global_simulation_name_string, simulated_tgfm_results_dir, fraction_high_pip_elements_mediated_by_gene_expression_summary_file)
+
+# Create file containing expected fraction of elememnts mediated by gene expresssion
+expected_fraction_of_elements_mediated_by_gene_expression_summary_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + twas_method + '_' + ln_pi_method + '_expected_fraction_elements_mediated_by_gene_expresssion.txt'
+create_file_containing_expected_fraction_of_tgfm_elements_mediated_by_gene_expression(global_window_file, eqtl_sample_sizes, simulation_runs, twas_method, ln_pi_method, global_simulation_name_string, simulated_tgfm_results_dir, expected_fraction_of_elements_mediated_by_gene_expression_summary_file)
+
+
+
+'''
+#############################################################
 # Fine-mapping evaluation metrics
 #############################################################
 # Used eQTL sample sizes
@@ -1774,7 +1919,6 @@ bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + chrom_num + '.
 # Windows
 global_window_file = processed_genotype_data_dir + 'chromosome_' + str(chrom_num) + '_windows_3_mb.txt'
 
-'''
 ##################################
 # Coverage/Calibration to detect snps with PIP > threshold
 ##################################
@@ -1850,7 +1994,6 @@ for pip_threshold in pip_thresholds:
 
 	coloc_cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_calibration.txt'
 	create_file_containing_averaged_focus_high_pip_calibration(coloc_cs_coverage_per_high_pip_snp_output_file, coloc_cs_high_pip_coverage_output_file, eqtl_sample_sizes)
-'''
 
 ##################################
 # coloc Power to detect snps with PIP > threshold
@@ -1867,7 +2010,7 @@ for pip_threshold in pip_thresholds:
 	create_file_containing_averaged_focus_cs_power(coloc_cs_power_per_component_output_file, coloc_cs_power_output_file, eqtl_sample_sizes)
 
 
-
+'''
 
 
 

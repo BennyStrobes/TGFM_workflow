@@ -160,6 +160,9 @@ sparse_ldsc_heritability_results_dir=$output_root"sparse_ldsc_heritability_resul
 # Directory containing TGFM results
 tgfm_results_dir=$output_root"tgfm_results/"
 
+# Directory containing organized TGFM results
+tgfm_organized_results_dir=$perm_output_root"tgfm_organized_results/"
+
 # Directory containing TGFM iterative prior results
 iterative_tgfm_prior_results_dir=$perm_output_root"iterative_tgfm_prior/"
 
@@ -191,6 +194,7 @@ tgfm_sldsc_results_dir=$perm_output_root"tgfm_sldsc_results/"
 
 visualize_tgfm_sldsc_dir=$output_root"visualize_tgfm_sldsc/"
 
+visualize_gtex_tgfm_dir=$perm_output_root"visualize_gtex_tgfm/"
 visualize_tgfm_dir=$output_root"visualize_tgfm/"
 
 # Directory containing processed sc expression data
@@ -436,7 +440,6 @@ fi
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_version2_b.txt" | while read trait_name study_file sample_size h2; do
 echo $trait_name
-
 for job_number in $(seq 0 $(($num_jobs-1))); do
 	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
@@ -446,12 +449,28 @@ done
 fi
 
 
+
 #################################
 # Organize TGFM Results across parallel runs
 #################################
 if false; then
-sbatch organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir
+sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir $tgfm_organized_results_dir
 fi
+
+#################################
+# Visualize TGFM results
+#################################
+if false; then
+source ~/.bash_profile
+module load R/3.5.1
+fi
+if false; then
+Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable2.txt" $tgfm_sldsc_results_dir $tgfm_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $visualize_gtex_tgfm_dir
+fi
+
+
+
+
 
 #################################
 # Run drug target gene set enrichment analysis
