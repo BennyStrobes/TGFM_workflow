@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-34:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-24:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=40GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=30GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -76,8 +76,27 @@ fi
 ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
+fi
+
+
+if [ $parr_version == "parallel_3" ]; then
+
+# Uniform (sampler)
+ln_pi_method="uniform"
+init_method="standard"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_bayesian_"${init_method}"_"${ln_pi_method}
+python3 run_tgfm_bayesian.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
+
 
 fi
+
+
+
+
+
+
+
+
 
 
 
@@ -152,7 +171,7 @@ python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_met
 fi
 
 
-if [ $parr_version == "parallel_3" ]; then
+if [ $parr_version == "parallel_20" ]; then
 
 # Iterative prior (PMCES)
 version="pmces"
@@ -173,7 +192,7 @@ python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_met
 
 fi
 
-if [ $parr_version == "parallel_4" ]; then
+if [ $parr_version == "parallel_25" ]; then
 
 # Iterative prior (PMCES)
 version="pmces"

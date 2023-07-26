@@ -1122,7 +1122,7 @@ def create_file_containing_number_of_detected_genes(global_simulation_name_strin
 def create_file_containing_coloc_cs_calibration_per_high_pip_snp(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_coloc_results_dir, pip_threshold, coloc_cs_coverage_per_high_pip_snp_output_file):
 	# Open output file handle
 	t = open(coloc_cs_coverage_per_high_pip_snp_output_file,'w')
-	t.write('eQTL_sample_size\tsimulation_number\twindow_name\tgenetic_element_name\tgenetic_element_class\tcausal_genetic_element_in_cs\n')
+	t.write('eQTL_sample_size\tsimulation_number\twindow_name\tgenetic_element_name\tgenetic_element_class\tcausal_genetic_element_in_cs\tPIP\n')
 
 	# First loop through simulations
 	for simulation_number in simulation_runs:
@@ -1160,14 +1160,17 @@ def create_file_containing_coloc_cs_calibration_per_high_pip_snp(global_simulati
 					causal_genetic_element_in_cs_boolean = 1
 				else:
 					causal_genetic_element_in_cs_boolean = 0
-				t.write(str(eqtl_sample_size) + '\t' + str(simulation_number) + '\t' + region_name + '\t' + gene_id + '\t' + 'gene' + '\t' + str(causal_genetic_element_in_cs_boolean) + '\n')
+				t.write(str(eqtl_sample_size) + '\t' + str(simulation_number) + '\t' + region_name + '\t' + gene_id + '\t' + 'gene' + '\t' + str(causal_genetic_element_in_cs_boolean) + '\t' + str(gene_pip) + '\n')
 	t.close()
-	return	
+	return
+
+
+
 
 def create_file_containing_focus_cs_calibration_per_high_pip_snp(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, pip_threshold, focus_cs_coverage_per_high_pip_snp_output_file):
 	# Open output file handle
 	t = open(focus_cs_coverage_per_high_pip_snp_output_file,'w')
-	t.write('eQTL_sample_size\tsimulation_number\twindow_name\tgenetic_element_name\tgenetic_element_class\tcausal_genetic_element_in_cs\n')
+	t.write('eQTL_sample_size\tsimulation_number\twindow_name\tgenetic_element_name\tgenetic_element_class\tcausal_genetic_element_in_cs\tPIP\n')
 
 	# First loop through simulations
 	for simulation_number in simulation_runs:
@@ -1208,14 +1211,247 @@ def create_file_containing_focus_cs_calibration_per_high_pip_snp(global_simulati
 					causal_genetic_element_in_cs_boolean = 1
 				else:
 					causal_genetic_element_in_cs_boolean = 0
-				t.write(str(eqtl_sample_size) + '\t' + str(simulation_number) + '\t' + region_name + '\t' + gene_id + '\t' + 'gene' + '\t' + str(causal_genetic_element_in_cs_boolean) + '\n')
+				t.write(str(eqtl_sample_size) + '\t' + str(simulation_number) + '\t' + region_name + '\t' + gene_id + '\t' + 'gene' + '\t' + str(causal_genetic_element_in_cs_boolean) + '\t' + str(gene_pip) + '\n')
 	t.close()
-	return	
+	return
+
+def extract_gwas_eqtl_variants(gene_tissue_pairs, simulation_number, global_simulation_name_string, simulated_gene_expression_dir):
+	dicti = {}
+	for gene_tissue_pair in gene_tissue_pairs:
+		gene_name = gene_tissue_pair.split('_')[0]
+		tissue_num = int(gene_tissue_pair.split('issue')[1])
+		causal_eqtl_effects_file = simulated_gene_expression_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_' + gene_name + '_' + 'causal_eqtl_effects.npy'
+		causal_eqtl_effects = np.load(causal_eqtl_effects_file)
+		window_snps_file = simulated_gene_expression_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_' + gene_name + '_' + 'cis_snpids.npy'
+		window_snps = np.load(window_snps_file,allow_pickle=True)[:,1]
+		causal_snp_indices = causal_eqtl_effects[:,tissue_num] != 0.0
+		causal_snps = window_snps[causal_snp_indices]
+		for causal_snp in causal_snps:
+			dicti[causal_snp] =1
+	return dicti
+
+def create_file_containing_tgfm_cs_calibration_per_high_pip_snp_non_mediated_variants_include_gene_variants(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, twas_methods, simulated_trait_dir, simulated_tgfm_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file, simulated_gene_expression_dir):
+	# Open output file handle
+	t = open(cs_coverage_per_high_pip_snp_output_file,'w')
+	t.write('eQTL_sample_size\tln_pi_method\ttwas_method\tsimulation_number\twindow_name\tcomponent_number\tgenetic_element_name\tgenetic_element_class\tcausal_genetic_element_in_cs\tPIP\n')
+
+	# First loop through simulations
+	for simulation_number in simulation_runs:
+		# First extract dictionary list of causal genetic elements
+		causal_variant_file = simulated_trait_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_non_mediated_variant_causal_effect_sizes.txt'
+		causal_gene_file = simulated_trait_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_expression_mediated_gene_causal_effect_sizes.txt'
+		causal_genetic_elements, causal_variants, causal_genes = extract_dictionary_list_of_causal_genetic_elements(causal_gene_file, causal_variant_file)
+
+		gene_based_variants = extract_gwas_eqtl_variants([*causal_genes], simulation_number, global_simulation_name_string, simulated_gene_expression_dir)
+		for gene_based_variant in [*gene_based_variants]:
+			causal_genetic_elements[gene_based_variant] = 1
+
+		# Now loop through eqtl sample sizes and ln_pi methods
+		for eqtl_sample_size in eqtl_sample_sizes:
+			for ln_pi_method in ln_pi_methods:
+				for twas_method in twas_methods:
+					if ln_pi_method.endswith('bootstrapped') and twas_method == 'susie_pmces':
+						continue
+					if ln_pi_method.startswith('tglr_bootstrapped') and twas_method == 'susie_pmces':
+						continue
+					if ln_pi_method == 'pmces_uniform_iterative_variant_gene_prior_pip_level_pmces' and twas_method == 'susie_pmces':
+						continue					
+					# Credible set file for this run
+					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method + '_tgfm_pip_summary.txt'
+					f = open(cs_file)
+					head_count = 0
+					for line in f:
+						line = line.rstrip()
+						data = line.split('\t')
+						if head_count == 0:
+							head_count = head_count + 1
+							continue
+						component_window_name = data[0]
+						component_num = 'NA'
+						if len(data) < 3:
+							continue
+						if data[2] == 'NA':
+							continue
+						all_cs_genetic_elements = data[1].split(';')
+						cs_probs = np.asarray(data[2].split(';')).astype(float)
+						cs_genetic_elements = []
+						cs_genetic_element_pips = []
+						for element_iter, cs_prob in enumerate(cs_probs):
+							if cs_prob >= pip_threshold:
+								cs_genetic_elements.append(all_cs_genetic_elements[element_iter])
+								cs_genetic_element_pips.append(cs_prob)
+						cs_genetic_elements = np.asarray(cs_genetic_elements)
+						if len(cs_genetic_elements) == 0:
+							continue
+
+
+						# Extract n_causal_components
+						full_window_name = str(simulation_number) + '_' + component_window_name
+						#n_causal_elements = full_window_name_to_n_causal_elements[full_window_name]
+
+						for ii,genetic_element_name in enumerate(cs_genetic_elements):
+							if genetic_element_name.startswith('ENSG'):
+								class_name = 'gene'
+							elif genetic_element_name.startswith('rs'):
+								class_name = 'variant'
+							else:
+								print('assumptino eroror')
+								pdb.set_trace()
+
+							genetic_element_pip = cs_genetic_element_pips[ii]
+							# Check if cs contains at least one causal genetic element
+							causal_genetic_element_in_cs_boolean = check_if_at_least_one_causal_genetic_element_is_in_cs([genetic_element_name], causal_genetic_elements)
+
+							t.write(str(eqtl_sample_size) + '\t' + ln_pi_method + '\t' + twas_method + '\t' + str(simulation_number) + '\t' + component_window_name + '\t' + component_num + '\t' + genetic_element_name + '\t' + class_name  + '\t' + str(int(causal_genetic_element_in_cs_boolean)) + '\t' + str(genetic_element_pip) + '\n')
+					f.close()
+
+
+
+	t.close()
+	return
+
+
+def compute_expected_pips_from_sampler_pis(gene_alphas):
+	n_bs = gene_alphas[0].shape[0]
+	n_genes = gene_alphas[0].shape[1]
+	LL = len(gene_alphas)
+
+
+	alpha_pips = np.ones((n_bs, n_genes))
+
+	for component_iter in range(LL):
+		alpha_pips = alpha_pips*(1.0 - gene_alphas[component_iter])
+
+	alpha_pips = 1.0 - alpha_pips
+
+	expected_alpha_pips = np.mean(alpha_pips,axis=0)
+	return expected_alpha_pips
+
+
+def extract_middle_gene_agg_pips_from_tgfm_obj( tgfm_res_file):
+
+	g = open(tgfm_res_file, "rb")
+	tgfm_res = pickle.load(g)
+	g.close()
+
+
+	if 'expected_alpha_pips' in tgfm_res:
+		alphas = tgfm_res['alpha_phis']
+		middle_genes_indices = tgfm_res['middle_gene_indices']
+		middle_gene_tissues = tgfm_res['genes'][middle_genes_indices]
+
+		gene_to_indices = {}
+		for ii, middle_gene_tissue in enumerate(middle_gene_tissues):
+			gene_name = middle_gene_tissue.split('_')[0]
+			if gene_name not in gene_to_indices:
+				gene_to_indices[gene_name] = []
+			gene_to_indices[gene_name].append(ii)
+		n_genes = len(gene_to_indices)
+		ordered_genes = [*gene_to_indices]
+		LL = len(alphas)
+		gene_alphas = []
+		for ll in range(LL):
+			new_alpha = np.zeros((alphas[ll].shape[0], n_genes))
+			for ii,gene_name in enumerate(ordered_genes):
+				tmper = alphas[ll][:, middle_genes_indices]
+				new_alpha[:, ii] = np.sum(tmper[:, gene_to_indices[gene_name]],axis=1)
+			gene_alphas.append(new_alpha)
+		expected_alpha_pips = compute_expected_pips_from_sampler_pis(gene_alphas)
+	else:
+		alphas = tgfm_res['alpha_pip']
+		pdb.set_trace()
+
+
+	return np.asarray(ordered_genes), np.asarray(expected_alpha_pips)
+
+
+def create_file_containing_tgfm_cs_calibration_per_high_pip_genes(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, twas_methods, simulated_trait_dir, simulated_tgfm_input_data_dir, simulated_tgfm_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file):
+	# Open output file handle
+	t = open(cs_coverage_per_high_pip_snp_output_file,'w')
+	t.write('eQTL_sample_size\tln_pi_method\ttwas_method\tsimulation_number\twindow_name\tcomponent_number\tgenetic_element_name\tgenetic_element_class\tcausal_genetic_element_in_cs\tPIP\n')
+
+	# First loop through simulations
+	for simulation_number in simulation_runs:
+		# First extract dictionary list of causal genetic elements
+		causal_variant_file = simulated_trait_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_non_mediated_variant_causal_effect_sizes.txt'
+		causal_gene_file = simulated_trait_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_expression_mediated_gene_causal_effect_sizes.txt'
+		causal_genetic_elements, causal_variants, causal_genes = extract_dictionary_list_of_causal_genetic_elements(causal_gene_file, causal_variant_file)
+		for gene_tissue in [*causal_genes]:
+			gene_name = gene_tissue.split('_')[0]
+			causal_genetic_elements[gene_name] = 1
+
+
+		# Now loop through eqtl sample sizes and ln_pi methods
+		for eqtl_sample_size in eqtl_sample_sizes:
+			for ln_pi_method in ln_pi_methods:
+				for twas_method in twas_methods:
+					if ln_pi_method.endswith('bootstrapped') and twas_method == 'susie_pmces':
+						continue
+					if ln_pi_method.startswith('tglr_bootstrapped') and twas_method == 'susie_pmces':
+						continue
+					if ln_pi_method == 'pmces_uniform_iterative_variant_gene_prior_pip_level_pmces' and twas_method == 'susie_pmces':
+						continue					
+					# Credible set file for this run
+					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method + '_tgfm_pip_summary.txt'
+					f = open(cs_file)
+					head_count = 0
+					for line in f:
+						line = line.rstrip()
+						data = line.split('\t')
+						if head_count == 0:
+							head_count = head_count + 1
+							continue
+						component_window_name = data[0]
+						component_num = 'NA'
+						if len(data) == 3 and data[2] == 'NA':
+							continue
+
+						#tgfm_input_file = simulated_tgfm_input_data_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string +'_' + component_window_name + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_tgfm_input_data.pkl'
+						tgfm_res_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method + '_' + component_window_name + '_results.pkl'
+						
+						all_cs_genetic_elements, cs_probs = extract_middle_gene_agg_pips_from_tgfm_obj(tgfm_res_file)
+						#all_cs_genetic_elements = data[1].split(';')
+						#cs_probs = np.asarray(data[2].split(';')).astype(float)
+						cs_genetic_elements = []
+						cs_genetic_element_pips = []
+						for element_iter, cs_prob in enumerate(cs_probs):
+							if cs_prob >= pip_threshold:
+								cs_genetic_elements.append(all_cs_genetic_elements[element_iter])
+								cs_genetic_element_pips.append(cs_prob)
+						cs_genetic_elements = np.asarray(cs_genetic_elements)
+						if len(cs_genetic_elements) == 0:
+							continue
+
+
+						# Extract n_causal_components
+						full_window_name = str(simulation_number) + '_' + component_window_name
+						#n_causal_elements = full_window_name_to_n_causal_elements[full_window_name]
+
+						for ii,genetic_element_name in enumerate(cs_genetic_elements):
+							if genetic_element_name.startswith('ENSG'):
+								class_name = 'gene'
+							elif genetic_element_name.startswith('rs'):
+								class_name = 'variant'
+							else:
+								print('assumptino eroror')
+								pdb.set_trace()
+
+							genetic_element_pip = cs_genetic_element_pips[ii]
+							# Check if cs contains at least one causal genetic element
+							causal_genetic_element_in_cs_boolean = check_if_at_least_one_causal_genetic_element_is_in_cs([genetic_element_name], causal_genetic_elements)
+
+							t.write(str(eqtl_sample_size) + '\t' + ln_pi_method + '\t' + twas_method + '\t' + str(simulation_number) + '\t' + component_window_name + '\t' + component_num + '\t' + genetic_element_name + '\t' + class_name  + '\t' + str(int(causal_genetic_element_in_cs_boolean)) + '\t' + str(genetic_element_pip) + '\n')
+					f.close()
+
+
+
+	t.close()
+	return
 
 def create_file_containing_tgfm_cs_calibration_per_high_pip_snp(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, twas_methods, simulated_trait_dir, simulated_tgfm_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file):
 	# Open output file handle
 	t = open(cs_coverage_per_high_pip_snp_output_file,'w')
-	t.write('eQTL_sample_size\tln_pi_method\ttwas_method\tsimulation_number\twindow_name\tcomponent_number\tgenetic_element_name\tgenetic_element_class\tcausal_genetic_element_in_cs\n')
+	t.write('eQTL_sample_size\tln_pi_method\ttwas_method\tsimulation_number\twindow_name\tcomponent_number\tgenetic_element_name\tgenetic_element_class\tcausal_genetic_element_in_cs\tPIP\n')
 
 	# First loop through simulations
 	for simulation_number in simulation_runs:
@@ -1253,9 +1489,11 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp(global_simulatio
 						all_cs_genetic_elements = data[1].split(';')
 						cs_probs = np.asarray(data[2].split(';')).astype(float)
 						cs_genetic_elements = []
+						cs_genetic_element_pips = []
 						for element_iter, cs_prob in enumerate(cs_probs):
 							if cs_prob >= pip_threshold:
 								cs_genetic_elements.append(all_cs_genetic_elements[element_iter])
+								cs_genetic_element_pips.append(cs_prob)
 						cs_genetic_elements = np.asarray(cs_genetic_elements)
 						if len(cs_genetic_elements) == 0:
 							continue
@@ -1265,7 +1503,7 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp(global_simulatio
 						full_window_name = str(simulation_number) + '_' + component_window_name
 						#n_causal_elements = full_window_name_to_n_causal_elements[full_window_name]
 
-						for genetic_element_name in cs_genetic_elements:
+						for ii,genetic_element_name in enumerate(cs_genetic_elements):
 							if genetic_element_name.startswith('ENSG'):
 								class_name = 'gene'
 							elif genetic_element_name.startswith('rs'):
@@ -1274,10 +1512,11 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp(global_simulatio
 								print('assumptino eroror')
 								pdb.set_trace()
 
+							genetic_element_pip = cs_genetic_element_pips[ii]
 							# Check if cs contains at least one causal genetic element
 							causal_genetic_element_in_cs_boolean = check_if_at_least_one_causal_genetic_element_is_in_cs([genetic_element_name], causal_genetic_elements)
 
-							t.write(str(eqtl_sample_size) + '\t' + ln_pi_method + '\t' + twas_method + '\t' + str(simulation_number) + '\t' + component_window_name + '\t' + component_num + '\t' + genetic_element_name + '\t' + class_name  + '\t' + str(int(causal_genetic_element_in_cs_boolean)) + '\n')
+							t.write(str(eqtl_sample_size) + '\t' + ln_pi_method + '\t' + twas_method + '\t' + str(simulation_number) + '\t' + component_window_name + '\t' + component_num + '\t' + genetic_element_name + '\t' + class_name  + '\t' + str(int(causal_genetic_element_in_cs_boolean)) + '\t' + str(genetic_element_pip) + '\n')
 					f.close()
 
 
@@ -1288,18 +1527,19 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp(global_simulatio
 def create_file_containing_averaged_focus_high_pip_calibration(focus_cs_coverage_per_high_pip_snp_output_file, focus_cs_high_pip_coverage_output_file, eqtl_sample_sizes):
 	per_component_coverage = np.loadtxt(focus_cs_coverage_per_high_pip_snp_output_file, dtype=str)[1:,:]
 	t = open(focus_cs_high_pip_coverage_output_file,'w')
-	t.write('eQTL_sample_size\tgenetic_element_class\tn_detected_elements\tcoverage\tcoverage_lb\tcoverage_ub\n')
+	t.write('eQTL_sample_size\tgenetic_element_class\tn_detected_elements\tcoverage\tcoverage_lb\tcoverage_ub\texpected_coverage\n')
 
 	for eqtl_sample_size in eqtl_sample_sizes:
 
 		subset_indices = (per_component_coverage[:,0] == str(eqtl_sample_size))
-		components_covered = (per_component_coverage[subset_indices,:][:,-1]).astype(float)
+		components_covered = (per_component_coverage[subset_indices,:][:,-2]).astype(float)
 		prop = np.sum(components_covered)/len(components_covered)
 		prop_se = np.sqrt((prop)*(1.0-prop))/np.sqrt(len(components_covered))
 		prop_lb = prop - (1.96*prop_se)
 		prop_ub = prop + (1.96*prop_se)
 		n_elements = np.sum(subset_indices)
-		t.write(str(eqtl_sample_size) + '\t' + 'gene' + '\t' + str(n_elements) + '\t' + str(prop) + '\t' + str(prop_lb) + '\t' + str(prop_ub) + '\n')
+		expected_coverage = np.mean((per_component_coverage[subset_indices,:][:,-1]).astype(float))
+		t.write(str(eqtl_sample_size) + '\t' + 'gene' + '\t' + str(n_elements) + '\t' + str(prop) + '\t' + str(prop_lb) + '\t' + str(prop_ub) + '\t' + str(expected_coverage) + '\n')
 
 	t.close()
 	return
@@ -1308,37 +1548,40 @@ def create_file_containing_averaged_focus_high_pip_calibration(focus_cs_coverage
 def create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_component_output_file, cs_coverage_output_file, eqtl_sample_sizes, ln_pi_methods, twas_methods):
 	per_component_coverage = np.loadtxt(cs_coverage_per_component_output_file, dtype=str)[1:,:]
 	t = open(cs_coverage_output_file,'w')
-	t.write('eQTL_sample_size\tln_pi_method\ttwas_method\tgenetic_element_class\tn_detected_elements\tcoverage\tcoverage_lb\tcoverage_ub\n')
+	t.write('eQTL_sample_size\tln_pi_method\ttwas_method\tgenetic_element_class\tn_detected_elements\tcoverage\tcoverage_lb\tcoverage_ub\texpected_coverage\n')
 
 	for eqtl_sample_size in eqtl_sample_sizes:
 		for ln_pi_method in ln_pi_methods:
 			for twas_method in twas_methods:
 				subset_indices = (per_component_coverage[:,0] == str(eqtl_sample_size)) & (per_component_coverage[:,1] == ln_pi_method) & (per_component_coverage[:,2] == twas_method)
-				components_covered = (per_component_coverage[subset_indices,:][:,-1]).astype(float)
+				components_covered = (per_component_coverage[subset_indices,:][:,-2]).astype(float)
 				prop = np.sum(components_covered)/len(components_covered)
 				prop_se = np.sqrt((prop)*(1.0-prop))/np.sqrt(len(components_covered))
 				prop_lb = prop - (1.96*prop_se)
 				prop_ub = prop + (1.96*prop_se)
 				n_elements = np.sum(subset_indices)
-				t.write(str(eqtl_sample_size) + '\t' + ln_pi_method +'\t' + twas_method  + '\t' + 'all' + '\t' + str(n_elements) + '\t' + str(prop) + '\t' + str(prop_lb) + '\t' + str(prop_ub) + '\n')
+				expected_coverage = np.mean(per_component_coverage[subset_indices,9].astype(float))
+				t.write(str(eqtl_sample_size) + '\t' + ln_pi_method +'\t' + twas_method  + '\t' + 'all' + '\t' + str(n_elements) + '\t' + str(prop) + '\t' + str(prop_lb) + '\t' + str(prop_ub) + '\t' + str(expected_coverage) + '\n')
 
 				subset_indices = (per_component_coverage[:,0] == str(eqtl_sample_size)) & (per_component_coverage[:,1] == ln_pi_method) & (per_component_coverage[:,2] == twas_method) & (per_component_coverage[:, 7] == 'variant')
-				components_covered = (per_component_coverage[subset_indices,:][:,-1]).astype(float)
+				components_covered = (per_component_coverage[subset_indices,:][:,-2]).astype(float)
 				prop = np.sum(components_covered)/len(components_covered)
 				prop_se = np.sqrt((prop)*(1.0-prop))/np.sqrt(len(components_covered))
 				prop_lb = prop - (1.96*prop_se)
 				prop_ub = prop + (1.96*prop_se)
 				n_elements = np.sum(subset_indices)
-				t.write(str(eqtl_sample_size) + '\t' + ln_pi_method +'\t' + twas_method  + '\t' + 'variant' + '\t' + str(n_elements) + '\t' + str(prop) + '\t' + str(prop_lb) + '\t' + str(prop_ub) + '\n')
+				expected_coverage = np.mean(per_component_coverage[subset_indices,9].astype(float))
+				t.write(str(eqtl_sample_size) + '\t' + ln_pi_method +'\t' + twas_method  + '\t' + 'variant' + '\t' + str(n_elements) + '\t' + str(prop) + '\t' + str(prop_lb) + '\t' + str(prop_ub) + '\t' + str(expected_coverage) + '\n')
 
 				subset_indices = (per_component_coverage[:,0] == str(eqtl_sample_size)) & (per_component_coverage[:,1] == ln_pi_method) & (per_component_coverage[:,2] == twas_method) & (per_component_coverage[:, 7] == 'gene')
-				components_covered = (per_component_coverage[subset_indices,:][:,-1]).astype(float)
+				components_covered = (per_component_coverage[subset_indices,:][:,-2]).astype(float)
 				prop = np.sum(components_covered)/len(components_covered)
 				prop_se = np.sqrt((prop)*(1.0-prop))/np.sqrt(len(components_covered))
 				prop_lb = prop - (1.96*prop_se)
 				prop_ub = prop + (1.96*prop_se)
-				n_elements = np.sum(subset_indices)			
-				t.write(str(eqtl_sample_size) + '\t' + ln_pi_method + '\t' + twas_method + '\t' + 'gene' + '\t' + str(n_elements) + '\t' + str(prop) + '\t' + str(prop_lb) + '\t' + str(prop_ub) + '\n')
+				n_elements = np.sum(subset_indices)	
+				expected_coverage = np.mean(per_component_coverage[subset_indices,9].astype(float))		
+				t.write(str(eqtl_sample_size) + '\t' + ln_pi_method + '\t' + twas_method + '\t' + 'gene' + '\t' + str(n_elements) + '\t' + str(prop) + '\t' + str(prop_lb) + '\t' + str(prop_ub) + '\t' + str(expected_coverage) + '\n')
 	t.close()
 	return
 
@@ -1495,6 +1738,116 @@ def create_file_containing_coloc_high_pip_snp_power_per_component(global_simulat
 						if gene_name in discovered_dicti:
 							booler = 1.0
 						t.write(str(eqtl_sample_size) + '\t' + str(simulation_number) + '\t' + window_name + '\t' + 'gene\t' + gene_name + '\t' + str(booler) + '\n')
+			f.close()
+	t.close()
+	return
+
+
+def create_file_containing_tgfm_high_pip_gene_power_per_component(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, simulated_trait_dir, simulated_tgfm_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, cs_power_per_component_output_file, pip_threshold, twas_methods, global_window_file):
+	all_variants, all_variants_positions = extract_all_variants_and_their_positions(bim_file)
+	all_genes, all_genes_positions = extract_all_genes_and_their_positions(simulated_gene_position_file)
+
+	# Open output file
+	t = open(cs_power_per_component_output_file,'w')
+	t.write('eQTL_sample_size\tln_pi_method\twas_method\tsimulation_number\twindow_name\tgenetic_element_class\tgenetic_element_name\tcausal_variant_in_cs\n')
+	# First loop through simulations
+	for simulation_number in simulation_runs:
+		# Extract dictionary list of causal genetic elements
+		causal_variant_file = simulated_trait_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_non_mediated_variant_causal_effect_sizes.txt'
+		causal_gene_file = simulated_trait_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_expression_mediated_gene_causal_effect_sizes.txt'
+		causal_genetic_elements, causal_variants, causal_gene = extract_dictionary_list_of_causal_genetic_elements(causal_gene_file, causal_variant_file)
+		for causal_gene_tissue in [*causal_gene]:
+			causal_gene_name = causal_gene_tissue.split('_')[0]
+			causal_genetic_elements[causal_gene_name] =1
+
+		for eqtl_sample_size in eqtl_sample_sizes:
+			# Create mapping from ln_pi_method to dictionary of elements in 95% cs for this simulation
+			discovered_dicti = {}
+			for ln_pi_method in ln_pi_methods:
+				for twas_method in twas_methods:
+					if ln_pi_method.endswith('bootstrapped') and twas_method == 'susie_pmces':
+						continue
+					if ln_pi_method.startswith('tglr_bootstrapped') and twas_method == 'susie_pmces':
+						continue
+					if ln_pi_method == 'pmces_uniform_iterative_variant_gene_prior_pip_level_pmces' and twas_method == 'susie_pmces':
+						continue
+					discovered_pi_dicti = {}
+					cs_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method + '_tgfm_pip_summary.txt'
+					f = open(cs_file)
+					head_count = 0
+					for line in f:
+						line = line.rstrip()
+						data = line.split('\t')
+						if head_count == 0:
+							head_count = head_count + 1
+							continue
+						component_window_name = data[0]
+						component_num = 'NA'
+
+						if len(data) == 3 and data[2] == 'NA':
+							continue
+						tgfm_res_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_number) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + twas_method + '_' + ln_pi_method + '_' + component_window_name + '_results.pkl'
+						all_cs_genetic_elements, cs_probs = extract_middle_gene_agg_pips_from_tgfm_obj(tgfm_res_file)
+
+						#all_cs_genetic_elements = data[1].split(';')
+						#cs_probs = np.asarray(data[2].split(';')).astype(float)
+						cs_genetic_elements = []
+						for element_iter, cs_prob in enumerate(cs_probs):
+							if cs_prob >= pip_threshold:
+								cs_genetic_elements.append(all_cs_genetic_elements[element_iter])
+						cs_genetic_elements = np.asarray(cs_genetic_elements)
+						if len(cs_genetic_elements) == 0:
+							continue
+						for cs_element in cs_genetic_elements:
+							discovered_pi_dicti[cs_element] = 1
+					f.close()
+					discovered_dicti[ln_pi_method + '_' + twas_method] = discovered_pi_dicti
+
+			# TGFM window file
+			# File containing which windows we ran TGFM on
+			head_count = 0
+			f = open(global_window_file)
+			head_count = 0
+			for line in f:
+				line = line.rstrip()
+				data = line.split('\t')
+				if head_count == 0:
+					head_count = head_count + 1
+					continue
+				# Extract relevent fields
+				window_name = data[0]
+				# Need to extract middle_genes and middle_variants in the middle of this window
+				# Extract middle start and middle end
+				window_start = int(window_name.split('_')[1])
+				window_middle_start = window_start + 1000000
+				window_middle_end = window_start + 2000000
+				window_end = window_start + 3000000
+				if window_end != int(window_name.split('_')[2]):
+					print('assumption erororo')
+					pdb.set_trace()
+
+				variant_indices = (all_variants_positions >= window_middle_start) & (all_variants_positions < window_middle_end)
+				middle_variants = all_variants[variant_indices]
+				gene_indices = (all_genes_positions >= window_middle_start) & (all_genes_positions < window_middle_end)
+				middle_genes = all_genes[gene_indices]
+
+
+				for gene_name in middle_genes:
+					if gene_name not in causal_genetic_elements:
+							continue
+					# THis is a causal gene
+					for ln_pi_method in ln_pi_methods:
+						for twas_method in twas_methods:
+							if ln_pi_method.endswith('bootstrapped') and twas_method == 'susie_pmces':
+								continue
+							if ln_pi_method.startswith('tglr_bootstrapped') and twas_method == 'susie_pmces':
+								continue
+							if ln_pi_method == 'pmces_uniform_iterative_variant_gene_prior_pip_level_pmces' and twas_method == 'susie_pmces':
+								continue
+							booler = 0.0
+							if gene_name in discovered_dicti[ln_pi_method + '_' + twas_method]:
+								booler = 1.0
+							t.write(str(eqtl_sample_size) + '\t' + ln_pi_method + '\t' + twas_method + '\t' + str(simulation_number) + '\t' + window_name + '\t' + 'gene\t' + gene_name + '\t' + str(booler) + '\n')
 			f.close()
 	t.close()
 	return
@@ -1858,6 +2211,7 @@ for model_name in model_names:
 	create_file_containing_avg_fraction_causal_by_tissue_across_simulation_runs(fraction_causal_by_tissue_output_file, organized_avg_fraction_causal_by_tissue_output_file, eqtl_sample_sizes)
 '''
 
+'''
 #############################################################
 # Fraction of TGFM elements mediated by gene expression
 #############################################################
@@ -1887,9 +2241,8 @@ fraction_high_pip_elements_mediated_by_gene_expression_summary_file = simulated_
 expected_fraction_of_elements_mediated_by_gene_expression_summary_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + twas_method + '_' + ln_pi_method + '_expected_fraction_elements_mediated_by_gene_expresssion.txt'
 create_file_containing_expected_fraction_of_tgfm_elements_mediated_by_gene_expression(global_window_file, eqtl_sample_sizes, simulation_runs, twas_method, ln_pi_method, global_simulation_name_string, simulated_tgfm_results_dir, expected_fraction_of_elements_mediated_by_gene_expression_summary_file)
 
-
-
 '''
+
 #############################################################
 # Fine-mapping evaluation metrics
 #############################################################
@@ -1919,11 +2272,11 @@ bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + chrom_num + '.
 # Windows
 global_window_file = processed_genotype_data_dir + 'chromosome_' + str(chrom_num) + '_windows_3_mb.txt'
 
+'''
 ##################################
 # Coverage/Calibration to detect snps with PIP > threshold
 ##################################
 pip_thresholds = [.3, .5, .7, .9, .95, .99]
-
 # Vary ln_pi_method
 for pip_threshold in pip_thresholds:
 	print(pip_threshold)
@@ -1932,6 +2285,21 @@ for pip_threshold in pip_thresholds:
 	create_file_containing_tgfm_cs_calibration_per_high_pip_snp(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, twas_methods, simulated_trait_dir, simulated_tgfm_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file)
 
 	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_calibration.txt'
+	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ln_pi_methods, twas_methods)
+
+##################################
+# Coverage/Calibration to detect snps with PIP > threshold
+# Non-mediated variants also include expression-mediated variants
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per cs (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, component_num, boolean_causal_variant_in_cs)
+	cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_nm_variant_alt_calibration_per_component.txt'
+	create_file_containing_tgfm_cs_calibration_per_high_pip_snp_non_mediated_variants_include_gene_variants(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, twas_methods, simulated_trait_dir, simulated_tgfm_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file, simulated_gene_expression_dir)
+
+	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_nm_variant_alt_calibration.txt'
 	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ln_pi_methods, twas_methods)
 
 
@@ -1948,9 +2316,47 @@ for pip_threshold in pip_thresholds:
 
 	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_power.txt'
 	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods,twas_methods)
+'''
+
+'''
+##################################
+# Coverage/Calibration to detect genes (not gene-tissue pairs)
+##################################
+# ln_pi methods used
+ln_pi_methods = np.asarray(['pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped'])
+
+# twas method
+twas_methods = np.asarray(['susie_sampler'])
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per cs (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, component_num, boolean_causal_variant_in_cs)
+	cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_gene_calibration_per_component.txt'
+	create_file_containing_tgfm_cs_calibration_per_high_pip_genes(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, twas_methods, simulated_trait_dir, simulated_tgfm_input_data_dir, simulated_tgfm_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file)
+
+	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_gene_calibration.txt'
+	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ln_pi_methods, twas_methods)
+##################################
+# Power to detect genes (not gene-tissue pairs)
+##################################
+# ln_pi methods used
+ln_pi_methods = np.asarray(['pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped'])
+
+# twas method
+twas_methods = np.asarray(['susie_sampler'])
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_gene_power_per_component.txt'
+	create_file_containing_tgfm_high_pip_gene_power_per_component(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, simulated_trait_dir, simulated_tgfm_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, cs_power_per_component_output_file, pip_threshold, twas_methods, global_window_file)
+
+	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_gene_power.txt'
+	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods,twas_methods)
 
 
-
+'''
 ##################################
 # FOCUS Coverage/Calibration to detect snps with PIP > threshold
 ##################################
@@ -1960,11 +2366,11 @@ for pip_threshold in pip_thresholds:
 	print(pip_threshold)
 	# Create file with one line per cs (columns: eQTL_sample_size, simulation_num, window_num, boolean_causal_variant_in_cs)
 	focus_cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_focus_pip_' + str(pip_threshold) + '_calibration_per_component.txt'
-	create_file_containing_focus_cs_calibration_per_high_pip_snp(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, pip_threshold, focus_cs_coverage_per_high_pip_snp_output_file)
+	#create_file_containing_focus_cs_calibration_per_high_pip_snp(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, pip_threshold, focus_cs_coverage_per_high_pip_snp_output_file)
 
 	focus_cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_focus_pip_' + str(pip_threshold) + '_calibration.txt'
 	create_file_containing_averaged_focus_high_pip_calibration(focus_cs_coverage_per_high_pip_snp_output_file, focus_cs_high_pip_coverage_output_file, eqtl_sample_sizes)
-
+'''
 ##################################
 # FOCUS Power to detect snps with PIP > threshold
 ##################################
@@ -1979,8 +2385,7 @@ for pip_threshold in pip_thresholds:
 	focus_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_focus_pip_' + str(pip_threshold) + '_power.txt'
 	create_file_containing_averaged_focus_cs_power(focus_cs_power_per_component_output_file, focus_cs_power_output_file, eqtl_sample_sizes)
 
-
-
+'''
 ##################################
 # coloc Coverage/Calibration to detect snps with PIP > threshold
 ##################################
@@ -1990,11 +2395,11 @@ for pip_threshold in pip_thresholds:
 	print(pip_threshold)
 	# Create file with one line per cs (columns: eQTL_sample_size, simulation_num, window_num, boolean_causal_variant_in_cs)
 	coloc_cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_calibration_per_component.txt'
-	create_file_containing_coloc_cs_calibration_per_high_pip_snp(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_coloc_results_dir, pip_threshold, coloc_cs_coverage_per_high_pip_snp_output_file)
+	#create_file_containing_coloc_cs_calibration_per_high_pip_snp(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_coloc_results_dir, pip_threshold, coloc_cs_coverage_per_high_pip_snp_output_file)
 
 	coloc_cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_calibration.txt'
 	create_file_containing_averaged_focus_high_pip_calibration(coloc_cs_coverage_per_high_pip_snp_output_file, coloc_cs_high_pip_coverage_output_file, eqtl_sample_sizes)
-
+'''
 ##################################
 # coloc Power to detect snps with PIP > threshold
 ##################################
@@ -2008,8 +2413,6 @@ for pip_threshold in pip_thresholds:
 
 	coloc_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_power.txt'
 	create_file_containing_averaged_focus_cs_power(coloc_cs_power_per_component_output_file, coloc_cs_power_output_file, eqtl_sample_sizes)
-
-
 '''
 
 
@@ -2021,6 +2424,121 @@ for pip_threshold in pip_thresholds:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+
+#############################################################
+# TGFM Bayesian analysis
+#############################################################
+
+
+#############################################################
+# Fine-mapping evaluation metrics
+#############################################################
+# Used eQTL sample sizes
+eqtl_sample_sizes = np.asarray([300,500,1000])
+eqtl_sample_sizes = np.asarray([1000])
+
+
+# Simulation runs
+# Currently hacky because had some failed simulations
+simulation_runs = np.arange(1,21)
+#simulation_runs = np.delete(simulation_runs, [1, 6, 17, 18])
+
+
+# ln_pi methods used
+#ln_pi_methods = np.asarray(['uniform', 'tglr_variant_gene', 'tglr_sparse_variant_gene_tissue', 'tglr_bootstrapped_nonnegative_sampler', 'iterative_variant_gene_tissue', 'iterative_variant_gene_tissue_bootstrapped', 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped', 'sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped'])
+#ln_pi_methods = np.asarray(['uniform', 'tglr_variant_gene', 'tglr_bootstrapped_nonnegative_pmces', 'tglr_bootstrapped_nonnegative_sampler', 'pmces_uniform_iterative_variant_gene_prior_pip_level_pmces', 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped', 'sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped'])
+ln_pi_methods = np.asarray(['uniform'])
+
+
+# twas method
+twas_methods = np.asarray(['susie_bayesian_standard2'])
+
+
+#Bim file
+bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + chrom_num + '.bim'
+
+# Windows
+global_window_file = processed_genotype_data_dir + 'chromosome_' + str(chrom_num) + '_windows_3_mb.txt'
+
+##################################
+# Coverage/Calibration to detect snps with PIP > threshold
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per cs (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, component_num, boolean_causal_variant_in_cs)
+	cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_bayesian_tgfm_pip_' + str(pip_threshold) + '_calibration_per_component.txt'
+	create_file_containing_tgfm_cs_calibration_per_high_pip_snp(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, twas_methods, simulated_trait_dir, simulated_tgfm_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file)
+
+	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_bayesian_tgfm_pip_' + str(pip_threshold) + '_calibration.txt'
+	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ln_pi_methods, twas_methods)
+
+
+##################################
+# Power to detect snps with PIP > threshold
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per causal element (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, gene_or_variant, causal_element_name, boolean_causal_element_in_cs)
+	cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_bayesian_tgfm_pip_' + str(pip_threshold) + '_power_per_component.txt'
+	create_file_containing_tgfm_high_pip_snp_power_per_component(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, simulated_trait_dir, simulated_tgfm_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, cs_power_per_component_output_file, pip_threshold, twas_methods, global_window_file)
+
+	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_bayesian_tgfm_pip_' + str(pip_threshold) + '_power.txt'
+	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods,twas_methods)
+
+'''
 
 
 

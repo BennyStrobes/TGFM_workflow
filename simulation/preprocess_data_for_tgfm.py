@@ -223,6 +223,11 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 	full_gene_variances = []
 	pmces_weights = []
 
+	susie_mus = []
+	susie_vars = []
+	susie_alphas = []
+	susie_indices = []
+
 	bs_arr = []
 
 	# Loop through genes (note: not gene tissue pairs)
@@ -298,6 +303,11 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 					bs_gene_variances = np.diag(np.dot(np.dot(np.transpose(bs_alpha_effects), ld_mat[cis_snp_indices[window_indices],:][:,cis_snp_indices[window_indices]]), bs_alpha_effects))
 					bs_std_alpha_effects = bs_alpha_effects/np.sqrt(bs_gene_variances)
 					bs_arr.append((bs_std_alpha_effects, cis_snp_indices[window_indices]))
+					susie_mus.append(gene_susie_mu)
+					susie_vars.append(gene_susie_mu_var)
+					susie_alphas.append(gene_susie_alpha)
+					susie_indices.append(cis_snp_indices[window_indices])
+
 				else:
 					print('assumption erooror')
 					pdb.set_trace()
@@ -311,7 +321,7 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 
 	f.close()
 
-	return np.asarray(gene_tissue_pairs), bs_arr, np.asarray(gene_tss_arr), np.asarray(pmces_weights), np.asarray(gene_variances), np.asarray(full_gene_variances)
+	return np.asarray(gene_tissue_pairs), bs_arr, np.asarray(gene_tss_arr), np.asarray(pmces_weights), np.asarray(gene_variances), np.asarray(full_gene_variances), susie_mus, susie_vars, susie_alphas, susie_indices
 
 
 def create_anno_matrix_for_set_of_rsids(rsid_to_genomic_annotation, window_rsids):
@@ -693,7 +703,7 @@ for line in f:
 	# Extract gene-tissue pairs and fitted models in this window
 	gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
 
-	gene_tissue_pairs, bs_eqtl_arr, gene_tissue_pairs_tss, pmces_weights, gene_variances, full_gene_variances = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,  eqtl_sample_size, window_indices, simulated_gene_expression_dir,ld_mat, eqtl_type, n_bs)
+	gene_tissue_pairs, bs_eqtl_arr, gene_tissue_pairs_tss, pmces_weights, gene_variances, full_gene_variances, gene_susie_mus, gene_susie_mu_vars, gene_susie_alphas, gene_susie_indices = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,  eqtl_sample_size, window_indices, simulated_gene_expression_dir,ld_mat, eqtl_type, n_bs)
 
 	# Option to save some memory
 	# Change to current version used in real data
@@ -753,6 +763,10 @@ for line in f:
 	tgfm_data['annotation'] = window_anno_mat
 	tgfm_data['tss'] = gene_tissue_pairs_tss
 	tgfm_data['variant_positions'] = window_variant_position_vec
+	tgfm_data['gene_susie_mu'] = gene_susie_mus
+	tgfm_data['gene_susie_mu_var'] = gene_susie_mu_vars
+	tgfm_data['gene_susie_alpha'] = gene_susie_alphas
+	tgfm_data['gene_susie_indices'] = gene_susie_indices
 
 	# Save TGFM output data to pickle
 	window_pickle_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size)+ '_' + eqtl_type + '_tgfm_input_data.pkl'

@@ -241,6 +241,7 @@ annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
 eqtl_type="susie"
 
 
+
 eqtl_sample_size_arr=( "300" "500" "1000")
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do

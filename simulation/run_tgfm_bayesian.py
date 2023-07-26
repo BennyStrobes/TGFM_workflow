@@ -7,6 +7,7 @@ import pdb
 import scipy.special
 import pickle
 import tgfm
+import tgfm_bayesian
 import rpy2
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as ro
@@ -207,10 +208,13 @@ def update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_obj):
 
 	return tgfm_obj
 
-def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld, init_method, est_resid_var_bool):
-	# Hacky: Initialize old TGFM object using only one iter of optimization
-	tgfm_obj = tgfm.TGFM(L=15, estimate_prior_variance=False, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
+def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld, init_method, est_resid_var_bool):	
+	tgfm_obj = tgfm_bayesian.TGFM(L=15, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=5e-6, max_iter=60)
 	tgfm_obj.fit(twas_data_obj=tgfm_data)
+	
+	#pdb.set_trace()
+	#tgfm_obj = tgfm.TGFM(L=15, estimate_prior_variance=False, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
+	#tgfm_obj.fit(twas_data_obj=tgfm_data)
 	# More hack: need to redo twas z
 	variant_z = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
 	new_gene_z = np.dot(tgfm_data['gene_eqtl_pmces'], variant_z)
@@ -335,6 +339,12 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 		init_obj2.rclass = rpy2.robjects.StrVector(("list", "susie"))
 		susie_variant_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=20, s_init=init_obj2, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
 		tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_variant_init)
+	elif init_method == 'standard':
+		# Compute pips
+		alpha_mat = np.hstack((tgfm_obj.alpha_phi, tgfm_obj.beta_phi))
+		pips = compute_pips(alpha_mat)
+		tgfm_obj.alpha_pip = pips[:(tgfm_obj.G)]
+		tgfm_obj.beta_pip = pips[(tgfm_obj.G):]
 	else:
 		print('assumption errror: susie initialization method ' + init_method + ' not recognized')
 		pdb.set_trace()
@@ -563,8 +573,8 @@ for window_iter in range(n_windows):
 	tgfm_results['genes'] = tgfm_data['genes']
 	tgfm_results['alpha_phi'] = tgfm_obj.alpha_phi
 	tgfm_results['beta_phi'] = tgfm_obj.beta_phi
-	tgfm_results['alpha_lbf'] = tgfm_obj.alpha_lbf
-	tgfm_results['beta_lbf'] = tgfm_obj.beta_lbf
+	#tgfm_results['alpha_lbf'] = tgfm_obj.alpha_lbf
+	#tgfm_results['beta_lbf'] = tgfm_obj.beta_lbf
 	tgfm_results['alpha_mu'] = tgfm_obj.alpha_mu
 	tgfm_results['beta_mu'] = tgfm_obj.beta_mu
 	tgfm_results['alpha_var'] = tgfm_obj.alpha_var
@@ -574,8 +584,6 @@ for window_iter in range(n_windows):
 	tgfm_results['component_variances'] = tgfm_obj.component_variances
 	tgfm_results['valid_components'] = valid_tgfm_components
 	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
-	tgfm_results['middle_variant_indices'] = tgfm_data['middle_variant_indices']
-	tgfm_results['middle_gene_indices'] = tgfm_data['middle_gene_indices']
 
 	# Write pickle file
 	window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
