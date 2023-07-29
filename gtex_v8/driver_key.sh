@@ -225,6 +225,9 @@ sc_tgfm_results_dir=$output_root"sc_tgfm_results/"
 # Directory containing TGFM iterative prior results
 iterative_sc_tgfm_prior_results_dir=$perm_output_root"iterative_sc_tgfm_prior/"
 
+# Visualize specific TGFM examples dir
+visualize_specific_tgfm_examples_dir=$perm_output_root"visualize_specific_examples/"
+
 
 ##################
 # Analysis
@@ -454,7 +457,7 @@ fi
 # Organize TGFM Results across parallel runs
 #################################
 if false; then
-sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir $tgfm_organized_results_dir
+sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir $tgfm_organized_results_dir $gene_annotation_file
 fi
 
 #################################
@@ -464,7 +467,17 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
+if false; then
 Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable2.txt" $tgfm_sldsc_results_dir $tgfm_results_dir $tgfm_organized_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $visualize_gtex_tgfm_dir
+fi
+
+
+#################################
+# Visualize specific TGFM examples
+#################################
+specific_examples_input_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/specific_examples_all.txt"
+sh visualize_specific_tgfm_examples.sh $specific_examples_input_file $tgfm_input_summary_file $tgfm_results_dir $tgfm_organized_results_dir $gtex_susie_gene_models_dir $gene_annotation_file $visualize_specific_tgfm_examples_dir
+
 
 
 

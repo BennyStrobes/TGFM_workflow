@@ -896,6 +896,63 @@ def correlate_fraction_mediated_h2_with_fraction_of_components_mediated(componen
 	t.close()
 	return
 
+def tally_number_of_causal_genetic_elements_sqrt_plot_input(concatenated_pip_summary_file, n_causal_genetic_elements_summary_cross_threshold_file, pip_windows):
+	f = open(concatenated_pip_summary_file)
+	gene_pips = []
+	variant_pips = []
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		if len(data) != 3:
+			continue
+		ele_names = data[1].split(';')
+		ele_probs = np.asarray(data[2].split(';')).astype(float)
+		n_ele = len(ele_names)
+		for ele_iter in range(n_ele):
+			ele_name = ele_names[ele_iter]
+			ele_prob = ele_probs[ele_iter]
+			if ele_name.startswith('ENSG'):
+				gene_pips.append(ele_prob)
+			else:
+				variant_pips.append(ele_prob)
+	f.close()
+	gene_pips = np.asarray(gene_pips)
+	total_genes = np.sum(gene_pips > .1)
+	variant_pips = np.asarray(variant_pips)
+	total_variants = np.sum(variant_pips > .1)
+	max_gene_pip = np.max(gene_pips)
+	max_variant_pip = np.max(variant_pips)
+	prev_genes = 0.0
+	t = open(n_causal_genetic_elements_summary_cross_threshold_file,'w')
+	t.write('element_class\tPIP_threshold\tn_elements\n')
+
+	gene_pips = gene_pips[gene_pips >=.1]
+	total_count = 0
+	for ii,gene_pip_upper in enumerate(pip_windows[:(len(pip_windows)-1)]):
+		gene_pip_lower = pip_windows[ii+1]
+		if gene_pip_upper == 1.0:
+			gene_indices = (gene_pips <= gene_pip_upper) & (gene_pips >= gene_pip_lower)
+			boundry = ']'
+		else:
+			gene_indices = (gene_pips < gene_pip_upper) & (gene_pips >= gene_pip_lower)
+			boundry = ')'
+		window_count = np.sum(gene_indices)
+		prev_total_count = total_count
+		total_count = total_count + window_count
+
+		count = np.sqrt(total_count) - np.sqrt(prev_total_count)
+		if count == 0:
+			continue
+		t.write('gene' + '\t' + '[' + str(gene_pip_lower) + ', ' + str(gene_pip_upper) + boundry + '\t' + str(count) + '\n')
+	t.close()
+
+	return
+
+
 def tally_number_of_causal_genetic_elements_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_genetic_elements_summary_cross_threshold_file, thresh_step_size, thresh_lb, thresh_ub):
 	f = open(concatenated_pip_summary_file)
 	gene_pips = []
@@ -1199,7 +1256,23 @@ def tally_expected_number_of_causal_genetic_elements(concatenated_pip_summary_fi
 
 	print(gene_counts/(gene_counts+variant_counts))
 
-	return 
+	return
+
+def compute_expected_pips_from_sampler_pis(gene_alphas):
+	n_bs = gene_alphas[0].shape[0]
+	n_genes = gene_alphas[0].shape[1]
+	LL = len(gene_alphas)
+
+
+	alpha_pips = np.ones((n_bs, n_genes))
+
+	for component_iter in range(LL):
+		alpha_pips = alpha_pips*(1.0 - gene_alphas[component_iter])
+
+	alpha_pips = 1.0 - alpha_pips
+
+	expected_alpha_pips = np.mean(alpha_pips,axis=0)
+	return expected_alpha_pips
 
 def generate_per_gene_pip_summary_file(concatenated_pip_summary_file, per_gene_pip_summary_file, data_file_stem, file_stem, model_version, processed_tgfm_input_stem):
 	f = open(concatenated_pip_summary_file)
@@ -1235,16 +1308,29 @@ def generate_per_gene_pip_summary_file(concatenated_pip_summary_file, per_gene_p
 		middle_gene_pips = tgfm_results['expected_alpha_pips'][tgfm_results['middle_gene_indices']]
 		middle_gene_names = tgfm_results['genes'][tgfm_results['middle_gene_indices']]
 
-		gene_to_agg_pip = {}
+		alphas = tgfm_results['alpha_phis']
+		middle_genes_indices = tgfm_results['middle_gene_indices']
+		middle_gene_tissues = tgfm_results['genes'][middle_genes_indices]
 
-		for ii, middle_gene_name in enumerate(middle_gene_names):
-			gene_name = middle_gene_name.split('_')[0]
-			if gene_name not in gene_to_agg_pip:
-				gene_to_agg_pip[gene_name] = middle_gene_pips[ii]
-			else:
-				gene_to_agg_pip[gene_name] = gene_to_agg_pip[gene_name] + middle_gene_pips[ii]
-		for gene_name in [*gene_to_agg_pip]:
-			agg_pip = gene_to_agg_pip[gene_name]
+		gene_to_indices = {}
+		for ii, middle_gene_tissue in enumerate(middle_gene_tissues):
+			gene_name = middle_gene_tissue.split('_')[0]
+			if gene_name not in gene_to_indices:
+				gene_to_indices[gene_name] = []
+			gene_to_indices[gene_name].append(ii)
+		n_genes = len(gene_to_indices)
+		ordered_genes = [*gene_to_indices]
+		LL = len(alphas)
+		gene_alphas = []
+		for ll in range(LL):
+			new_alpha = np.zeros((alphas[ll].shape[0], n_genes))
+			for ii,gene_name in enumerate(ordered_genes):
+				tmper = alphas[ll][:, middle_genes_indices]
+				new_alpha[:, ii] = np.sum(tmper[:, gene_to_indices[gene_name]],axis=1)
+			gene_alphas.append(new_alpha)
+		expected_alpha_pips = compute_expected_pips_from_sampler_pis(gene_alphas)
+		for ii, gene_name in enumerate(ordered_genes):
+			agg_pip = expected_alpha_pips[ii]
 			if agg_pip > .01:
 				t.write(gene_name + '\t' + window_name + '\t' + str(agg_pip) + '\n')
 	f.close()
@@ -1324,6 +1410,126 @@ def generate_per_gene_alttissue_pip_summary_file(concatenated_pip_summary_file, 
 	f.close()
 	return
 
+def tally_number_of_causal_genes(per_gene_pip_summary_file, n_causal_genes_summary_file, pip_threshold):
+	# Extract number of genes with pip above threshold
+	f = open(per_gene_pip_summary_file)
+	head_count = 0
+	used = {}
+	gene_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		gene_name = data[0]
+		pip = float(data[2])
+		if gene_name in used:
+			print('assumption eroroor')
+			pdb.set_trace()
+		used[gene_name] = 1
+		if pip >= pip_threshold:
+			gene_count = gene_count + 1
+	f.close()
+	
+	# Print to output
+	t = open(n_causal_genes_summary_file, 'w')
+	t.write('element_name\tcount\n')
+	t.write('gene\t' + str(gene_count) + '\n')
+	t.close()
+	return
+
+def get_ensamble_id_and_gene_name(info_str):
+	info = info_str.split('"')
+	passed1 = False
+	passed2 = False
+	for ii, ele in enumerate(info):
+		if ele == 'gene_id ':
+			ensamble_id = info[(ii+1)]
+			passed1 = True
+		if ele == '; gene_name ':
+			gene_name = info[(ii+1)]
+			passed2 = True
+	if passed1 == False or passed2 == False:
+		print('assumption oerororr')
+		pdb.set_trace()
+	return ensamble_id, gene_name
+
+
+def create_ensamble_id_to_gene_name_mapping(gene_annotation_file):
+	f = open(gene_annotation_file)
+	ensg_to_gene_name = {}
+	gene_name_to_ensg = {}
+	for line in f:
+		if line.startswith('##'):
+			continue
+		line = line.rstrip()
+		data = line.split('\t')
+		if data[2] != 'gene':
+			continue
+		info_str = data[8]
+		ensamble_id, gene_name = get_ensamble_id_and_gene_name(info_str)
+		if ensamble_id in ensg_to_gene_name:
+			print('repeat ensamble id')
+			pdb.set_trace()
+		ensg_to_gene_name[ensamble_id] = gene_name
+	f.close()
+	return ensg_to_gene_name
+
+
+def create_hit_summary_file(per_gene_tissue_pip_summary_file, per_gene_pip_summary_file, ensamble_id_to_gene_id, gene_hit_summary_file):
+	# Create mapping from gene name to agg pip
+	f = open(per_gene_pip_summary_file)
+	gene_to_agg_pip = {}
+	gene_to_window_name = {}
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		gene_name = data[0]
+		pip = float(data[2])
+		window_name = data[1]
+		if gene_name in gene_to_agg_pip:
+			print('assumption oeroro')
+			pdb.set_trace()
+		gene_to_agg_pip[gene_name] = pip
+		gene_to_window_name[gene_name] = window_name
+	f.close()
+
+
+	# Open ouptut file handle
+	t = open(gene_hit_summary_file,'w')
+	# header
+	t.write('gene_tissue\tensamble_id\tgene_id\ttissue_name\tgene_tissue_pip\tgene_pip\twindow_name\n')
+
+	f = open(per_gene_tissue_pip_summary_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		gene_tissue_name = data[0]
+		ensamble_id = data[1]
+		tissue_name = data[2]
+		gene_tissue_pip = float(data[5])
+		gene_pip = gene_to_agg_pip[ensamble_id]
+		gene_id = ensamble_id_to_gene_id[ensamble_id]
+		window_name = gene_to_window_name[ensamble_id]
+
+		# Print to ouput
+		if gene_tissue_pip > .5:
+			t.write(gene_tissue_name + '\t' + ensamble_id + '\t' + gene_id + '\t' + tissue_name + '\t' + str(gene_tissue_pip) + '\t' + str(gene_pip) + '\t' + window_name + '\n')
+
+	# Close file handles
+	f.close()
+	t.close()
+
+	return
 
 
 tgfm_results_dir = sys.argv[1]
@@ -1336,6 +1542,8 @@ processed_tgfm_input_stem = sys.argv[7]
 ukbb_preprocessed_for_genome_wide_susie_dir = sys.argv[8]
 tgfm_sldsc_results_dir = sys.argv[9]
 tgfm_organized_results_dir = sys.argv[10]
+gene_annotation_file = sys.argv[11]
+
 
 
 model_versions = ['susie_pmces_variant_gene', 'susie_sampler_variant_gene', 'susie_pmces_sparse_variant_gene_tissue', 'susie_sampler_sparse_variant_gene_tissue']
@@ -1347,7 +1555,9 @@ model_versions = ['susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip
 tissue_names = extract_pseudotissue_names(gtex_pseudotissue_file, ignore_testis=True)
 
 
-print(gtex_pseudotissue_category_file)
+# Create mapping from ensamble id to gene id
+ensamble_id_to_gene_id = create_ensamble_id_to_gene_name_mapping(gene_annotation_file)
+
 
 # Create mapping from category to tissue names
 tissue_categories, tissue_category_to_tissue_names, tissue_name_to_broad_category, tissue_name_to_alt_tissue, alt_tissues = create_mapping_from_tissue_category_to_tissue_names(gtex_pseudotissue_category_file, ignore_testis=True)
@@ -1395,7 +1605,14 @@ for trait_name in trait_names:
 		# Create gene pip summary file
 		###################################################
 		per_gene_pip_summary_file = file_stem + '_tgfm_per_gene_pip_summary.txt'
-		generate_per_gene_pip_summary_file(concatenated_pip_summary_file, per_gene_pip_summary_file, data_file_stem, file_stem, model_version, processed_tgfm_input_stem)
+		#generate_per_gene_pip_summary_file(concatenated_pip_summary_file, per_gene_pip_summary_file, data_file_stem, file_stem, model_version, processed_tgfm_input_stem)
+
+
+		###################################################
+		# Create hit summary file
+		###################################################
+		gene_hit_summary_file = file_stem + '_tgfm_gene_tissue_hit_summary.txt'
+		create_hit_summary_file(per_gene_tissue_pip_summary_file, per_gene_pip_summary_file, ensamble_id_to_gene_id, gene_hit_summary_file)
 
 
 
@@ -1405,7 +1622,6 @@ for trait_name in trait_names:
 		n_causal_genetic_elements_summary_file = file_stem + '_tgfm_expected_n_causal_genetic_elements.txt'
 		n_causal_genetic_elements_by_tissue_summary_file = file_stem + '_tgfm_expected_n_causal_genetic_elements_tissue_stratefied.txt'
 		#tally_expected_number_of_causal_genetic_elements(concatenated_pip_summary_file, n_causal_genetic_elements_summary_file, n_causal_genetic_elements_by_tissue_summary_file, data_file_stem,file_stem, model_version, processed_tgfm_input_stem, tissue_names)
-
 
 		###################################################
 		# Tally up number of causal genetic elements
@@ -1419,13 +1635,32 @@ for trait_name in trait_names:
 				#arr2.append(n_tot)
 
 		###################################################
+		# Tally up number of causal genes (not gene-tissue pairs)
+		###################################################
+		for pip_threshold in [.1, .25, .3 , .5, .7, .75, .9, .95, .99]:
+			n_causal_genes_summary_file = file_stem + '_tgfm_n_causal_genes_pip_' + str(pip_threshold) + '.txt'
+			#tally_number_of_causal_genes(per_gene_pip_summary_file, n_causal_genes_summary_file, pip_threshold)
+
+
+
+		###################################################
 		# Tally up number of causal genetic elements across thresholds
 		###################################################
-		n_causal_genetic_elements_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_genetic_elements_cross_pip_threshold.txt'
+		n_causal_genetic_elements_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_genetic_elements_cross_pip_threshold_sqrt_plot_input.txt'
 		thresh_lb = .1
 		thresh_ub = 1.0
 		thresh_step_size = .01000
 		#tally_number_of_causal_genetic_elements_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_genetic_elements_summary_cross_threshold_file, thresh_step_size, thresh_lb, thresh_ub)
+
+
+		###################################################
+		# Tally up number of causal genetic elements into 5 sqaure root bins
+		###################################################
+		n_causal_genetic_elements_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_genetic_elements_5_pip_bins_sqrt_plot_input.txt'
+		sqrt_root_bins = [1.0, .9, .7, .5, .3, .2]
+		#tally_number_of_causal_genetic_elements_sqrt_plot_input(concatenated_pip_summary_file, n_causal_genetic_elements_summary_cross_threshold_file, sqrt_root_bins)
+
+
 
 
 		###################################################
