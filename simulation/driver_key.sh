@@ -271,6 +271,14 @@ for simulation_number in $(seq 1 20); do
 	sbatch run_single_focus_simulation_shell_outer.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_focus_input_dir $simulated_focus_results_dir
 done
 fi
+simulation_number="1"
+simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
+if false; then
+sbatch run_single_focus_simulation_shell_outer.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_focus_input_dir $simulated_focus_results_dir
+fi
+
+
+
 
 
 
@@ -287,9 +295,9 @@ fi
 if false; then
 source ~/.bash_profile
 module load R/3.5.1
-fi
+
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
 Rscript visualize_single_simulation.R $global_simulation_name_string $simulated_organized_results_dir $visualize_simulated_results_dir
 
-
+fi
 
