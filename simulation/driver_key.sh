@@ -103,7 +103,7 @@ simulated_focus_input_dir=$temp_output_root"simulated_focus_input/"
 simulated_focus_results_dir=$temp_output_root"simulated_focus_results/"
 
 # Directory containing visualizations of simulated results
-visualize_simulated_results_dir=$temp_output_root"visualize_simulated_results/"
+visualize_simulated_results_dir=$perm_output_root"visualize_simulated_results/"
 
 
 
@@ -295,9 +295,10 @@ fi
 if false; then
 source ~/.bash_profile
 module load R/3.5.1
+fi
 
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
 Rscript visualize_single_simulation.R $global_simulation_name_string $simulated_organized_results_dir $visualize_simulated_results_dir
 
-fi
+
 

@@ -393,7 +393,6 @@ fi
 ########################################
 gene_type="component_gene"
 num_jobs="8"
-
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_version2.txt" | while read trait_name study_file sample_size h2; do
 	for job_number in $(seq 0 $(($num_jobs-1))); do
@@ -405,8 +404,14 @@ done
 fi
 
 
-
-
+trait_name="blood_MONOCYTE_COUNT"
+if false; then
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+done
+fi
 
 
 
@@ -477,8 +482,9 @@ fi
 # Visualize specific TGFM examples
 #################################
 specific_examples_input_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/specific_examples_all.txt"
+if false; then
 sh visualize_specific_tgfm_examples.sh $specific_examples_input_file $tgfm_input_summary_file $tgfm_results_dir $tgfm_organized_results_dir $gtex_susie_gene_models_dir $gene_annotation_file $visualize_specific_tgfm_examples_dir $ukbb_sumstats_hg38_dir
-
+fi
 
 
 
