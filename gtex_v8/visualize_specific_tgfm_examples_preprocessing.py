@@ -34,7 +34,7 @@ def extract_input_data_file_names_for_this_window(tgfm_input_summary_file, windo
 
 
 
-def generate_snp_df_input_data(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, snp_df_output_file):
+def generate_snp_df_input_data(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, snp_df_output_file, snp_id_to_rsid):
 	# Get file names of input data corresponding to this specific window
 	window_tgfm_input_data_file, window_trait_input_data_file = extract_input_data_file_names_for_this_window(tgfm_input_summary_file, window_name)
 
@@ -73,12 +73,12 @@ def generate_snp_df_input_data(trait_name, window_name, tgfm_input_summary_file,
 	# Open output file and print to outpu
 	t = open(snp_df_output_file,'w')
 	# Print header
-	t.write('snp_name\tsnp_position\tgwas_z\tgwas_p\tgwas_neg_log10_p\tTGFM_PIP\tmiddle_variant_boolean\n')
+	t.write('snp_name\tsnp_position\tgwas_z\tgwas_p\tgwas_neg_log10_p\tTGFM_PIP\tmiddle_variant_boolean\trs_id\n')
 	# loop through snps
 	n_snps = len(snp_expected_tgfm_pips)
 	for snp_iter in range(n_snps):
 		t.write(variant_names[snp_iter] + '\t' + str(variant_positions[snp_iter]) + '\t' + str(gwas_z[snp_iter]) + '\t' + str(gwas_p[snp_iter]) + '\t')
-		t.write(str(neg_log_10_p[snp_iter]) + '\t' + str(snp_expected_tgfm_pips[snp_iter]) + '\t' + str(middle_variants[snp_iter]) + '\n')
+		t.write(str(neg_log_10_p[snp_iter]) + '\t' + str(snp_expected_tgfm_pips[snp_iter]) + '\t' + str(middle_variants[snp_iter]) + '\t' + snp_id_to_rsid[variant_names[snp_iter]] + '\n')
 	t.close()
 
 	return
@@ -138,7 +138,7 @@ def generate_gene_df_input_data(trait_name, window_name, tgfm_input_summary_file
 	# Print to output file
 	t = open(gene_df_output_file,'w')
 	# Print header
-	t.write('gene_name\tgene_tss\tgwas_neg_log10_p_mean\tgwas_neg_log10_p_lb\tgwas_neg_log10_p_ub\tTGFM_PIP\tmiddle_gene_boolean\tgene_id_tissue_name\n')	
+	t.write('gene_name\tgene_tss\tgwas_neg_log10_p_mean\tgwas_neg_log10_p_lb\tgwas_neg_log10_p_ub\tTGFM_PIP\tmiddle_gene_boolean\tgene_id_tissue_name\ttissue_name\tgene_id\n')	
 	# Loop through genes
 	for gene_iter in range(n_genes):
 		gene_tissue_name = gene_tissue_names[gene_iter]
@@ -148,7 +148,7 @@ def generate_gene_df_input_data(trait_name, window_name, tgfm_input_summary_file
 		gene_id_tissue_name = gene_id + ' (' + tissue_name + ')'
 
 		t.write(gene_tissue_names[gene_iter] + '\t' + str(gene_tss[gene_iter]) + '\t' + str(mean_neg_log10_p[gene_iter]) + '\t')
-		t.write(str(neg_log_10_p_lb[gene_iter]) + '\t' + str(neg_log_10_p_ub[gene_iter]) + '\t' + str(gene_expected_tgfm_pips[gene_iter]) + '\t' + str(middle_genes[gene_iter]) + '\t' + gene_id_tissue_name + '\n')
+		t.write(str(neg_log_10_p_lb[gene_iter]) + '\t' + str(neg_log_10_p_ub[gene_iter]) + '\t' + str(gene_expected_tgfm_pips[gene_iter]) + '\t' + str(middle_genes[gene_iter]) + '\t' + gene_id_tissue_name + '\t' + tissue_name + '\t' + gene_id + '\n')
 	# Close file handle
 	t.close()
 	return
@@ -212,10 +212,10 @@ def generate_link_df_input_data(snp_df_output_file, gene_df_output_file, gtex_su
 
 
 
-def generate_visualization_input_data_for_specific_example(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, tgfm_organized_results_dir, gtex_susie_gene_models_dir, ensamble_id_to_gene_id, example_output_root):
+def generate_visualization_input_data_for_specific_example(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, tgfm_organized_results_dir, gtex_susie_gene_models_dir, ensamble_id_to_gene_id,snp_id_to_rsid, example_output_root):
 	# Generate snp_df input data
 	snp_df_output_file = example_output_root + '_snp_df.txt'
-	generate_snp_df_input_data(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, snp_df_output_file)
+	generate_snp_df_input_data(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, snp_df_output_file, snp_id_to_rsid)
 
 	# Generate gene input data
 	gene_df_output_file = example_output_root + '_gene_df.txt'
@@ -270,6 +270,23 @@ def create_ensamble_id_to_gene_name_mapping(gene_annotation_file):
 	return ensg_to_gene_name
 
 
+def create_mapping_from_snp_id_to_rsid(sumstat_file):
+	mapping = {}
+	f = open(sumstat_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		rs_id = data[0]
+		snp_id = 'chr' + data[1] + '_' + data[2] + '_' + data[4] + '_' + data[5]
+		snp_id2 = 'chr' + data[1] + '_' + data[2] + '_' + data[5] + '_' + data[4]
+		mapping[snp_id] = rs_id
+		mapping[snp_id2] = rs_id
+	f.close()
+	return mapping
 
 
 
@@ -285,7 +302,11 @@ tgfm_organized_results_dir = sys.argv[4]
 gtex_susie_gene_models_dir = sys.argv[5]
 gene_annotation_file = sys.argv[6]
 visualize_specific_tgfm_examples_dir = sys.argv[7]
+ukbb_sumstats_dir = sys.argv[8]  # Used to create mapping from snp id to rs id
 
+
+# Create mapping from snp_id to rsid using gwas summary stat file
+snp_id_to_rsid = create_mapping_from_snp_id_to_rsid(ukbb_sumstats_dir + 'disease_THYROID_ANY_SELF_REP_hg38_liftover.bgen.stats')
 
 
 # Create mapping from ensamble id to gene id
@@ -315,7 +336,7 @@ for line in f:
 	example_output_root = visualize_specific_tgfm_examples_dir + trait_name + '_' + window_name
 
 	# Generate input data for this window
-	generate_visualization_input_data_for_specific_example(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, tgfm_organized_results_dir, gtex_susie_gene_models_dir, ensamble_id_to_gene_id, example_output_root)
+	generate_visualization_input_data_for_specific_example(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, tgfm_organized_results_dir, gtex_susie_gene_models_dir, ensamble_id_to_gene_id,snp_id_to_rsid, example_output_root)
 
 
 f.close()

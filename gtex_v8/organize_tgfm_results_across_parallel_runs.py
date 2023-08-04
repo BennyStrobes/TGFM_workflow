@@ -953,7 +953,42 @@ def tally_number_of_causal_genetic_elements_sqrt_plot_input(concatenated_pip_sum
 	return
 
 
-def tally_number_of_causal_genetic_elements_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_genetic_elements_summary_cross_threshold_file, thresh_step_size, thresh_lb, thresh_ub):
+
+def tally_number_of_causal_genes_cross_pip_thresholds(per_gene_pip_summary_file, n_causal_genes_summary_cross_threshold_file):
+	f = open(per_gene_pip_summary_file)
+	gene_pips = []
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		gene_name = data[0]
+		gene_pip = float(data[2])
+		gene_pips.append(gene_pip)
+	f.close()
+	gene_pips = np.asarray(gene_pips)
+	total_genes = np.sum(gene_pips > .1)
+	max_gene_pip = np.max(gene_pips)
+	prev_genes = 0.0
+	t = open(n_causal_genes_summary_cross_threshold_file,'w')
+	t.write('element_class\tPIP_threshold\tn_elements\n')
+	gene_pips = gene_pips[gene_pips >= .1]
+	total_count = 0
+	for gene_pip in np.sort(-gene_pips):
+		prev_total_count = total_count
+		total_count = total_count + 1
+
+		count = np.sqrt(total_count) - np.sqrt(prev_total_count)
+
+		t.write('gene' + '\t' + str(-gene_pip) + '\t' + str(count) + '\n')
+
+	t.close()
+
+	return
+
+def tally_number_of_causal_variants_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_variants_summary_cross_threshold_file):
 	f = open(concatenated_pip_summary_file)
 	gene_pips = []
 	variant_pips = []
@@ -984,17 +1019,56 @@ def tally_number_of_causal_genetic_elements_cross_pip_thresholds(concatenated_pi
 	max_gene_pip = np.max(gene_pips)
 	max_variant_pip = np.max(variant_pips)
 	prev_genes = 0.0
-	t = open(n_causal_genetic_elements_summary_cross_threshold_file,'w')
+	t = open(n_causal_variants_summary_cross_threshold_file,'w')
 	t.write('element_class\tPIP_threshold\tn_elements\n')
-	'''
-	for threshold in np.arange(thresh_lb, thresh_ub + thresh_step_size, thresh_step_size ):
-		# Hacky correction to error in np.arange
-		threshold = np.around(threshold, decimals=2)
-		if threshold <= (max_gene_pip+thresh_step_size):
-			curr_genes = np.sum(gene_pips >= threshold)
-			t.write('gene' + '\t' + str(threshold) + '\t' + str(curr_genes) + '\n')
+	variant_pips = variant_pips[variant_pips >= .1]
+	total_count = 0
+	for variant_pip in np.sort(-variant_pips):
+		prev_total_count = total_count
+		total_count = total_count + 1
+
+		count = np.sqrt(total_count) - np.sqrt(prev_total_count)
+
+		t.write('variant' + '\t' + str(-variant_pip) + '\t' + str(count) + '\n')
+
 	t.close()
-	'''
+
+	return
+
+
+def tally_number_of_causal_gene_tissue_pairs_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_gene_tissue_pairs_summary_cross_threshold_file):
+	f = open(concatenated_pip_summary_file)
+	gene_pips = []
+	variant_pips = []
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		if len(data) != 3:
+			continue
+		ele_names = data[1].split(';')
+		ele_probs = np.asarray(data[2].split(';')).astype(float)
+		n_ele = len(ele_names)
+		for ele_iter in range(n_ele):
+			ele_name = ele_names[ele_iter]
+			ele_prob = ele_probs[ele_iter]
+			if ele_name.startswith('ENSG'):
+				gene_pips.append(ele_prob)
+			else:
+				variant_pips.append(ele_prob)
+	f.close()
+	gene_pips = np.asarray(gene_pips)
+	total_genes = np.sum(gene_pips > .1)
+	variant_pips = np.asarray(variant_pips)
+	total_variants = np.sum(variant_pips > .1)
+	max_gene_pip = np.max(gene_pips)
+	max_variant_pip = np.max(variant_pips)
+	prev_genes = 0.0
+	t = open(n_causal_gene_tissue_pairs_summary_cross_threshold_file,'w')
+	t.write('element_class\tPIP_threshold\tn_elements\n')
 	gene_pips = gene_pips[gene_pips >=.1]
 	total_count = 0
 	for gene_pip in np.sort(-gene_pips):
@@ -1612,7 +1686,7 @@ for trait_name in trait_names:
 		# Create hit summary file
 		###################################################
 		gene_hit_summary_file = file_stem + '_tgfm_gene_tissue_hit_summary.txt'
-		create_hit_summary_file(per_gene_tissue_pip_summary_file, per_gene_pip_summary_file, ensamble_id_to_gene_id, gene_hit_summary_file)
+		#create_hit_summary_file(per_gene_tissue_pip_summary_file, per_gene_pip_summary_file, ensamble_id_to_gene_id, gene_hit_summary_file)
 
 
 
@@ -1644,13 +1718,23 @@ for trait_name in trait_names:
 
 
 		###################################################
-		# Tally up number of causal genetic elements across thresholds
+		# Tally up number of causal gene-tissue pairs across thresholds
 		###################################################
-		n_causal_genetic_elements_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_genetic_elements_cross_pip_threshold_sqrt_plot_input.txt'
-		thresh_lb = .1
-		thresh_ub = 1.0
-		thresh_step_size = .01000
-		#tally_number_of_causal_genetic_elements_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_genetic_elements_summary_cross_threshold_file, thresh_step_size, thresh_lb, thresh_ub)
+		n_causal_gene_tissue_pairs_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_gene_tissue_pairs_cross_pip_threshold_sqrt_plot_input.txt'
+		#tally_number_of_causal_gene_tissue_pairs_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_gene_tissue_pairs_summary_cross_threshold_file)
+
+		###################################################
+		# Tally up number of variants across thresholds
+		###################################################
+		n_causal_variants_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_variants_cross_pip_threshold_sqrt_plot_input.txt'
+		#tally_number_of_causal_variants_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_variants_summary_cross_threshold_file)
+
+		###################################################
+		# Tally up number of genes across thresholds
+		###################################################
+		n_causal_genes_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_genes_cross_pip_threshold_sqrt_plot_input.txt'
+		#tally_number_of_causal_genes_cross_pip_thresholds(per_gene_pip_summary_file, n_causal_genes_summary_cross_threshold_file)
+
 
 
 		###################################################

@@ -149,15 +149,107 @@ def create_mapping_from_trait_name_to_gene_pops_scores(pops_results_summary_file
 
 	return dicti
 
-def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, preprocessed_tgfm_data_dir):
+def get_max_tgfm_sampler_z_v3(tgfm_res):
+	alpha_zs = tgfm_res['alpha_mus']/np.sqrt(tgfm_res['alpha_vars'])
+	combined_effects = np.zeros(alpha_zs[0].shape)
+	for component_iter in range(len(alpha_zs)):
+		component_e_alpha = tgfm_res['alpha_mus'][component_iter]*tgfm_res['alpha_phis'][component_iter]
+		
+		combined_effects =combined_effects + component_e_alpha
+
+	return (np.mean(combined_effects,axis=0))
+
+
+
+def get_max_tgfm_sampler_z(tgfm_res):
+	alpha_zs = tgfm_res['alpha_mus']/np.sqrt(tgfm_res['alpha_vars'])
+	best_zs = np.zeros(alpha_zs[0].shape)
+	for component_iter in range(len(alpha_zs)):
+		component_e_alpha = tgfm_res['alpha_mus'][component_iter]*tgfm_res['alpha_phis'][component_iter]
+		component_e_alpha_var = tgfm_res['alpha_phis'][component_iter]*(np.square(tgfm_res['alpha_mus'][component_iter]) + tgfm_res['alpha_vars'][component_iter]) - np.square(component_e_alpha)
+		
+		if np.min(component_e_alpha_var) == 0.0:
+			component_e_alpha_var[component_e_alpha_var==0] = 1000000000.0
+
+		component_e_z = component_e_alpha/np.sqrt(component_e_alpha_var)
+
+		best_zs = np.maximum(best_zs, np.abs(component_e_z))
+	return np.mean(best_zs,axis=0)
+
+def get_max_tgfm_sampler_z_v2(tgfm_res):
+	alpha_zs = tgfm_res['alpha_mus']/np.sqrt(tgfm_res['alpha_vars'])
+	agg_mu = np.zeros(alpha_zs[0].shape)
+	agg_var = np.zeros(alpha_zs[0].shape)
+	for component_iter in range(len(alpha_zs)):
+		component_e_alpha = tgfm_res['alpha_mus'][component_iter]*tgfm_res['alpha_phis'][component_iter]
+		component_e_alpha_var = tgfm_res['alpha_phis'][component_iter]*(np.square(tgfm_res['alpha_mus'][component_iter]) + tgfm_res['alpha_vars'][component_iter]) - np.square(component_e_alpha)
+		component_e_z = component_e_alpha/np.sqrt(component_e_alpha_var)
+
+		agg_mu = agg_mu + component_e_alpha
+		agg_var = agg_var + component_e_alpha_var
+
+		#best_zs = np.maximum(best_zs, np.abs(component_e_z))
+	agg_z = agg_mu/np.sqrt(agg_var)
+	return np.abs(np.mean(agg_z,axis=0))
+
+def compute_expected_pips_from_sampler_pis(gene_alphas):
+	n_bs = gene_alphas[0].shape[0]
+	n_genes = gene_alphas[0].shape[1]
+	LL = len(gene_alphas)
+
+
+	alpha_pips = np.ones((n_bs, n_genes))
+
+	for component_iter in range(LL):
+		alpha_pips = alpha_pips*(1.0 - gene_alphas[component_iter])
+
+	alpha_pips = 1.0 - alpha_pips
+
+	expected_alpha_pips = np.mean(alpha_pips,axis=0)
+	return expected_alpha_pips
+
+def get_gene_pip_dictionary(tgfm_results, middle_gene_indices):
+	middle_gene_pips = tgfm_results['expected_alpha_pips'][middle_gene_indices]
+	middle_gene_names = tgfm_results['genes'][middle_gene_indices]
+		
+	alphas = tgfm_results['alpha_phis']
+	middle_gene_tissues = tgfm_results['genes'][middle_gene_indices]
+
+	mapping = {}
+	gene_to_indices = {}
+	for ii, middle_gene_tissue in enumerate(middle_gene_tissues):
+		gene_name = middle_gene_tissue.split('_')[0]
+		if gene_name not in gene_to_indices:
+			gene_to_indices[gene_name] = []
+		gene_to_indices[gene_name].append(ii)
+	n_genes = len(gene_to_indices)
+	ordered_genes = [*gene_to_indices]
+	LL = len(alphas)
+	gene_alphas = []
+	for ll in range(LL):
+		new_alpha = np.zeros((alphas[ll].shape[0], n_genes))
+		for ii,gene_name in enumerate(ordered_genes):
+			tmper = alphas[ll][:, middle_gene_indices]
+			new_alpha[:, ii] = np.sum(tmper[:, gene_to_indices[gene_name]],axis=1)
+		gene_alphas.append(new_alpha)
+	expected_alpha_pips = compute_expected_pips_from_sampler_pis(gene_alphas)
+	for ii, gene_name in enumerate(ordered_genes):
+		agg_pip = expected_alpha_pips[ii]
+		mapping[gene_name.split('.')[0]] = agg_pip
+	return mapping
+
+
+def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, tgfm_organized_results_dir, preprocessed_tgfm_data_dir):
 	# Use this file just to get windows
-	results_summary_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_tgfm_pip_summary.txt'
+	results_summary_file = tgfm_organized_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_tgfm_pip_summary.txt'
 
 	# Use dictionary to keep track of gene-tissue pairs and max pips
 	tgfm_genetissue_to_pip = {}
 	tgfm_gene_to_max_pip = {}
 	tgfm_gene_to_sum_pip = {}
 	tgfm_gene_to_max_abs_twas_z = {}
+	tgfm_gene_to_max_abs_tgfm_z = {}
+	tgfm_gene_to_gene_pip = {}
 	f = open(results_summary_file)
 	head_count = 0
 	for line in f:
@@ -175,10 +267,12 @@ def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, preproc
 		g.close()
 
 		# TGFM PMCES (for twas z)
+		'''
 		tgfm_pmces_res_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_pmces_uniform_' + window_name + '_results.pkl'
 		g = open(tgfm_pmces_res_file, 'rb')
 		tgfm_pmces_res = pickle.load(g)
 		g.close()
+		'''
 
 		# Load in TGFM input data file
 		tgfm_input_file = preprocessed_tgfm_data_dir + 'component_gene_' + window_name + '_tgfm_trait_agnostic_input_data_obj.pkl'
@@ -191,9 +285,18 @@ def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, preproc
 		if len(middle_gene_indices) == 0:
 			continue
 
+
+		gene_max_tgfm_z = get_max_tgfm_sampler_z_v3(tgfm_res)[middle_gene_indices]
+
+		if np.sum(np.isnan(gene_max_tgfm_z)) > 0:
+			pdb.set_trace()
 		gene_pips = tgfm_res['expected_alpha_pips'][middle_gene_indices]
 		gene_names = tgfm_res['genes'][middle_gene_indices]
-		gene_abs_twas_z = np.abs(tgfm_pmces_res['nominal_twas_z'][middle_gene_indices])
+		gene_abs_twas_z = np.abs(np.median(np.asarray(tgfm_res['nominal_twas_z']),axis=0)[middle_gene_indices])
+		tgfm_gene_to_gene_pip_tmp = get_gene_pip_dictionary(tgfm_res, middle_gene_indices)
+		for gene_id in [*tgfm_gene_to_gene_pip_tmp]:
+			tgfm_gene_to_gene_pip[gene_id] = tgfm_gene_to_gene_pip_tmp[gene_id]
+		#gene_abs_twas_z = np.abs(tgfm_pmces_res['nominal_twas_z'][middle_gene_indices])
 		#gene_twas_z = tgfm_res['nominal_twas_z'][middle_gene_indices]
 		for ii,gene_name in enumerate(gene_names):
 			if gene_name in tgfm_genetissue_to_pip:
@@ -210,15 +313,20 @@ def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, preproc
 				tgfm_gene_to_sum_pip[ensamble_id] = gene_pips[ii]
 			else:
 				tgfm_gene_to_sum_pip[ensamble_id] = np.sum([gene_pips[ii], tgfm_gene_to_sum_pip[ensamble_id]])
+			if ensamble_id not in tgfm_gene_to_max_abs_tgfm_z:
+				tgfm_gene_to_max_abs_tgfm_z[ensamble_id] = gene_max_tgfm_z[ii]
+			else:
+				tgfm_gene_to_max_abs_tgfm_z[ensamble_id] = np.sum([gene_max_tgfm_z[ii], tgfm_gene_to_max_abs_tgfm_z[ensamble_id]])
 
 			if ensamble_id not in tgfm_gene_to_max_abs_twas_z:
 				tgfm_gene_to_max_abs_twas_z[ensamble_id] = gene_abs_twas_z[ii]
 			else:
 				tgfm_gene_to_max_abs_twas_z[ensamble_id] = np.max([gene_abs_twas_z[ii], tgfm_gene_to_max_abs_twas_z[ensamble_id]])
 
-	f.close()
-	return tgfm_genetissue_to_pip, tgfm_gene_to_max_pip, tgfm_gene_to_max_abs_twas_z, tgfm_gene_to_sum_pip
 
+	f.close()
+	#return tgfm_genetissue_to_pip, tgfm_gene_to_max_pip, tgfm_gene_to_max_abs_twas_z, tgfm_gene_to_sum_pip, tgfm_gene_to_max_abs_tgfm_z
+	return tgfm_genetissue_to_pip, tgfm_gene_to_max_pip, tgfm_gene_to_max_abs_twas_z, tgfm_gene_to_sum_pip, tgfm_gene_to_max_abs_tgfm_z
 
 
 ######################
@@ -231,6 +339,7 @@ gtex_susie_gene_models_dir = sys.argv[4]
 preprocessed_tgfm_data_dir = sys.argv[5]
 pops_results_summary_file = sys.argv[6]
 pops_enrichment_dir = sys.argv[7]
+tgfm_organized_results_dir = sys.argv[8]
 
 # Create file containing list of gene models tested by TGFM
 tgfm_gene_tissue_list_file = pops_enrichment_dir + 'tgfm_gene_tissues_tested.txt'
@@ -253,13 +362,18 @@ trait_name_to_gene_pops_scores = create_mapping_from_trait_name_to_gene_pops_sco
 # valid trait names (ie those that are found in our analysis and pops analysis)
 valid_trait_names = np.asarray([*trait_name_to_gene_pops_scores])
 
+independent_traits= np.asarray(["body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "pigment_HAIR", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled"])
+
+
 # Open output file handle
 output_file = pops_enrichment_dir + 'cross_traits_pops_tgfm_enrichment_summary.txt'
 t = open(output_file,'w')
-t.write('trait_name\tgene_name\tmax_tgfm_pip\tsum_tgfm_pip\tmax_abs_twas_z\tpops_score\n')
+t.write('trait_name\tgene_name\tmax_tgfm_pip\tsum_tgfm_pip\tmax_abs_twas_z\tmax_abs_tgfm_z\tpops_score\n')
 
 # Loop through trait names
 for trait_name in valid_trait_names:
+	if trait_name not in independent_traits:
+		continue
 
 	# Gene names tested by pops for this trait
 	pops_trait_gene_names = np.asarray(trait_name_to_gene_pops_scores[trait_name][0])
@@ -267,12 +381,13 @@ for trait_name in valid_trait_names:
 
 
 	# Get TGFM gene names and pips
-	tgfm_genetissue_to_pip, tgfm_gene_to_max_pip, tgfm_gene_to_max_abs_twas_z, tgfm_gene_to_sum_pip = get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, preprocessed_tgfm_data_dir)
+	tgfm_genetissue_to_pip, tgfm_gene_to_max_pip, tgfm_gene_to_max_abs_twas_z, tgfm_gene_to_sum_pip, tgfm_gene_to_max_abs_tgfm_z = get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, tgfm_organized_results_dir, preprocessed_tgfm_data_dir)
 
 	# Get pips for Pops scores
 	pops_trait_gene_pips = []
 	pops_trait_gene_sum_pips = []
 	pops_trait_gene_twas_z = []
+	pops_trait_gene_max_tgfm_z = []
 	for gene_name in pops_trait_gene_names:
 		if gene_name not in tgfm_gene_to_max_pip:
 			pops_trait_gene_pips.append(np.nan)
@@ -286,9 +401,16 @@ for trait_name in valid_trait_names:
 			pops_trait_gene_twas_z.append(np.nan)
 		else:
 			pops_trait_gene_twas_z.append(tgfm_gene_to_max_abs_twas_z[gene_name])
+		if gene_name not in tgfm_gene_to_max_abs_tgfm_z:
+			pops_trait_gene_max_tgfm_z.append(np.nan)
+		else:
+			pops_trait_gene_max_tgfm_z.append(np.abs(tgfm_gene_to_max_abs_tgfm_z[gene_name]))
+
+
 	pops_trait_gene_pips = np.asarray(pops_trait_gene_pips)
 	pops_trait_gene_twas_z = np.asarray(pops_trait_gene_twas_z)
 	pops_trait_gene_sum_pips = np.asarray(pops_trait_gene_sum_pips)
+	pops_trait_gene_max_tgfm_z = np.asarray(pops_trait_gene_max_tgfm_z)
 
 	# Filter to genes that we have TGFM AND POPS
 	valid_indices = np.isnan(pops_trait_gene_pips) == False
@@ -297,6 +419,7 @@ for trait_name in valid_trait_names:
 	tgfm_sum_pips = pops_trait_gene_sum_pips[valid_indices]
 	twas_abs_z = pops_trait_gene_twas_z[valid_indices]
 	final_genes = pops_trait_gene_names[valid_indices]
+	tgfm_max_abs_z = pops_trait_gene_max_tgfm_z[valid_indices]
 
 	# Print to outputs
 	# Trait name
@@ -305,13 +428,14 @@ for trait_name in valid_trait_names:
 	# Correlation coefficient
 	print(scipy.stats.spearmanr(pops_scores, tgfm_pips))
 	print(scipy.stats.spearmanr(pops_scores, twas_abs_z))
+	print(scipy.stats.spearmanr(pops_scores, tgfm_max_abs_z))
 
 
 	print(np.mean(pops_scores[tgfm_pips < .1]))
 	print(np.mean(pops_scores[tgfm_pips > .4]))
 
 	for itera, gene_name in enumerate(final_genes):
-		t.write(trait_name + '\t' + gene_name + '\t' + str(tgfm_pips[itera]) + '\t' + str(tgfm_sum_pips[itera]) + '\t' + str(twas_abs_z[itera]) + '\t' + str(pops_scores[itera]) + '\n')
+		t.write(trait_name + '\t' + gene_name + '\t' + str(tgfm_pips[itera]) + '\t' + str(tgfm_sum_pips[itera]) + '\t' + str(twas_abs_z[itera]) + '\t' + str(tgfm_max_abs_z[itera]) + '\t' + str(pops_scores[itera]) + '\n')
 
 t.close()
 

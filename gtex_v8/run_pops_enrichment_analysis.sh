@@ -12,13 +12,12 @@ gtex_susie_gene_models_dir="$4"
 preprocessed_tgfm_data_dir="$5"
 pops_results_summary_file="$6"
 pops_enrichment_dir="$7"
+tgfm_organized_results_dir="$8"
 
-if false; then
 source ~/.bash_profile
+python3 run_pops_enrichment_analysis.py $tgfm_results_dir $gene_type $trait_names_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $pops_results_summary_file $pops_enrichment_dir $tgfm_organized_results_dir
 
-python3 run_pops_enrichment_analysis.py $tgfm_results_dir $gene_type $trait_names_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $pops_results_summary_file $pops_enrichment_dir
-fi
+
+
 module load R/3.5.1
-
-
 Rscript visualize_pops_enrichment.R $pops_enrichment_dir
