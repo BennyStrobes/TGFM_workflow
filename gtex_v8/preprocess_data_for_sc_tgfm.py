@@ -168,7 +168,7 @@ def sample_eqtl_effects_from_susie_distribution(gene_susie_mu, gene_susie_alpha,
 		sampled_eqtl_effects[random_snp_index] = sampled_eqtl_effects[random_snp_index] + random_effect_size
 	return sampled_eqtl_effects
 
-def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, global_variant_arr, LD, pseudotissues, tissue_to_gene_model_df, short_variant_to_annotation_vector, n_bs):
+def organize_tgfm_trait_agnostic_data_for_single_window_old(window_name, window_chrom_num, window_start, window_end, global_variant_arr, LD, pseudotissues, tissue_to_gene_model_df, short_variant_to_annotation_vector, n_bs):
 	# Get list of gene_tissue pairs and weight files for this window
 	gene_tissue_pairs, gene_tissue_pair_weight_files, gene_tss_arr = get_list_of_gene_tissue_pairs_and_weight_files_for_window(window_chrom_num, window_start, window_end, pseudotissues, tissue_to_gene_model_df)
 
@@ -292,6 +292,133 @@ def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chro
 	global_dictionary = {'genes': gene_tissue_pairs,'tss':gene_tss_arr, 'valid_susie_components':global_components, 'variants': global_variant_arr, 'varriant_positions': variant_positions, 'annotation': annotation_mat, 'gene_eqtl_pmces': np.asarray(global_weight_vectors), 'gene_variances': np.asarray(gene_variances), 'full_gene_variances': np.asarray(gene_full_variances), 'sparse_sampled_gene_eqtl_pmces':sparse_sampled_gene_eqtl_pmces, 'middle_gene_indices': middle_gene_indices, 'middle_variant_indices': middle_variant_indices}
 
 	return global_dictionary
+
+
+def organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, global_variant_arr, LD, pseudotissues, tissue_to_gene_model_df, n_bs):
+	# Get list of gene_tissue pairs and weight files for this window
+	gene_tissue_pairs, gene_tissue_pair_weight_files, gene_tss_arr = get_list_of_gene_tissue_pairs_and_weight_files_for_window(window_chrom_num, window_start, window_end, pseudotissues, tissue_to_gene_model_df)
+
+	# Get number of total variants
+	num_global_variants = len(global_variant_arr)
+
+	# Create dictionary mapping from variant name to global-variant arr position
+	variant_name_to_global_variant_arr_pos = create_mapping_from_variant_name_to_global_variant_arr_pos(global_variant_arr)
+
+	# Extract variant positions from variant array
+	variant_positions = extract_variant_positions_from_variant_array(global_variant_arr)
+	
+
+	# Initialize arrays to keep track of eqtl-susie data
+	global_weight_vectors = []
+	gene_variances = []
+	gene_full_variances = []
+	global_components = []
+
+	bs_arr = []
+
+	# Loop through gene-tissue pairs
+	print(len(gene_tissue_pairs))
+	for gene_tissue_index, gene_tissue_name in enumerate(gene_tissue_pairs):
+		#print(gene_tissue_index)
+		# Get gene-tissue weight file
+		gene_tissue_weight_file = gene_tissue_pair_weight_files[gene_tissue_index]
+
+		# Load gene-tissue model from gene-tissue weight file
+		gene_tissue_model = pyreadr.read_r(gene_tissue_weight_file)
+
+		component_bool = np.asarray(gene_tissue_model['component_bool'])[0,0]
+		if component_bool == False:
+			global_components.append(np.asarray([]))
+		else:
+			gene_components = np.asarray(gene_tissue_model['susie_cs'])[:,0] - 1
+			global_components.append(gene_components)
+
+		# Create mapping from gene coordinates to global coordinates
+		gene_variants = np.asarray(gene_tissue_model['variant_names'])[:,0]
+		gene_local_to_global_mapping, gene_flips = create_gene_local_to_global_mapping(variant_name_to_global_variant_arr_pos, gene_variants)
+
+		# Create global susie alpha
+		global_susie_alpha, local_susie_alpha = create_global_susie_no_flips(gene_local_to_global_mapping, np.asarray(gene_tissue_model['susie_alpha']), num_global_variants)
+		#global_susie_alpha_data.append(global_susie_alpha)
+		# Create global susie mu_sd
+		local_susie_mu_sd_raw = np.sqrt(np.asarray(gene_tissue_model['susie_mu2']) - np.square(np.asarray(gene_tissue_model['susie_mu'])))
+		global_susie_mu_sd, local_susie_mu_sd = create_global_susie_no_flips(gene_local_to_global_mapping, local_susie_mu_sd_raw, num_global_variants)
+		#global_susie_mu_sd_data.append(global_susie_mu_sd)
+
+		# Create global mu
+		global_susie_mu, local_susie_mu = create_global_susie_w_flips(gene_local_to_global_mapping, gene_flips, np.asarray(gene_tissue_model['susie_mu']), num_global_variants)
+		#global_susie_mu_data.append(global_susie_mu)
+
+		# Create susie PMCES
+		local_susie_pmces = np.sum(local_susie_mu*local_susie_alpha,axis=0)
+		global_susie_pmces = np.sum(global_susie_mu*global_susie_alpha,axis=0)
+		#global_susie_pmces2 = np.copy(global_susie_pmces)*0.0
+		#global_susie_pmces2[gene_local_to_global_mapping] = local_susie_pmces
+
+		# Construct local LD
+		local_LD = LD[gene_local_to_global_mapping,:][:, gene_local_to_global_mapping]
+
+		# Compute gene variance
+		#gene_variance_alt = np.dot(np.dot(global_susie_pmces, LD), global_susie_pmces)
+		gene_variance  = np.dot(np.dot(local_susie_pmces, local_LD), local_susie_pmces)
+
+		# Calculate full gene variance (variance according to susie posterior distribution)
+		full_gene_variance = calculate_gene_variance_according_to_susie_distribution(local_susie_mu, local_susie_alpha, local_susie_mu_sd, local_LD)
+
+		# Standardize susie PMCES
+		global_susie_pmces_standardized = global_susie_pmces/np.sqrt(gene_variance)
+
+		# Store data
+		global_weight_vectors.append(global_susie_pmces_standardized)
+		gene_variances.append(gene_variance)
+		gene_full_variances.append(full_gene_variance)
+
+
+		# Run sampling analysis
+		n_snps = local_susie_mu.shape[1]
+		bs_alpha_effects = np.zeros((n_snps, n_bs))
+
+		# For number of samplese (n_bs), sample
+		for bs_iter in range(n_bs):
+			susie_sampled_eqtl_effects = sample_eqtl_effects_from_susie_distribution(local_susie_mu, local_susie_alpha, np.square(local_susie_mu_sd))
+			bs_alpha_effects[:, bs_iter] = susie_sampled_eqtl_effects
+		# Standardize and store data		
+		bs_gene_variances = np.diag(np.dot(np.dot(np.transpose(bs_alpha_effects), local_LD), bs_alpha_effects))
+		bs_std_alpha_effects = bs_alpha_effects/np.sqrt(bs_gene_variances)
+		bs_arr.append((bs_std_alpha_effects, gene_local_to_global_mapping))
+
+	# Organize sample analysis
+	sparse_sampled_gene_eqtl_pmces = []
+	for bs_iter in range(n_bs):
+		eqtl_mat = []
+		for gene_itera, bs_eqtl_tuple in enumerate(bs_arr):
+			eqtl_gene_window = bs_eqtl_tuple[0][:, bs_iter]
+			eqtl_indices = bs_eqtl_tuple[1]
+			#eqtl_indices = np.arange(len(boolean_indices))[boolean_indices]
+			for ii, eqtl_effect in enumerate(eqtl_gene_window):
+				if eqtl_effect == 0.0:
+					continue
+				eqtl_index = eqtl_indices[ii]
+				eqtl_mat.append(np.asarray([gene_itera, eqtl_index, eqtl_effect]))
+		eqtl_mat = np.asarray(eqtl_mat)
+		sparse_sampled_gene_eqtl_pmces.append(eqtl_mat)
+
+
+
+	# Extract annotation mat for these variants
+	#annotation_mat = extract_annotation_mat_for_window_variants(short_variant_to_annotation_vector, global_variant_arr)
+
+	# Get middle indices
+	window_middle_start = window_start + 1000000
+	window_middle_end = window_end - 1000000
+	middle_gene_indices = np.where((gene_tss_arr >= window_middle_start) & (gene_tss_arr < window_middle_end))[0]
+	middle_variant_indices = np.where((variant_positions >= window_middle_start) & (variant_positions < window_middle_end))[0]
+
+	# Save to global object
+	global_dictionary = {'genes': gene_tissue_pairs,'tss':gene_tss_arr, 'valid_susie_components':global_components, 'variants': global_variant_arr, 'varriant_positions': variant_positions, 'gene_eqtl_pmces': np.asarray(global_weight_vectors), 'gene_variances': np.asarray(gene_variances), 'full_gene_variances': np.asarray(gene_full_variances), 'sparse_sampled_gene_eqtl_pmces':sparse_sampled_gene_eqtl_pmces, 'middle_gene_indices': middle_gene_indices, 'middle_variant_indices': middle_variant_indices}
+
+	return global_dictionary
+
 
 def extract_regression_snp_indices(window_variant_names, hapmap3_snps, window_start, window_end):
 	middle_start = window_start + 1000000.0
@@ -1127,14 +1254,14 @@ tissue_to_gene_model_df = create_tissue_to_gene_model_df(pseudotissues, gtex_sus
 pseudotissues = np.hstack((pseudotissues, cell_types))
 
 # Get dictionary list of hapmap3 snpids
-hapmap3_snps = get_dictionary_list_of_hapmap3_snpids(hapmap3_snpid_file)
+#hapmap3_snps = get_dictionary_list_of_hapmap3_snpids(hapmap3_snpid_file)
 # This is all hapmap3 snps that fall in the middle of a window that is tested
 #all_regression_snps = get_dictionary_list_of_all_regression_snps(hapmap3_snps, ukbb_windows)
 
 # Get chromosome nums in this parallel window
 used_chrom_arr = get_chromosome_names_used_in_this_analysis(ukbb_windows_parr)
-print(used_chrom_arr)
-short_variant_name_to_annotation_vec = create_mapping_from_short_variant_name_to_annotation_vec(used_chrom_arr, annotation_dir)
+#print(used_chrom_arr)
+#short_variant_name_to_annotation_vec = create_mapping_from_short_variant_name_to_annotation_vec(used_chrom_arr, annotation_dir)
 
 
 
@@ -1185,7 +1312,9 @@ for window_iter in range(num_windows):
 	gwas_beta_se = np.loadtxt(window_gwas_beta_se_file)
 
 	# Organize TGFM trait agnostic input for single window
-	tgfm_data_obj = organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, window_variant_names, LD, pseudotissues, tissue_to_gene_model_df, short_variant_name_to_annotation_vec, n_bs)
+	#tgfm_data_obj = organize_tgfm_trait_agnostic_data_for_single_window_old(window_name, window_chrom_num, window_start, window_end, window_variant_names, LD, pseudotissues, tissue_to_gene_model_df, short_variant_name_to_annotation_vec, n_bs)
+	tgfm_data_obj = organize_tgfm_trait_agnostic_data_for_single_window(window_name, window_chrom_num, window_start, window_end, window_variant_names, LD, pseudotissues, tissue_to_gene_model_df, n_bs)
+
 
 	# Save TGFM input data object
 	pkl_file = preprocessed_tgfm_data_dir + window_name + '_tgfm_trait_agnostic_input_data_obj.pkl'

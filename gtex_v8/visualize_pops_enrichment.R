@@ -87,19 +87,19 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 	thresher = 0.0
 
 	sorted_twas = sort(df$max_abs_twas_z)
-	sorted_tgfm_twas = sort(df$max_abs_tgfm_z)
+	sorted_tgfm_twas = sort(df$tgfm_abs_gene_pmces)
+
 
 	###############################
 	threshold_lb <- 0.0
 	threshold_ub <- .1
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	#TGFM
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
-
 	method_type_vec <- c(method_type_vec, "TGFM")
 	#TWAS
 	start_index = n_indices
@@ -116,7 +116,7 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 	#n_indices = n_indices + sum(indices)
 	threshold_lb = sorted_tgfm_twas[(start_index+1)]
 	threshold_ub = sorted_tgfm_twas[(n_indices+1)]
-	indices = (df$max_abs_tgfm_z >= threshold_lb) & (df$max_abs_tgfm_z < threshold_ub)
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	#bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -125,7 +125,7 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 	###############################
 	threshold_lb <- .1
 	threshold_ub <- .25
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -148,7 +148,7 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 	#n_indices = n_indices + sum(indices)
 	threshold_lb = sorted_tgfm_twas[(start_index+1)]
 	threshold_ub = sorted_tgfm_twas[(n_indices+1)]
-	indices = (df$max_abs_tgfm_z >= threshold_lb) & (df$max_abs_tgfm_z < threshold_ub)
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	#bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -157,7 +157,7 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 	###############################
 	threshold_lb <- .25
 	threshold_ub <- .5
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -184,7 +184,7 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 	#n_indices = n_indices + sum(indices)
 	threshold_lb = sorted_tgfm_twas[(start_index+1)]
 	threshold_ub = sorted_tgfm_twas[(n_indices+1)]
-	indices = (df$max_abs_tgfm_z >= threshold_lb) & (df$max_abs_tgfm_z < threshold_ub)
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	#bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -193,8 +193,8 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 
 	###############################
 	threshold_lb <- .5
-	threshold_ub <- .75
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	threshold_ub <- .7
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -220,16 +220,16 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 	#n_indices = n_indices + sum(indices)
 	threshold_lb = sorted_tgfm_twas[(start_index+1)]
 	threshold_ub = sorted_tgfm_twas[(n_indices+1)]
-	indices = (df$max_abs_tgfm_z >= threshold_lb) & (df$max_abs_tgfm_z < threshold_ub)
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	#bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	method_type_vec <- c(method_type_vec, "TGFM-Z")	
 
 	###############################
-	threshold_lb <- .75
+	threshold_lb <- .7
 	threshold_ub <- 0.9
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -255,7 +255,7 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 	#n_indices = n_indices + sum(indices)
 	threshold_lb = sorted_tgfm_twas[(start_index+1)]
 	threshold_ub = sorted_tgfm_twas[(n_indices+1)]
-	indices = (df$max_abs_tgfm_z >= threshold_lb) & (df$max_abs_tgfm_z < threshold_ub)
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	#bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -265,7 +265,7 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 	###############################
 	threshold_lb <- 0.9
 	threshold_ub <- 1.0
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -291,7 +291,7 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 	#n_indices = n_indices + sum(indices)
 	threshold_lb = sorted_tgfm_twas[(start_index+1)]
 	threshold_ub = sorted_tgfm_twas[(n_indices)]
-	indices = (df$max_abs_tgfm_z >= threshold_lb) & (df$max_abs_tgfm_z < threshold_ub)
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	#bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -301,6 +301,9 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip_and_twas_z <- function(df) {
 
 
 	df2 <- data.frame(pops=pops_mean_vec, pops_se=pops_mean_se_vec, tgfm_bin=factor(bin_names_vec), methody=factor(method_type_vec, levels=c("TWAS","TGFM-Z", "TGFM")))
+
+
+	print(df2)
 
 	p <- ggplot(df2, aes(x=tgfm_bin, y=pops, fill=methody)) +
     		geom_bar(stat="identity", position=position_dodge()) +
@@ -323,14 +326,14 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip <- function(df) {
 
 	threshold_lb <- 0.0
 	threshold_ub <- .1
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 
 	threshold_lb <- .1
 	threshold_ub <- .25
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -338,21 +341,29 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip <- function(df) {
 
 	threshold_lb <- .25
 	threshold_ub <- .5
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 
 	threshold_lb <- .5
-	threshold_ub <- .75
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	threshold_ub <- .7
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 
-	threshold_lb <- .75
+	threshold_lb <- .7
+	threshold_ub <- .9
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
+
+
+	threshold_lb <- .1
 	threshold_ub <- 1.0
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
 	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
@@ -360,8 +371,12 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip <- function(df) {
 
 	df2 <- data.frame(pops=pops_mean_vec, pops_se=pops_mean_se_vec, tgfm_bin=factor(bin_names_vec))
 
+	green_color=brewer.pal(n = 9, name = "Greens")[6]
+
+	print("HI")
+
 	p <- ggplot(df2) +
-    		geom_bar( aes(x=tgfm_bin, y=pops), stat="identity", fill="skyblue", alpha=0.7) +
+    		geom_bar( aes(x=tgfm_bin, y=pops), stat="identity", fill=green_color, alpha=0.9) +
     		theme(axis.text.x = element_text(angle = 90,hjust=1, vjust=.5)) +
     		labs(y="Average POPS score", x="") +
     		geom_errorbar( aes(x=tgfm_bin, ymin=pops-(1.96*pops_se), ymax=pops+(1.96*pops_se)), width=0.4, colour="orange", alpha=0.9, size=1.3) +

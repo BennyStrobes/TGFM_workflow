@@ -19,9 +19,8 @@ source ~/.bash_profile
 
 # SUBSET to cells from EUROPEAN INDIVIDUALS with genotype data
 updated_individual_info_file=$processed_sc_expression_dir"individual_info_european_rna_and_dna.txt"
-if false; then
 python3 make_list_of_individuals_with_rna_seq_and_of_european_ancestry.py $updated_individual_info_file $individual_info_file $genotype_data_dir $input_h5py_file
-fi
+
 
 
 

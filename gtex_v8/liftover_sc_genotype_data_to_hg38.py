@@ -54,13 +54,13 @@ liftover_directory = sys.argv[3]
 
 # Make temp bed file
 temp_hg19_bed_file = output_root + '_tmp_hg19_bed_file.txt'
-#make_tmp_hg19_bed_file_from_bim(input_bim, temp_hg19_bed_file)
+make_tmp_hg19_bed_file_from_bim(input_bim, temp_hg19_bed_file)
 
 
 # Run liftover
 liftover_output_file = output_root + '_tmp_hg38_bed_file.txt'
 liftover_missing_file = output_root + '_tmp_hg38_missing_file.txt'
-#run_liftover(temp_hg19_bed_file, liftover_output_file, liftover_missing_file, liftover_directory)
+run_liftover(temp_hg19_bed_file, liftover_output_file, liftover_missing_file, liftover_directory)
 
 
 # Create mapping from hg19_variant_id to hg38_pos

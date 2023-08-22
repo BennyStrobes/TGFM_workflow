@@ -574,8 +574,8 @@ make_tgfm_alt_variant_gene_fdr_plot_across_sample_sizes <- function(simulated_or
 	# Convert into clean data frame
 	df <- data.frame(method=factor(method_vec, levels=c("gene", "gene_only", "variant")), n_detected_elements=n_detected_vec, eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c(300, 500, 1000)), precision=coverage_vec, precision_ub=coverage_ub_vec, precision_lb=coverage_lb_vec, expected_fdr=1.0-expected_coverage_vec)
 
-	df$method = recode(df$method, variant="Variant", gene="Gene-Tissue", gene_only="Gene")
-	df$method = factor(df$method, levels=c("Gene-Tissue", "Gene", "Variant"))
+	df$method = recode(df$method, variant="TGFM (Variant)", gene="TGFM (Gene-Tissue)", gene_only="TGFM (Gene)")
+	df$method = factor(df$method, levels=c("TGFM (Gene-Tissue)", "TGFM (Gene)", "TGFM (Variant)"))
 
 
 	df$fdr = 1.0 - df$precision
@@ -726,8 +726,8 @@ make_tgfm_variant_gene_fdr_plot_across_sample_sizes <- function(simulated_organi
 	# Convert into clean data frame
 	df <- data.frame(method=factor(method_vec, levels=c("variant", "gene", "gene_only")), n_detected_elements=n_detected_vec, eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c(300, 500, 1000)), precision=coverage_vec, precision_ub=coverage_ub_vec, precision_lb=coverage_lb_vec, expected_fdr=1.0-expected_coverage_vec)
 
-	df$method = recode(df$method, variant="Variant", gene="Gene-Tissue", gene_only="Gene")
-	df$method = factor(df$method, levels=c("Gene-Tissue", "Gene", "Variant"))
+	df$method = recode(df$method, variant="TGFM (Variant)", gene="TGFM (Gene-Tissue)", gene_only="TGFM (Gene)")
+	df$method = factor(df$method, levels=c("TGFM (Gene-Tissue)", "TGFM (Gene)", "TGFM (Variant)"))
 
 
 
@@ -892,7 +892,7 @@ make_gene_level_not_gene_tissue_fdr_plot_across_methods_and_sample_sizes <- func
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.3, position=position_dodge(.9), size=.5)  +
   		#scale_fill_manual(values=c(brewer.pal(n = 9, name = "Reds")[6], brewer.pal(n = 9, name = "Reds")[5], brewer.pal(n = 9, name = "Reds")[4], brewer.pal(n = 9, name = "Reds")[2]))+
-  		scale_fill_manual(values=c(green_color, "darkgray", "slategray", "#8275ba"))+
+  		scale_fill_manual(values=c(green_color, "#cc5127", "#e4b422", "#ece918"))+
   		figure_theme() +
   		labs(x="eQTL sample size", y="FDR", fill="", title=paste0("PIP >= ", pip_threshold)) +
   		theme(plot.title = element_text(hjust = 0.5,size=12)) +
@@ -1023,7 +1023,8 @@ make_gene_fdr_plot_across_methods_and_sample_sizes <- function(simulated_organiz
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.3, position=position_dodge(.9), size=.5)  +
   		#scale_fill_manual(values=c(brewer.pal(n = 9, name = "Reds")[6], brewer.pal(n = 9, name = "Reds")[5], brewer.pal(n = 9, name = "Reds")[4], brewer.pal(n = 9, name = "Reds")[2]))+
-  		scale_fill_manual(values=c(red_color, "darkgray", "slategray", "#8275ba"))+
+  		scale_fill_manual(values=c(red_color, "#cc5127", "#e4b422", "#ece918"))+
+  		#scale_fill_manual(values=c(red_color, "#cc5127", "#ce772a", "#cca22a"))+
   		figure_theme() +
   		labs(x="eQTL sample size", y="FDR", fill="", title=paste0("PIP >= ", pip_threshold)) +
   		theme(plot.title = element_text(hjust = 0.5,size=12)) +
@@ -1313,8 +1314,8 @@ make_tgfm_variant_gene_power_plot_across_sample_sizes <- function(simulated_orga
 	# Convert into clean data frame
 	df <- data.frame(method=factor(method_vec, levels=c("variant", "gene", "Gene_only")), eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c(300, 500, 1000)), power=power_vec, power_ub=power_ub_vec, power_lb=power_lb_vec)
 
-	df$method = recode(df$method, variant="Variant", gene="Gene-Tissue", Gene_only="Gene")
-	df$method = factor(df$method, levels=c("Gene-Tissue", "Gene", "Variant"))
+	df$method = recode(df$method, variant="TGFM (Variant)", gene="TGFM (Gene-Tissue)", Gene_only="TGFM (Gene)")
+	df$method = factor(df$method, levels=c("TGFM (Gene-Tissue)", "TGFM (Gene)", "TGFM (Variant)"))
 
 	blue_color=brewer.pal(n = 9, name = "Blues")[7]
 	green_color=brewer.pal(n = 9, name = "Greens")[6]
@@ -1474,7 +1475,7 @@ make_gene_not_gene_tissue_power_plot_across_methods_and_sample_sizes <- function
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=power, fill=method)) +
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
-  		scale_fill_manual(values=c(green_color, "darkgray", "slategray", "#8275ba"))+
+  		scale_fill_manual(values=c(green_color, "#cc5127", "#e4b422", "#ece918"))+
   		#scale_fill_manual(values=c(brewer.pal(n = 9, name = "Reds")[6], brewer.pal(n = 9, name = "Reds")[5], brewer.pal(n = 9, name = "Reds")[4], brewer.pal(n = 9, name = "Reds")[2]))+
   		figure_theme() +
   		labs(x="eQTL sample size", y="Power", fill="", title=paste0("PIP >= ", pip_threshold)) +
@@ -1568,7 +1569,8 @@ make_gene_power_plot_across_methods_and_sample_sizes <- function(simulated_organ
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=power, fill=method)) +
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
-  		scale_fill_manual(values=c(red_color, "darkgray", "slategray", "#8275ba"))+
+  		#scale_fill_manual(values=c(red_color, "darkgray", "slategray", "#8275ba"))+
+  		scale_fill_manual(values=c(red_color, "#cc5127", "#e4b422", "#ece918"))+
   		#scale_fill_manual(values=c(brewer.pal(n = 9, name = "Reds")[6], brewer.pal(n = 9, name = "Reds")[5], brewer.pal(n = 9, name = "Reds")[4], brewer.pal(n = 9, name = "Reds")[2]))+
   		figure_theme() +
   		labs(x="eQTL sample size", y="Power", fill="", title=paste0("PIP >= ", pip_threshold)) +
@@ -1737,7 +1739,6 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(expr_med_frac_se_plot, file=output_file, width=7.2, height=4.0, units="in")
 }
 
-if (FALSE) {
 #####################################################################
 # Make Figure 1
 #####################################################################
@@ -1764,20 +1765,22 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
 
 
+if (FALSE) {
+
 #####################################################################
 # Make Figure 2: TGFM variant and gene precision and power as a function of eQTL sample size
 #####################################################################
 # Precision plots
 pip_threshold <- "0.5"
-precision_plot_5 <- make_tgfm_variant_gene_fdr_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+precision_plot_5 <- make_tgfm_variant_gene_fdr_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) + ylim(0, .6)
 pip_threshold <- "0.9"
-precision_plot_9 <- make_tgfm_variant_gene_fdr_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+precision_plot_9 <- make_tgfm_variant_gene_fdr_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) + ylim(0, .6)
 
 # Power plots
 pip_threshold <- "0.5"
-power_plot_5 <- make_tgfm_variant_gene_power_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+power_plot_5 <- make_tgfm_variant_gene_power_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) + ylim(0, .25)
 pip_threshold <- "0.9"
-power_plot_9 <- make_tgfm_variant_gene_power_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+power_plot_9 <- make_tgfm_variant_gene_power_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) + ylim(0, .25)
 
 # Extract legend 
 legender = get_legend(power_plot_9)
@@ -1792,15 +1795,15 @@ ggsave(joint_figure, file=output_file, width=7.2, height=5.5, units="in")
 # ALT VERSION
 # Precision plots
 pip_threshold <- "0.5"
-precision_plot_5 <- make_tgfm_alt_variant_gene_fdr_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+precision_plot_5 <- make_tgfm_alt_variant_gene_fdr_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) + ylim(0, .6)
 pip_threshold <- "0.9"
-precision_plot_9 <- make_tgfm_alt_variant_gene_fdr_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+precision_plot_9 <- make_tgfm_alt_variant_gene_fdr_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) + ylim(0, .6)
 
 # Power plots
 pip_threshold <- "0.5"
-power_plot_5 <- make_tgfm_variant_gene_power_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+power_plot_5 <- make_tgfm_variant_gene_power_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) + ylim(0, .25)
 pip_threshold <- "0.9"
-power_plot_9 <- make_tgfm_variant_gene_power_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+power_plot_9 <- make_tgfm_variant_gene_power_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) + ylim(0,.25)
 
 # Extract legend 
 legender = get_legend(power_plot_9)
@@ -1811,6 +1814,7 @@ joint_figure <- plot_grid( legender, NULL, plot_grid(precision_plot_5 +theme(leg
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_figure2.pdf")
 ggsave(joint_figure, file=output_file, width=7.2, height=5.5, units="in")
+}
 
 #####################################################################
 # Plot precision over a range of thresholds
@@ -1841,7 +1845,7 @@ figure <- plot_grid(legender, plot_grid(fdr_plot_3+theme(legend.position="none")
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_method_precision_pip_range.pdf")
 ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
 
-
+if (FALSE) {
 
 # Precision plots
 pip_threshold <- "0.3"
@@ -1873,8 +1877,7 @@ ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
 
 
 
-
-
+}
 #####################################################################
 # Plot power over a range of thresholds
 #####################################################################
@@ -1899,11 +1902,12 @@ legender = get_legend(precision_plot_99)
 # Make joint plot with cowplot
 figure <- plot_grid(legender, plot_grid(precision_plot_3+theme(legend.position="none"), precision_plot_5+theme(legend.position="none"), precision_plot_7+theme(legend.position="none"), precision_plot_9+theme(legend.position="none"), precision_plot_95+theme(legend.position="none"), precision_plot_99+theme(legend.position="none"),ncol=2, labels=c("a", "b", "c","d", "e", "f")),ncol=1, rel_heights=c(.05,1))
 
-
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_method_power_pip_range.pdf")
 ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
 
+
+if (FALSE) {
 # Precision plots
 pip_threshold <- "0.3"
 precision_plot_3 <- make_tgfm_variant_gene_power_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
@@ -1931,7 +1935,6 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
 
 
-
 #####################################################################
 # Make version of Figure 1 comparing TGFM with and with out prior
 #####################################################################
@@ -1957,8 +1960,8 @@ figure <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.position
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_various_tgfm_models_precision_and_power.pdf")
 ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
 
-}
 
+}
 
 
 
@@ -1988,7 +1991,6 @@ figure1 <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.positio
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_level_version_of_figure1.pdf")
 ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
-
 
 
 

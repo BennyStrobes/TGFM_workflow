@@ -325,7 +325,6 @@ pseudobulk_expression_dir = sys.argv[4]
 gene_annotation_file = sys.argv[5]
 
 
-'''
 # Genotype PC file
 genotype_pc_file = processed_genotype_dir + 'inds_v2_sample_filter_ind_snp_pcs.eigenvec'
 individual_to_genotype_pcs = create_mapping_from_individual_to_genotype_pcs(genotype_pc_file)
@@ -431,7 +430,6 @@ for cluster_assignment in unique_cluster_assignments:
 	t.write(str(len(cluster_specific_individuals)) + '\t' + str(pseudobulk_gene_names.shape[0]) + '\t' + num_cells_output_file + '\n')
 
 t.close()
-'''
 
 
 

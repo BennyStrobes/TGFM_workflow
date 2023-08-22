@@ -13,19 +13,16 @@ gtex_susie_gene_models_dir="$5"
 preprocessed_tgfm_data_dir="$6"
 drug_target_gene_list_file="$7"
 drug_target_gene_set_enrichment_dir="$8"
-
-
-python3 run_drug_target_gene_set_enrichment_analysis.py $tgfm_results_dir $gene_type $trait_name_file $gene_annotation_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $drug_target_gene_list_file $drug_target_gene_set_enrichment_dir
-
+tgfm_organized_results_dir="$9"
 
 if false; then
+python3 run_drug_target_gene_set_enrichment_analysis.py $tgfm_results_dir $gene_type $trait_name_file $gene_annotation_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $drug_target_gene_list_file $drug_target_gene_set_enrichment_dir $tgfm_organized_results_dir
+
 
 module load R/3.5.1
 
 Rscript visualize_drug_target_gene_set_enrichment_analysis.R $drug_target_gene_set_enrichment_dir
-
-python3 run_mendelian_gene_set_enrichment_analysis.py $tgfm_results_dir $gene_type $trait_name_file $gene_annotation_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $drug_target_gene_list_file $drug_target_gene_set_enrichment_dir
-
+fi
+python3 run_mendelian_gene_set_enrichment_analysis.py $tgfm_results_dir $gene_type $trait_name_file $gene_annotation_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $drug_target_gene_list_file $drug_target_gene_set_enrichment_dir $tgfm_organized_results_dir
 
 Rscript visualize_mendelian_gene_set_enrichment_analysis.R $drug_target_gene_set_enrichment_dir
-fi

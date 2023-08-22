@@ -22,7 +22,7 @@ mean_se_barplot_of_prop_drug_target_gene_score_binned_by_tgfm_pip <- function(df
 
 	threshold_lb <- 0.0
 	threshold_ub <- .1
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	prop = mean(df$mendelian_gene[indices])
 	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
 	pops_mean_vec <- c(pops_mean_vec, prop)
@@ -31,7 +31,7 @@ mean_se_barplot_of_prop_drug_target_gene_score_binned_by_tgfm_pip <- function(df
 
 	threshold_lb <- .1
 	threshold_ub <- .25
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	prop = mean(df$mendelian_gene[indices])
 	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
 	pops_mean_vec <- c(pops_mean_vec, prop)
@@ -41,7 +41,7 @@ mean_se_barplot_of_prop_drug_target_gene_score_binned_by_tgfm_pip <- function(df
 
 	threshold_lb <- .25
 	threshold_ub <- .5
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	prop = mean(df$mendelian_gene[indices])
 	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
 	pops_mean_vec <- c(pops_mean_vec, prop)
@@ -50,7 +50,7 @@ mean_se_barplot_of_prop_drug_target_gene_score_binned_by_tgfm_pip <- function(df
 
 	threshold_lb <- .5
 	threshold_ub <- .75
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	prop = mean(df$mendelian_gene[indices])
 	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
 	pops_mean_vec <- c(pops_mean_vec, prop)
@@ -59,7 +59,7 @@ mean_se_barplot_of_prop_drug_target_gene_score_binned_by_tgfm_pip <- function(df
 
 	threshold_lb <- .75
 	threshold_ub <- 1.0
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	prop = mean(df$mendelian_gene[indices])
 	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
 	pops_mean_vec <- c(pops_mean_vec, prop)
@@ -94,19 +94,20 @@ mean_se_barplot_of_prop_drug_target_gene_score_binned_by_tgfm_pip_and_twas_z <- 
 	thresher = 0.0
 
 	sorted_twas = sort(df$max_abs_twas_z)
-
+	sorted_tgfm_pmces = sort(df$tgfm_abs_gene_pmces)
 
 
 	#TGFM
 	threshold_lb <- 0.0
 	threshold_ub <- .1
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	prop = mean(df$mendelian_gene[indices])
 	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
 	pops_mean_vec <- c(pops_mean_vec, prop)
 	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	method_type_vec <- c(method_type_vec, "TGFM")
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	#TWAS
 	start_index = n_indices
@@ -119,17 +120,28 @@ mean_se_barplot_of_prop_drug_target_gene_score_binned_by_tgfm_pip_and_twas_z <- 
 	pops_mean_vec <- c(pops_mean_vec, prop)
 	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
 	method_type_vec <- c(method_type_vec, "TWAS")
+	#TGFM-PMCES
+	threshold_lb = sorted_tgfm_pmces[(start_index+1)]
+	threshold_ub = sorted_tgfm_pmces[(n_indices+1)]
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
+	prop = mean(df$mendelian_gene[indices])
+	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
+	pops_mean_vec <- c(pops_mean_vec, prop)
+	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
+	method_type_vec <- c(method_type_vec, "TGFM-Z")
+
 
 	#TGFM
 	threshold_lb <- .1
 	threshold_ub <- .25
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	prop = mean(df$mendelian_gene[indices])
 	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
 	pops_mean_vec <- c(pops_mean_vec, prop)
 	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	method_type_vec <- c(method_type_vec, "TGFM")
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	#TWAS
 	start_index = n_indices
@@ -142,17 +154,29 @@ mean_se_barplot_of_prop_drug_target_gene_score_binned_by_tgfm_pip_and_twas_z <- 
 	pops_mean_vec <- c(pops_mean_vec, prop)
 	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
 	method_type_vec <- c(method_type_vec, "TWAS")
+	#TGFM-PMCES
+	threshold_lb = sorted_tgfm_pmces[(start_index+1)]
+	threshold_ub = sorted_tgfm_pmces[(n_indices+1)]
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
+	prop = mean(df$mendelian_gene[indices])
+	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
+	pops_mean_vec <- c(pops_mean_vec, prop)
+	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
+	method_type_vec <- c(method_type_vec, "TGFM-Z")
+
+
 
 	#TGFM
 	threshold_lb <- .25
 	threshold_ub <- .5
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	prop = mean(df$mendelian_gene[indices])
 	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
 	pops_mean_vec <- c(pops_mean_vec, prop)
 	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	method_type_vec <- c(method_type_vec, "TGFM")
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	#TWAS
 	start_index = n_indices
@@ -165,17 +189,29 @@ mean_se_barplot_of_prop_drug_target_gene_score_binned_by_tgfm_pip_and_twas_z <- 
 	pops_mean_vec <- c(pops_mean_vec, prop)
 	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
 	method_type_vec <- c(method_type_vec, "TWAS")
+	#TGFM-PMCES
+	threshold_lb = sorted_tgfm_pmces[(start_index+1)]
+	threshold_ub = sorted_tgfm_pmces[(n_indices+1)]
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
+	prop = mean(df$mendelian_gene[indices])
+	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
+	pops_mean_vec <- c(pops_mean_vec, prop)
+	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
+	method_type_vec <- c(method_type_vec, "TGFM-Z")
+
+
 
 	#TGFM
 	threshold_lb <- .5
-	threshold_ub <- .75
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	threshold_ub <- .7
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	prop = mean(df$mendelian_gene[indices])
 	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
 	pops_mean_vec <- c(pops_mean_vec, prop)
 	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	method_type_vec <- c(method_type_vec, "TGFM")
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	#TWAS
 	start_index = n_indices
@@ -188,18 +224,63 @@ mean_se_barplot_of_prop_drug_target_gene_score_binned_by_tgfm_pip_and_twas_z <- 
 	pops_mean_vec <- c(pops_mean_vec, prop)
 	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
 	method_type_vec <- c(method_type_vec, "TWAS")
-
+	#TGFM-PMCES
+	threshold_lb = sorted_tgfm_pmces[(start_index+1)]
+	threshold_ub = sorted_tgfm_pmces[(n_indices+1)]
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
+	prop = mean(df$mendelian_gene[indices])
+	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
+	pops_mean_vec <- c(pops_mean_vec, prop)
+	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
+	method_type_vec <- c(method_type_vec, "TGFM-Z")
 
 	#TGFM
-	threshold_lb <- .75
-	threshold_ub <- 1.0
-	indices = (df$max_tgfm_pip >= threshold_lb) & (df$max_tgfm_pip < threshold_ub)
+	threshold_lb <- .7
+	threshold_ub <- .9
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
 	prop = mean(df$mendelian_gene[indices])
 	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
 	pops_mean_vec <- c(pops_mean_vec, prop)
 	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	method_type_vec <- c(method_type_vec, "TGFM")
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
+	#TWAS
+	start_index = n_indices
+	n_indices = n_indices + sum(indices)
+	threshold_lb = sorted_twas[(start_index+1)]
+	threshold_ub = sorted_twas[(n_indices+1)]
+	indices = (df$max_abs_twas_z >= threshold_lb) & (df$max_abs_twas_z < threshold_ub)
+	prop = mean(df$mendelian_gene[indices])
+	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
+	pops_mean_vec <- c(pops_mean_vec, prop)
+	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
+	method_type_vec <- c(method_type_vec, "TWAS")
+	#TGFM-PMCES
+	threshold_lb = sorted_tgfm_pmces[(start_index+1)]
+	threshold_ub = sorted_tgfm_pmces[(n_indices+1)]
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
+	prop = mean(df$mendelian_gene[indices])
+	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
+	pops_mean_vec <- c(pops_mean_vec, prop)
+	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
+	method_type_vec <- c(method_type_vec, "TGFM-Z")
+
+
+
+
+	#TGFM
+	threshold_lb <- .9
+	threshold_ub <- 1.0
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	prop = mean(df$mendelian_gene[indices])
+	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
+	pops_mean_vec <- c(pops_mean_vec, prop)
+	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
+	method_type_vec <- c(method_type_vec, "TGFM")
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= TGFM PIP < ", threshold_ub))
 	#TWAS
 	start_index = n_indices
@@ -207,18 +288,30 @@ mean_se_barplot_of_prop_drug_target_gene_score_binned_by_tgfm_pip_and_twas_z <- 
 	threshold_lb = sorted_twas[(start_index+1)]
 	threshold_ub = sorted_twas[(n_indices)]
 	indices = (df$max_abs_twas_z >= threshold_lb) & (df$max_abs_twas_z < threshold_ub)
+	print(df[indices,])
 	prop = mean(df$mendelian_gene[indices])
 	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
 	pops_mean_vec <- c(pops_mean_vec, prop)
 	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
 	method_type_vec <- c(method_type_vec, "TWAS")
+	#TGFM-PMCES
+	threshold_lb = sorted_tgfm_pmces[(start_index+1)]
+	threshold_ub = sorted_tgfm_pmces[(n_indices)]
+	indices = (df$tgfm_abs_gene_pmces >= threshold_lb) & (df$tgfm_abs_gene_pmces < threshold_ub)
+	prop = mean(df$mendelian_gene[indices])
+	prop_se = sqrt((prop*(1.0-prop))/length(df$mendelian_gene[indices]))
+	pops_mean_vec <- c(pops_mean_vec, prop)
+	pops_mean_se_vec <- c(pops_mean_se_vec, prop_se)
+	method_type_vec <- c(method_type_vec, "TGFM-Z")
 
 
-	df2 <- data.frame(pops=pops_mean_vec, pops_se=pops_mean_se_vec, tgfm_bin=factor(bin_names_vec), methody=factor(method_type_vec, levels=c("TWAS", "TGFM")))
+
+
+	df2 <- data.frame(pops=pops_mean_vec, pops_se=pops_mean_se_vec, tgfm_bin=factor(bin_names_vec), methody=factor(method_type_vec, levels=c("TWAS", "TGFM-Z","TGFM")))
 
 	p <- ggplot(df2, aes(x=tgfm_bin, y=pops, fill=methody)) +
     		geom_bar(stat="identity", position=position_dodge()) +
-    		scale_fill_manual(values=c("grey", "plum3")) +
+    		scale_fill_manual(values=c("grey","red", "plum3")) +
     		theme(axis.text.x = element_text(angle = 90,hjust=1, vjust=.5)) +
     		labs(y="Proportion of genes\nin Mendelian gene set", x="", fill="") +
     		geom_errorbar( aes(ymin=pops-(1.96*pops_se), ymax=pops+(1.96*pops_se)), width=0.2, colour="grey50", position=position_dodge(.9)) +

@@ -46,6 +46,12 @@ gene_annotation_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysi
 # Downloaded here: https://www.nature.com/articles/s41588-022-01167-z on 6/9/23
 drug_target_gene_list_file="/n/groups/price/ben/gene_annotation_files/scdrs_gold_geneset.txt"
 
+# Biological pathway gene sets
+# Table s1 of https://www.cell.com/ajhg/fulltext/S0002-9297(19)30116-8#supplementaryMaterial
+biological_pathway_gene_set_file="/n/groups/price/ben/gene_annotation_files/biological_pathway_gene_sets.txt"
+
+# Non-disease specific gene sets
+non_disease_specific_gene_sets_file="/n/groups/price/martin/LDSPEC_data/sam_gene_annotation/geneset_list_curated.csv"
 
 # Genotype data from 1KG
 ref_1kg_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/plink_files/"
@@ -96,6 +102,9 @@ hg19_gene_annotation_file="/n/groups/price/ben/reference_data/gene_annotation_fi
 
 # Gene annotation file (hg38)
 hg38_gene_annotation_file="/n/groups/price/ben/reference_data/gene_annotation_files/gencode.v38.annotation.gtf.gz"
+
+# hg38 ensamble transcript to entrez id mapping
+hg38_ensamble_trascript_to_entrez_id_file="/n/groups/price/ben/gene_annotation_files/gencode.v44.metadata.EntrezGene"
 
 # Directory containing genotype data
 sc_genotype_data_dir="/n/groups/price/scdata/Perez_Science_2021/genotype/plink_maf10/"
@@ -187,6 +196,9 @@ epimap_enrichment_dir=$perm_output_root"epimap_enrichment/"
 #Directory containing pops enrichments
 pops_enrichment_dir=$perm_output_root"pops_enrichment/"
 
+# Directory containing biological pathway enrichments
+biological_pathway_enrichment_dir=$perm_output_root"biological_pathway_enrichment/"
+
 # Sparse heritability visualization dir
 visualize_sparse_h2_dir=$output_root"visualize_sparse_h2/"
 
@@ -204,7 +216,7 @@ processed_sc_expression_dir=$output_root"processed_sc_expression/"
 processed_sc_genotype_dir=$output_root"processed_sc_genotype/"
 
 # Processed single cell pseudobulk expression
-sc_pseudobulk_expression_dir=$output_root"sc_pseudobulk_expression/"
+sc_pseudobulk_expression_dir=$perm_output_root"sc_pseudobulk_expression/"
 
 # Visualize processed single cell expression dir
 visualize_processed_sc_expression_dir=$perm_output_root"visualize_processed_sc_expression/"
@@ -227,6 +239,8 @@ iterative_sc_tgfm_prior_results_dir=$perm_output_root"iterative_sc_tgfm_prior/"
 
 # Visualize specific TGFM examples dir
 visualize_specific_tgfm_examples_dir=$perm_output_root"visualize_specific_examples/"
+
+non_disease_specific_gene_set_enrichment_dir=$perm_output_root"non_disease_specific_gene_set_enrichment/"
 
 
 ##################
@@ -415,6 +429,7 @@ fi
 
 
 
+
 ########################################
 # Compute iterative prior
 ########################################
@@ -473,9 +488,7 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
-if false; then
-Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable2.txt" $tgfm_sldsc_results_dir $tgfm_results_dir $tgfm_organized_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $visualize_gtex_tgfm_dir
-fi
+
 
 
 #################################
@@ -488,14 +501,18 @@ fi
 
 
 
-
-
+#################################
+# Run Run biological process enrichment analysis
+#################################
+if false; then
+sh run_biological_pathway_gene_set_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gene_annotation_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $tgfm_organized_results_dir $hg38_gene_annotation_file $hg38_ensamble_trascript_to_entrez_id_file $biological_pathway_gene_set_file $biological_pathway_enrichment_dir
+fi
 
 #################################
 # Run drug target gene set enrichment analysis
 #################################
 if false; then
-sh run_drug_target_gene_set_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gene_annotation_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $drug_target_gene_list_file $drug_target_gene_set_enrichment_dir 
+sh run_drug_target_gene_set_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gene_annotation_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $drug_target_gene_list_file $drug_target_gene_set_enrichment_dir $tgfm_organized_results_dir
 fi
 
 #################################
@@ -506,12 +523,29 @@ sh run_pops_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_h
 fi
 
 #################################
+# Run run non-disease specific gene set enrichment analysis
+#################################
+if false; then
+sh run_non_disease_specific_gene_set_enrichment_analysis.sh $tgfm_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $tgfm_organized_results_dir $non_disease_specific_gene_sets_file $non_disease_specific_gene_set_enrichment_dir
+fi
+
+
+if false; then
+Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_sldsc_results_dir $tgfm_results_dir $tgfm_organized_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir
+fi
+
+
+
+#################################
 # Run epimap cell type enrichment analysis
 #################################
 independent_trait_list_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_independent_sumstat_files_with_samp_size_and_h2_readable.txt"
 if false; then
 sh run_epimap_enrichment_analysis.sh $tgfm_results_dir $gtex_susie_gene_models_dir $liftover_directory $gtex_pseudotissue_file $independent_trait_list_file $epimap_data_dir $epimap_enrichment_raw_data_dir $epimap_enrichment_dir
 fi
+
+
+
 
 
 #################################
@@ -545,7 +579,7 @@ fi
 # Process SC expression
 #################################
 if false; then
-sbatch process_sc_expression.sh $input_sc_h5py_file $input_sc_h5py_pseudobulk_file $processed_sc_expression_dir $sc_individual_info_file $sc_genotype_data_dir $visualize_processed_sc_expression_dir $processed_sc_genotype_dir 
+sh process_sc_expression.sh $input_sc_h5py_file $input_sc_h5py_pseudobulk_file $processed_sc_expression_dir $sc_individual_info_file $sc_genotype_data_dir $visualize_processed_sc_expression_dir $processed_sc_genotype_dir 
 fi
 
 #################################
@@ -565,7 +599,6 @@ fi
 if false; then
 sh generate_pseudobulk_expression.sh $processed_sc_expression_dir $input_sc_h5py_file $processed_sc_genotype_dir $sc_pseudobulk_expression_dir $hg19_gene_annotation_file $gene_annotation_file $xt_gene_list_file
 fi
-
 
 #################################
 # Prepare sc expression data for fusion weights analysiss
@@ -593,6 +626,7 @@ done
 fi
 
 
+
 ########################################
 # Organize sc pseudobulk gene model results (create pos file)
 ########################################
@@ -605,6 +639,8 @@ fi
 ########################################
 # Preprocess data for TGFM-S-LDSC (Add on to existing gtex data)
 ########################################
+
+
 # Only components of genes
 #gene_type="cis_heritable_gene"
 gene_type="component_gene"
@@ -664,7 +700,6 @@ fi
 ########################################
 gene_type="component_gene"
 num_jobs="8"
-
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
 	for job_number in $(seq 0 $(($num_jobs-1))); do
