@@ -12,6 +12,7 @@ import pyreadr
 def extract_input_data_file_names_for_this_window(tgfm_input_summary_file, window_name):
 	tgfm_input_file = 'none'
 	trait_input_file = 'none'
+	ld_input_file = 'none'
 	f = open(tgfm_input_summary_file)
 	head_count = 0
 	for line in f:
@@ -25,18 +26,19 @@ def extract_input_data_file_names_for_this_window(tgfm_input_summary_file, windo
 			continue
 		tgfm_input_file = data[2]
 		trait_input_file = data[3]
+		ld_input_file = data[1]
 	f.close()
 	if tgfm_input_file == 'none':
 		print('assumption error: input file doesnt exist for window')
 		pdb.set_trace()
 
-	return tgfm_input_file, trait_input_file
+	return tgfm_input_file, trait_input_file, ld_input_file
 
 
 
 def generate_snp_df_input_data(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, snp_df_output_file, snp_id_to_rsid):
 	# Get file names of input data corresponding to this specific window
-	window_tgfm_input_data_file, window_trait_input_data_file = extract_input_data_file_names_for_this_window(tgfm_input_summary_file, window_name)
+	window_tgfm_input_data_file, window_trait_input_data_file, ld_input_file = extract_input_data_file_names_for_this_window(tgfm_input_summary_file, window_name)
 
 	# Load in tgfm input data
 	f = open(window_tgfm_input_data_file, "rb")
@@ -70,6 +72,8 @@ def generate_snp_df_input_data(trait_name, window_name, tgfm_input_summary_file,
 	# Snp expected pips
 	snp_expected_tgfm_pips = tgfm_res['expected_beta_pips']
 
+	pdb.set_trace()
+
 	# Open output file and print to outpu
 	t = open(snp_df_output_file,'w')
 	# Print header
@@ -85,7 +89,7 @@ def generate_snp_df_input_data(trait_name, window_name, tgfm_input_summary_file,
 
 def generate_gene_df_input_data(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, gene_df_output_file, ensamble_id_to_gene_id):
 	# Get file names of input data corresponding to this specific window
-	window_tgfm_input_data_file, window_trait_input_data_file = extract_input_data_file_names_for_this_window(tgfm_input_summary_file, window_name)
+	window_tgfm_input_data_file, window_trait_input_data_file, ld_input_file = extract_input_data_file_names_for_this_window(tgfm_input_summary_file, window_name)
 
 	# Load in tgfm input data
 	f = open(window_tgfm_input_data_file, "rb")
@@ -331,6 +335,8 @@ for line in f:
 	ensamble_id = data[3]
 	tissue_name = data[4]
 	window_name = data[5]
+	if trait_name != 'disease_ALLERGY_ECZEMA_DIAGNOSED':
+		continue
 
 	# Output root
 	example_output_root = visualize_specific_tgfm_examples_dir + trait_name + '_' + window_name

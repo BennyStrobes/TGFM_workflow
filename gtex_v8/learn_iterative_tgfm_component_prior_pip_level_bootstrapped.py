@@ -71,7 +71,7 @@ def extract_pseudotissue_names(gtex_pseudotissue_file,ignore_testis=False):
 def generate_component_level_abf_summary_data(concatenated_pip_summary_file, component_level_abf_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem, per_window_abf_output_stem, version='v1'):
 	f = open(concatenated_pip_summary_file)
 	t = open(component_level_abf_summary_file,'w')
-	t.write('window_name\tbootstrap_number\tcomponent_number\telement_names\tmiddle_element_names\twindow_abf_file\twindow_component_samples_file\tannotation_mat_file\n')
+	t.write('window_name\tbootstrap_number\tcomponent_number\telement_names\tmiddle_element_names\twindow_abf_file\twindow_component_samples_file\n')
 	tiss_to_position_mapping = {}
 	for ii,tissue_name in enumerate(tissue_names):
 		tiss_to_position_mapping[tissue_name] = ii
@@ -114,7 +114,7 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 
 		per_window_abf_output_file = per_window_abf_output_stem + window_name + '.npy'
 		per_window_sample_names_output_file = per_window_abf_output_stem + window_name + '_sample_names.npy'
-		per_window_anno_output_file = per_window_abf_output_stem + window_name + '_anno.npy'
+		#per_window_anno_output_file = per_window_abf_output_stem + window_name + '_anno.npy'
 		per_window_abf = []
 		window_has_component = False
 		per_window_samples = []
@@ -129,7 +129,7 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 						log_abf = np.hstack((tgfm_results['alpha_lbf'][component_iter, :], tgfm_results['beta_lbf'][component_iter, :]))
 						element_names = np.hstack((tgfm_results['genes'], tgfm_results['variants']))
 						middle_element_names = np.hstack((tgfm_results['genes'][tgfm_results['middle_gene_indices']], tgfm_results['variants'][tgfm_results['middle_variant_indices']]))
-						t.write(window_name + '\t' + 'NA' + '\t' + str(component_iter) + '\t' + ';'.join(element_names) + '\t' + ';'.join(middle_element_names) + '\t' + per_window_abf_output_file + '\t' + per_window_sample_names_output_file + '\t' + per_window_anno_output_file + '\n')
+						t.write(window_name + '\t' + 'NA' + '\t' + str(component_iter) + '\t' + ';'.join(element_names) + '\t' + ';'.join(middle_element_names) + '\t' + per_window_abf_output_file + '\t' + per_window_sample_names_output_file  + '\n')
 						per_window_abf.append(log_abf)
 						per_window_samples.append(0)
 						window_has_component = True
@@ -139,7 +139,7 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 					log_abf = np.hstack((tgfm_results['alpha_lbf'][component_iter, :], tgfm_results['beta_lbf'][component_iter, :]))
 					element_names = np.hstack((tgfm_results['genes'], tgfm_results['variants']))
 					middle_element_names = np.hstack((tgfm_results['genes'][tgfm_results['middle_gene_indices']], tgfm_results['variants'][tgfm_results['middle_variant_indices']]))
-					liner = window_name + '\t' + 'NA' + '\t' + str(component_iter) + '\t' + ';'.join(element_names) + '\t' + ';'.join(middle_element_names) + '\t' + per_window_abf_output_file + '\t' + per_window_sample_names_output_file + '\t' + per_window_anno_output_file + '\n'
+					liner = window_name + '\t' + 'NA' + '\t' + str(component_iter) + '\t' + ';'.join(element_names) + '\t' + ';'.join(middle_element_names) + '\t' + per_window_abf_output_file + '\t' + per_window_sample_names_output_file + '\n'
 					lines.append(liner)
 					per_window_abf.append(log_abf)
 					per_window_samples.append(0)
@@ -155,7 +155,7 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 					log_abf = np.hstack((tgfm_results['alpha_lbf'][component_iter, :], tgfm_results['beta_lbf'][component_iter, :]))
 					element_names = np.hstack((tgfm_results['genes'], tgfm_results['variants']))
 					middle_element_names = np.hstack((tgfm_results['genes'][tgfm_results['middle_gene_indices']], tgfm_results['variants'][tgfm_results['middle_variant_indices']]))
-					liner = window_name + '\t' + 'NA' + '\t' + str(component_iter) + '\t' + ';'.join(element_names) + '\t' + ';'.join(middle_element_names) + '\t' + per_window_abf_output_file + '\t' + per_window_sample_names_output_file + '\t' + per_window_anno_output_file + '\n'
+					liner = window_name + '\t' + 'NA' + '\t' + str(component_iter) + '\t' + ';'.join(element_names) + '\t' + ';'.join(middle_element_names) + '\t' + per_window_abf_output_file + '\t' + per_window_sample_names_output_file + '\n'
 					lines.append(liner)
 					per_window_abf.append(log_abf)
 					per_window_samples.append(0)
@@ -175,7 +175,7 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 						log_abf = np.hstack((tgfm_results['alpha_lbfs'][component_iter][sample_iter, :], tgfm_results['beta_lbfs'][component_iter][sample_iter, :]))
 						element_names = np.hstack((tgfm_results['genes'], tgfm_results['variants']))
 						middle_element_names = np.hstack((tgfm_results['genes'][tgfm_results['middle_gene_indices']], tgfm_results['variants'][tgfm_results['middle_variant_indices']]))
-						t.write(window_name + '\t' + str(sample_iter) + '\t' + str(component_iter) + '\t' + ';'.join(element_names) + '\t' + ';'.join(middle_element_names) + '\t' + per_window_abf_output_file + '\t' + per_window_sample_names_output_file + '\t' + per_window_anno_output_file+ '\n')
+						t.write(window_name + '\t' + str(sample_iter) + '\t' + str(component_iter) + '\t' + ';'.join(element_names) + '\t' + ';'.join(middle_element_names) + '\t' + per_window_abf_output_file + '\t' + per_window_sample_names_output_file + '\n')
 						per_window_abf.append(log_abf)
 						window_has_component = True
 						per_window_samples.append(sample_iter)
@@ -188,7 +188,7 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 			np.save(per_window_abf_output_file, per_window_abf)
 			per_window_samples = np.asarray(per_window_samples)
 			np.save(per_window_sample_names_output_file, per_window_samples)
-			np.save(per_window_anno_output_file, tgfm_data['annotation'])
+			#np.save(per_window_anno_output_file, tgfm_data['annotation'])
 	t.close()
 	f.close()
 	return

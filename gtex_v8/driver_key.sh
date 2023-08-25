@@ -500,7 +500,6 @@ sh visualize_specific_tgfm_examples.sh $specific_examples_input_file $tgfm_input
 fi
 
 
-
 #################################
 # Run Run biological process enrichment analysis
 #################################
@@ -639,8 +638,6 @@ fi
 ########################################
 # Preprocess data for TGFM-S-LDSC (Add on to existing gtex data)
 ########################################
-
-
 # Only components of genes
 #gene_type="cis_heritable_gene"
 gene_type="component_gene"
@@ -712,6 +709,7 @@ fi
 
 
 
+
 ########################################
 # Compute iterative prior
 ########################################
@@ -730,9 +728,7 @@ fi
 gene_type="component_gene"
 num_jobs="8"
 if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_sumstat_files_with_samp_size_and_h2_siggy.txt" | while read trait_name study_file sample_size h2; do
-echo $trait_name
-
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_sumstat_files_with_samp_size_and_h2.txt" | while read trait_name study_file sample_size h2; do
 for job_number in $(seq 0 $(($num_jobs-1))); do
 	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
@@ -740,6 +736,11 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 done
 done
 fi
+
+
+
+
+
 
 #################################
 # Visualize TGFM results
