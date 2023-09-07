@@ -2,7 +2,7 @@
 #SBATCH -c 1                               # Request one core
 #SBATCH -t 0-30:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=50GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=160GB                         # Memory total in MiB (for all cores)
 
 # First three parts ran at 160GB
 
@@ -21,7 +21,6 @@ source ~/.bash_profile
 # Extract list of variants in ldsc baseline analysis
 ###############################
 ldsc_annotation_rs_id_file=${processed_genotype_data_dir}"ldsc_annotation_rsids_chr"${chrom_num}".txt"
-if false; then
 python3 extract_list_of_ldsc_annotation_rs_ids.py $ldsc_baseline_hg19_annotation_dir $chrom_num $kg_genotype_dir $ldsc_annotation_rs_id_file
 
 
@@ -45,7 +44,7 @@ plink2 \
     --out ${processed_genotype_data_dir}"ukb_imp_chr"${chrom_num}"_tmper"
 
 plink2 --pfile ${processed_genotype_data_dir}"ukb_imp_chr"${chrom_num}"_tmper" --hwe .01 --extract ${ldsc_annotation_rs_id_file} --maf .05 --make-bed --keep-allele-order --threads 1 --out ${processed_genotype_data_dir}"ukb_imp_chr_"${chrom_num}
-fi
+
 
 
 ###############################

@@ -709,12 +709,13 @@ def learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_l
 	for itera in range(max_iter):
 		print(itera)
 		old_tissue_probs = np.copy(tissue_probs_distr)
-		variant_prob_distr, tissue_probs_distr = update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob_distr, tissue_probs_distr, tissue_names, window_to_class_to_indices, window_to_class_to_middle_indices, n_bootstraps, bs_indices, bs_mapping, window_names, window_to_bootstraps, version)
+		variant_prob_distr, tissue_probs_distr, variant_counts, tissue_counts = update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob_distr, tissue_probs_distr, tissue_names, window_to_class_to_indices, window_to_class_to_middle_indices, n_bootstraps, bs_indices, bs_mapping, window_names, window_to_bootstraps, version)
 		diff=tissue_probs_distr - old_tissue_probs
 		print(np.sort(np.mean(diff,axis=1)))
 
+	tissue_counts[tissue_counts == .1] = 0.0
 
-	return variant_prob_distr, tissue_probs_distr
+	return variant_prob_distr, tissue_probs_distr, variant_counts, tissue_counts
 
 def get_number_of_annotations_from_component_level_summary_file(component_level_abf_summary_file):
 	head_count = 0
@@ -968,7 +969,7 @@ def update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_s
 	tissue_counts[tissue_counts == 0.0] = .1
 	tissue_probs_distr = tissue_posterior_sum/tissue_counts
 
-	return variant_prob_distr, tissue_probs_distr
+	return variant_prob_distr, tissue_probs_distr, variant_counts, tissue_counts
 
 
 def logistic_regression_log_likelihood(beta, X, y):
@@ -1251,7 +1252,7 @@ generate_component_level_abf_summary_data(concatenated_pip_summary_file, compone
 # Learn iterative distribution variant-gene-tissue prior (bootstrapping ci intervals)
 ###################################################
 n_bootstraps=100
-variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=400, n_bootstraps=n_bootstraps)
+variant_prob_emperical_distr, tissue_probs_emperical_distr, variant_counts, tissue_counts = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=400, n_bootstraps=n_bootstraps)
 
 
 # Print to output
@@ -1263,6 +1264,26 @@ for tiss_iter, tissue_name in enumerate(tissue_names):
 	t.write(tissue_name + '\t' + str(np.mean(tissue_probs_emperical_distr[tiss_iter,:])) + '\t' + str(np.exp(np.mean(np.log(tissue_probs_emperical_distr[tiss_iter,:])))) + '\t' + ';'.join(tissue_probs_emperical_distr[tiss_iter,:].astype(str)) + '\n')
 t.close()
 print(variant_gene_distr_prior_output_file)
+
+
+
+# Print counts to output
+variant_gene_counts_output_file = perm_iterative_prior_results + '_iterative_variant_gene_counts_pip_level_bootstrapped.txt'
+t = open(variant_gene_counts_output_file,'w')
+t.write('element_name\tcounts_distribution\n')
+t.write('variant\t'+ ';'.join(variant_counts.astype(str)) + '\n')
+for tiss_iter, tissue_name in enumerate(tissue_names):
+	t.write(tissue_name + '\t' + ';'.join(tissue_counts[tiss_iter,:].astype(str)) + '\n')
+t.close()
+print(variant_gene_counts_output_file)
+
+
+
+
+
+
+
+
 # Delete unneccessary files
 os.system('rm ' + component_level_abf_summary_file)
 os.system('rm ' + per_window_abf_output_stem + '*')

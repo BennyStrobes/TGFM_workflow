@@ -72,8 +72,6 @@ def generate_snp_df_input_data(trait_name, window_name, tgfm_input_summary_file,
 	# Snp expected pips
 	snp_expected_tgfm_pips = tgfm_res['expected_beta_pips']
 
-	pdb.set_trace()
-
 	# Open output file and print to outpu
 	t = open(snp_df_output_file,'w')
 	# Print header
@@ -270,6 +268,7 @@ def create_ensamble_id_to_gene_name_mapping(gene_annotation_file):
 			print('repeat ensamble id')
 			pdb.set_trace()
 		ensg_to_gene_name[ensamble_id] = gene_name
+		ensg_to_gene_name[ensamble_id.split('.')[0]] = gene_name
 	f.close()
 	return ensg_to_gene_name
 
@@ -284,6 +283,8 @@ def create_mapping_from_snp_id_to_rsid(sumstat_file):
 		if head_count == 0:
 			head_count = head_count + 1
 			continue
+		if len(data) != 16:
+			pdb.set_trace()
 		rs_id = data[0]
 		snp_id = 'chr' + data[1] + '_' + data[2] + '_' + data[4] + '_' + data[5]
 		snp_id2 = 'chr' + data[1] + '_' + data[2] + '_' + data[5] + '_' + data[4]
@@ -309,12 +310,13 @@ visualize_specific_tgfm_examples_dir = sys.argv[7]
 ukbb_sumstats_dir = sys.argv[8]  # Used to create mapping from snp id to rs id
 
 
+# Create mapping from ensamble id to gene id
+ensamble_id_to_gene_id = create_ensamble_id_to_gene_name_mapping(gene_annotation_file)
+
 # Create mapping from snp_id to rsid using gwas summary stat file
 snp_id_to_rsid = create_mapping_from_snp_id_to_rsid(ukbb_sumstats_dir + 'disease_THYROID_ANY_SELF_REP_hg38_liftover.bgen.stats')
 
 
-# Create mapping from ensamble id to gene id
-ensamble_id_to_gene_id = create_ensamble_id_to_gene_name_mapping(gene_annotation_file)
 
 
 # Loop through examples to visualize
@@ -327,7 +329,6 @@ for line in f:
 	if head_count == 0:
 		head_count = head_count + 1
 		continue
-
 	# Extract relevent fields
 	trait_name = data[0]
 	gene_tissue_name = data[1]
@@ -335,8 +336,6 @@ for line in f:
 	ensamble_id = data[3]
 	tissue_name = data[4]
 	window_name = data[5]
-	if trait_name != 'disease_ALLERGY_ECZEMA_DIAGNOSED':
-		continue
 
 	# Output root
 	example_output_root = visualize_specific_tgfm_examples_dir + trait_name + '_' + window_name

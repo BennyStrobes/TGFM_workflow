@@ -13,9 +13,11 @@ gene_annotation_file="$6"
 visualize_specific_tgfm_examples_dir="$7"
 ukbb_sumstats_hg38_dir="$8"
 
-if false; then
+
 python3 visualize_specific_tgfm_examples_preprocessing.py $specific_examples_input_file $tgfm_input_summary_file $tgfm_results_dir $tgfm_organized_results_dir $gtex_susie_gene_models_dir $gene_annotation_file $visualize_specific_tgfm_examples_dir $ukbb_sumstats_hg38_dir
-fi
 
 
+
+if false; then
 Rscript visualize_specific_tgfm_examples.R $specific_examples_input_file $visualize_specific_tgfm_examples_dir
+fi

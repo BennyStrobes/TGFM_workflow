@@ -172,14 +172,6 @@ fi
 cis_window="100000"
 # Iteration of simulation (also works as seed)
 if false; then
-for simulation_number in $(seq 1 50); do 
-	# Simulation string used for output file
-	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
-	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir
-done
-fi
-
-if false; then
 for simulation_number in $(seq 1 20); do 
 	# Simulation string used for output file
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
@@ -188,12 +180,12 @@ done
 fi
 
 
+
 ############################
 # Run single simulation of TGFM
 ############################
 # cis window arround genes to define eQTLs
 cis_window="100000"
-
 
 if false; then
 for simulation_number in $(seq 1 20); do 
@@ -211,6 +203,7 @@ parr_version="parallel_1"
 sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
 done
 fi
+
 
 
 # Run standard simulation
@@ -297,8 +290,9 @@ source ~/.bash_profile
 module load R/3.5.1
 fi
 
+if false; then
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
 Rscript visualize_single_simulation.R $global_simulation_name_string $simulated_organized_results_dir $visualize_simulated_results_dir
-
+fi
 
 

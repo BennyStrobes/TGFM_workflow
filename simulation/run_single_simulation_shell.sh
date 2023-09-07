@@ -2,7 +2,7 @@
 #SBATCH -c 1                               # Request one core
 #SBATCH -t 0-35:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=25GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=8GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -38,7 +38,6 @@ date
 
 mkdir ${simulated_learned_gene_models_base_dir}"simulation_"${simulation_number}
 simulated_learned_gene_models_dir=${simulated_learned_gene_models_base_dir}"simulation_"${simulation_number}"/"
-if false; then
 
 #######################################################
 # Step 1: Simulate gene expression and fit gene models
@@ -199,19 +198,17 @@ do
 	trait_file=${simulated_ld_scores_dir}${simulation_name_string}"_ldsc_ready_summary_statistics.txt"
 	python ${ldsc_code_dir}ldsc.py --h2 ${trait_file} --n-blocks 200 --chisq-max 1000 --ref-ld ${simulated_ld_scores_dir}${simulation_name_string}"_joint_baseline_variant_"${eqtl_sample_size}"_susie_distr_gene_ld_scores_genotype_intercept" --w-ld ${simulated_ld_scores_dir}${simulation_name_string}"_regression_weights."${chrom_num} --bootstrap --nonnegative-coefficient-file ${non_negative_coefficients_file} --print-delete-vals --print-coefficients --out ${simulated_sldsc_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_distr_sldsc_results_genotype_intercept_nonnegative_eqtl_bootstrapped_"
 done
-fi
+
 source ~/.bash_profile
 #######################################################
 # Step 8: Run GWAS on simulated trait on only snps in TGFM windows.
 #######################################################
 echo "Simulation Step 8"
 global_window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_3_mb.txt"
-if false; then
 python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $global_window_file $simulated_gwas_dir
-fi
+
 
 # Merge gwas data across windows
-if false; then
 source ~/.bash_profile
 merged_gwas_summary_stat_file=${simulated_gwas_dir}${simulation_name_string}"_merged_gwas_summary_stats.txt"
 python3 generate_merged_gwas_data.py $global_window_file $simulation_number $chrom_num $simulation_name_string ${simulated_gwas_dir} $processed_genotype_data_dir $n_gwas_individuals $merged_gwas_summary_stat_file
@@ -229,7 +226,7 @@ do
 	python3 run_coloc_shell.py $merged_gwas_summary_stat_file $simulation_number $chrom_num $simulation_name_string $eqtl_sample_size $n_gwas_individuals $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_coloc_results_dir
 done
 
-fi
+
 
 source ~/.bash_profile
 
