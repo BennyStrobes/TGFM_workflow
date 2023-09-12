@@ -35,6 +35,19 @@ make_power_med_h2_se_barplot_across_thresholds <- function(df) {
   	return(p)
 }
 
+
+make_power_med_h2_se_barplot_gaussian_approximation <- function(df) {
+ 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
+ 	#df = df[df$threshold==threshold_val,]
+ 	#df$threshold = factor(df$threshold)
+	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=power)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="eQTL Sample size", y="Power")   	
+  	return(p)
+}
+
 make_power_med_h2_se_barplot_at_single_threshold <- function(df, threshold_val) {
  	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
  	df = df[df$threshold==threshold_val,]
@@ -89,6 +102,22 @@ make_type_1_error_med_h2_se_barplot_at_single_threshold <- function(df, threshol
 
   	return(p)
 }
+
+make_type_1_error_med_h2_se_barplot_gaussian_approximation <- function(df) {
+ 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
+ 	#df$threshold = factor(df$threshold)
+ 	#df = df[df$threshold==threshold_val,]
+	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=type_1_error)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=type_1_error_lb, ymax=type_1_error_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="eQTL Sample size", y="Type 1 Error") +
+  		theme(legend.position="bottom")  +
+  		geom_hline(yintercept=.05, linetype=2)
+
+  	return(p)
+}
+
 
 
  make_avg_h2_se_barplot <- function(df) {
@@ -1702,8 +1731,37 @@ power_se_barplot <- make_power_med_h2_se_barplot_at_single_threshold(power_h2_df
 joint_plot <- plot_grid(t1e_se_barplot + theme(legend.position="none"), power_se_barplot+ theme(legend.position="none"), ncol=1, rel_heights=c(1, 1))
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_at_", threshold, ".pdf")
 ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
-
 }
+
+#####################################################################
+# Make barplot with standard error showing Type 1 error using gaussian approximation of bootstrapped iterative VGT PMCES
+#####################################################################
+# load in data
+t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_h2_type_1_error_gaussian_approximation.txt")
+t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
+# Make plot
+#t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_at_single_threshold(t1e_h2_df, threshold)
+t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_gaussian_approximation(t1e_h2_df)
+
+
+#####################################################################
+# Make barplot with standard error showing Power for single threshold for bootstrapped iterative VGT PMCES
+#####################################################################
+# load in data
+power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_mediated_h2_power_gaussian_approximation.txt")
+power_h2_df <- read.table(power_h2_file, header=TRUE)
+# Make plot
+#power_se_barplot <- make_power_med_h2_se_barplot_at_single_threshold(power_h2_df, threshold)
+power_se_barplot <- make_power_med_h2_se_barplot_gaussian_approximation(power_h2_df)
+
+# Make joint plot
+joint_plot <- plot_grid(t1e_se_barplot + theme(legend.position="none"), power_se_barplot+ theme(legend.position="none"), ncol=1, rel_heights=c(1, 1))
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_gaussian_approximation.pdf")
+ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
+
+
+
+
 
 if (FALSE) {
 
@@ -1739,6 +1797,7 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(expr_med_frac_se_plot, file=output_file, width=7.2, height=4.0, units="in")
 }
 
+if (FALSE) {
 #####################################################################
 # Make Figure 1
 #####################################################################
@@ -1763,6 +1822,7 @@ figure1 <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.positio
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_figure1.pdf")
 ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
+}
 
 
 if (FALSE) {
@@ -1816,6 +1876,41 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(joint_figure, file=output_file, width=7.2, height=5.5, units="in")
 }
 
+
+#####################################################################
+# Make Figure 1-2 hybrid for poster
+#####################################################################
+if (FALSE) {
+# Precision plots
+pip_threshold <- "0.5"
+fdr_plot_5 <- make_gene_fdr_plot_across_methods_and_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+# Power plots
+pip_threshold <- "0.5"
+power_plot_5 <- make_gene_power_plot_across_methods_and_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+# Extract legend 
+legender = get_legend(power_plot_5 + theme(legend.position="bottom"))
+#fig_1_poster <- plot_grid(fdr_plot_5+theme(legend.position="none"), power_plot_5+theme(legend.position="none"), legender, ncol=1, rel_heights=c(1,1,.1))
+fig_1_poster <- plot_grid(plot_grid(fdr_plot_5+theme(legend.position="none"), power_plot_5+theme(legend.position="none"), ncol=2), legender, ncol=1, rel_heights=c(1,.13))
+
+pip_threshold <- "0.5"
+precision_plot_5 <- make_tgfm_alt_variant_gene_fdr_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) + ylim(0, .6)
+# Power plots
+pip_threshold <- "0.5"
+power_plot_5 <- make_tgfm_variant_gene_power_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) + ylim(0, .25)
+# Extract legend 
+legender = get_legend(power_plot_5+ theme(legend.position="bottom"))
+fig_2_poster <- plot_grid(plot_grid(precision_plot_5+theme(legend.position="none"), power_plot_5+theme(legend.position="none"), ncol=2), legender, ncol=1, rel_heights=c(1,.13))
+
+
+poster_fig <- plot_grid(fig_1_poster, fig_2_poster, ncol=2)
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_poster_figure.pdf")
+ggsave(poster_fig, file=output_file, width=21.2, height=3.0, units="in")
+}
+
+
+
+
+if (FALSE) {
 #####################################################################
 # Plot precision over a range of thresholds
 #####################################################################
@@ -1844,7 +1939,7 @@ figure <- plot_grid(legender, plot_grid(fdr_plot_3+theme(legend.position="none")
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_method_precision_pip_range.pdf")
 ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
-
+}
 if (FALSE) {
 
 # Precision plots
@@ -1881,6 +1976,7 @@ ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
 #####################################################################
 # Plot power over a range of thresholds
 #####################################################################
+if (FALSE) {
 # Precision plots
 pip_threshold <- "0.3"
 precision_plot_3 <- make_gene_power_plot_across_methods_and_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
@@ -1905,7 +2001,7 @@ figure <- plot_grid(legender, plot_grid(precision_plot_3+theme(legend.position="
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_method_power_pip_range.pdf")
 ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
-
+}
 
 if (FALSE) {
 # Precision plots
@@ -1966,7 +2062,7 @@ ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
 
 
 
-
+if (FALSE) {
 #####################################################################
 # Make gene-level (not gene-tissue) version of Figure 1
 #####################################################################
@@ -1991,8 +2087,7 @@ figure1 <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.positio
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_level_version_of_figure1.pdf")
 ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
-
-
+}
 
 
 

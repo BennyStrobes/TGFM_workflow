@@ -20,6 +20,11 @@ figure_theme <- function() {
 }
 
 
+poster_theme <- function() {
+	return(theme(plot.title = element_text(face="plain",size=19), text = element_text(size=19),axis.text=element_text(size=19), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"), legend.text = element_text(size=13), legend.title = element_text(size=18)))
+}
+
+
 
 make_tgfm_manhatten_plot_for_given_window <- function(snp_df, gene_df, link_df, trait_name, ensamble_tissue_name, gene_tissue_name, window_name) {
 	# Convert snp_df and gene_df to MB
@@ -57,7 +62,55 @@ make_tgfm_manhatten_plot_for_given_window <- function(snp_df, gene_df, link_df, 
 	return(pp)
 }
 
+make_tgfm_manhatten_plot_for_given_window_poster_ready <- function(snp_df, gene_df, trait_name, train_name_readable, window_name, gene_x_nudge=0.4, variant_x_nudge=-0.4) {
+	# Convert snp_df and gene_df to MB
+	snp_df$snp_position_mb = snp_df$snp_position/1000000.0
+	gene_df$gene_tss_mb = gene_df$gene_tss/1000000.0
 
+	gene_df$tissue_name = str_replace_all(as.character(gene_df$tissue_name), "-", "_")
+
+	gene_df$tissue_name <- recode(gene_df$tissue_name, Cells_EBV_transformed_lymphocytes="Lymphocytes",Whole_Blood="Whole Blood", Adrenal_Gland="Adrenal Gland",Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+
+	gene_df$labeler = paste0(gene_df$gene_id, ":", as.character(gene_df$tissue_name), "\n(PIP: ", round(gene_df$TGFM_PIP, digits=2),")")
+	#maxy = max(c(max(gene_df$gwas_neg_log10_p_mean),max(snp_df$gwas_neg_log10_p)))
+	gene_maxy= max(gene_df$gwas_neg_log10_p_mean)
+	variant_maxy= max(snp_df$gwas_neg_log10_p)
+
+	snp_df$labeler = paste0(snp_df$rs_id, "\n(PIP: ", round(snp_df$TGFM_PIP, digits=2),")")
+
+
+	# Split both snps and genes into hits and not
+	snp_hits_df = snp_df[snp_df$TGFM_PIP >= .5,]
+	snp_null_df = snp_df[snp_df$TGFM_PIP < .5,]
+	gene_hits_df = gene_df[gene_df$TGFM_PIP >= .5,]
+	gene_null_df = gene_df[gene_df$TGFM_PIP < .5,]
+
+
+
+	# Get name of chromosome
+	chromosome_num = strsplit(as.character(window_name),split=":")[[1]][1]
+	red_colors=brewer.pal(n = 9, name = "Reds")
+	blue_colors=brewer.pal(n = 9, name = "Blues")
+	#red_colors[3]
+	pp <- ggplot() + 
+		  geom_point(data=snp_null_df, aes(x=snp_position_mb, y=gwas_neg_log10_p, color=TGFM_PIP), shape=16, size=1.5) + 
+		  geom_point(data=snp_hits_df, aes(x=snp_position_mb, y=gwas_neg_log10_p, color=TGFM_PIP), shape=16, size=4.7) +
+		  #geom_text_repel(data=snp_hits_df, aes(x=snp_position_mb, y=gwas_neg_log10_p, label=labeler, color=TGFM_PIP),size=2.8, nudge_x = variant_x_nudge, nudge_y=variant_maxy*.1) +
+		  #scale_colour_gradient(low = "lightskyblue1", high = "dodgerblue4", limits=c(0.0,1.0), breaks=c(0.0,.25,.5,.75,1.0),labels=c("0.0",".25",".5",".75","1.0")) +
+		  scale_colour_gradient(low = blue_colors[3], high = "dodgerblue4", limits=c(0.0,1.0), breaks=c(0.0,.25,.5,.75,1.0),labels=c("0.0",".25",".5",".75","1.0")) +
+		  labs(color="Variant PIP") +
+		  new_scale_color() + 
+		  geom_point(data=gene_null_df, aes(x=gene_tss_mb, y=gwas_neg_log10_p_mean, color=TGFM_PIP), shape=17,size=2.3) + 
+		  geom_point(data=gene_hits_df, aes(x=gene_tss_mb, y=gwas_neg_log10_p_mean, color=TGFM_PIP), shape=17, size=5.0) + 
+		  geom_text_repel(data=gene_hits_df, aes(x=gene_tss_mb, y=gwas_neg_log10_p_mean, label=labeler, color=TGFM_PIP),size=3.8, nudge_x = gene_x_nudge, nudge_y=gene_maxy*.1) +
+		  #scale_colour_gradient(low = "lightskyblue1", high = "dodgerblue4", limits=c(0.0,1.0), breaks=c(0.0,.25,.5,.75,1.0),labels=c("0.0",".25",".5",".75","1.0")) +
+		  scale_colour_gradient(low = red_colors[3], high = "red4", limits=c(0.0,1.0), breaks=c(0.0,.25,.5,.75,1.0),labels=c("0.0",".25",".5",".75","1.0")) +
+		  poster_theme() +
+		  labs(x=paste0("Position [MB] Chromosome ", chromosome_num), y=bquote(-log[10](pvalue)), color="Gene-Tissue PIP", title=trait_name_readable) + 
+		  theme(legend.position="bottom")
+
+	return(pp)
+}
 
 
 
@@ -136,7 +189,7 @@ specific_examples_data <- read.table(specific_examples_input_file, header=TRUE, 
 
 
 
-
+if (FALSE) {
 # Loop through specific examples
 n_examples = dim(specific_examples_data)[1]
 for (example_iter in 1:n_examples) {
@@ -163,9 +216,11 @@ for (example_iter in 1:n_examples) {
 	output_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_tgfm_manhattan.pdf")
 	ggsave(tgfm_manhatten_plot, file=output_file, width=7.2, height=4.0, units="in")
 }
+}
 
 
 
+if (FALSE) {
 ######################
 # Example 1
 # ENSG00000163599_T8	ENSG00000163599	CTLA4	T8	0.8723686818022242	0.8909160835269218	2:202010553:205010553
@@ -272,8 +327,7 @@ legender = get_legend(tgfm_manhatten_plot1)
 joint_manhatten <- plot_grid(plot_grid(tgfm_manhatten_plot1 + theme(legend.position="none"), tgfm_manhatten_plot2+ theme(legend.position="none"),tgfm_manhatten_plot3+ theme(legend.position="none"), tgfm_manhatten_plot4+ theme(legend.position="none"), ncol=2, labels=c("a","b","c","d")), legender, ncol=1, rel_heights=c(1, .14))
 output_file <- paste0(visualize_specific_tgfm_examples_dir, "figure7.pdf")
 ggsave(joint_manhatten, file=output_file, width=7.2, height=5.0, units="in")
-
-
+}
 
 
 
@@ -444,4 +498,27 @@ output_file <- paste0(visualize_specific_tgfm_examples_dir, "six_example_tgfm_ma
 ggsave(joint_manhatten, file=output_file, width=7.2, height=6.5, units="in")
 
 }
+
+
+
+########################
+# Example 6
+# disease_ALLERGY_ECZEMA_DIAGNOSED        ENSG00000172818.9_Cells_EBV-transformed_lymphocytes     OVOL1   ENSG00000172818.9       Cells_EBV-transformed_lymphocytes       11:64070863:67070863
+trait_name <- "disease_ALLERGY_ECZEMA_DIAGNOSED"
+trait_name_readable <- "Eczema"
+window_name <- "11:64070863:67070863"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_posterplot <- make_tgfm_manhatten_plot_for_given_window_poster_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name)
+output_file <- paste0(visualize_specific_tgfm_examples_dir, "eczema_poster_example.pdf")
+ggsave(tgfm_manhatten_posterplot, file=output_file, width=7.2, height=6.0, units="in")
+
+
+
 

@@ -428,12 +428,16 @@ def learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_l
 
 
 	# Iterative algorithm
+	import time
 	for itera in range(max_iter):
 		print(itera)
+		t1 = time.time()
 		old_tissue_probs = np.copy(tissue_probs_distr)
 		variant_prob_distr, tissue_probs_distr = update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob_distr, tissue_probs_distr, tissue_names, window_to_class_to_indices, window_to_class_to_middle_indices, n_bootstraps, bs_indices, bs_mapping, window_names, window_to_bootstraps, version)
 		diff=tissue_probs_distr - old_tissue_probs
 		print(np.sort(np.mean(diff,axis=1)))
+		t2 = time.time()
+		print(t2-t1)
 
 
 	return variant_prob_distr, tissue_probs_distr

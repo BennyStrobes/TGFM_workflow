@@ -113,6 +113,36 @@ def create_file_containing_mediated_h2_sparse_binary_est_in_causal_and_non_causa
 		#print(np.mean(arr))
 	t.close()
 
+
+def create_file_containing_iterative_bootstrapped_sampler_prior_mediated_h2_gaussian_approximation_pvalue_in_causal_and_non_causal_tissues(simulated_tgfm_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_iterative_sampler_gaussian_approximation_pvalue_by_tissue_output_file, model_name):
+	# Open output file and print header
+	t = open(mediated_iterative_sampler_gaussian_approximation_pvalue_by_tissue_output_file,'w')
+	t.write('eqtl_sample_size\tsimulation_number\ttissue_number\tz_score\tpvalue\tcausal_status\n')
+	for eqtl_sample_size in eqtl_sample_sizes:
+		arr = []
+		for simulation_run in simulation_runs:
+			# Extract per annotation mediated heritability file for this run
+			h2_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + model_name + '_bootstrapped.txt'
+			# Load in per anno med h2
+			h2_data_raw = np.loadtxt(h2_file, dtype=str, delimiter='\t')
+			expr_data = h2_data_raw[-10:,:]
+			for tissue_iter in range(10):
+				if tissue_iter == 0 or tissue_iter == 3:
+					causal_status = 'causal'
+				else:
+					causal_status = 'null'
+
+				bootstrapped_coefficients = np.asarray(expr_data[tissue_iter,-1].split(';')).astype(float)
+				if np.std(bootstrapped_coefficients, ddof=1) == 0.0:
+					t.write(str(eqtl_sample_size) + '\t' + str(simulation_run) + '\t' + str(tissue_iter) + '\t' + str(0.0) + '\t' + str(1.0) + '\t' + causal_status + '\n')
+				else:
+					zz = np.mean(bootstrapped_coefficients)/np.std(bootstrapped_coefficients, ddof=1)
+					p_value = scipy.stats.norm.sf(abs(zz))  # 1-sided pvalue
+					t.write(str(eqtl_sample_size) + '\t' + str(simulation_run) + '\t' + str(tissue_iter) + '\t' + str(0.0) + '\t' + str(p_value) + '\t' + causal_status + '\n')
+	t.close()		
+	return
+
+
 def create_file_containing_iterative_bootstrapped_sampler_prior_mediated_h2_pvalue_in_causal_and_non_causal_tissues_across_thresholds(simulated_tgfm_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_iterative_sampler_pvalue_by_tissue_output_file, thresholds, model_name):
 	# Open output file and print header
 	t = open(mediated_iterative_sampler_pvalue_by_tissue_output_file,'w')
@@ -370,6 +400,22 @@ def create_file_containing_mediated_h2_power_to_detect_causal_tissues(mediated_p
 	return
 
 
+def create_file_containing_mediated_h2_power_to_detect_causal_tissues_gaussian_approximation(mediated_iterative_sampler_gaussian_approximation_pvalue_by_tissue_output_file, power_output_file, eqtl_sample_sizes):
+	raw_pvalue_file = np.loadtxt(mediated_iterative_sampler_gaussian_approximation_pvalue_by_tissue_output_file,dtype=str, delimiter='\t')
+
+	t = open(power_output_file,'w')
+	t.write('eqtl_sample_size\tpower\tpower_lb\tpower_ub\n')
+
+	for eqtl_sample_size in eqtl_sample_sizes:
+		raw_pvalue_subset = raw_pvalue_file[raw_pvalue_file[:,0] == str(eqtl_sample_size), :]
+		raw_pvalue_subset = raw_pvalue_subset[raw_pvalue_subset[:,-1] == 'causal',:]
+		causal_pvalues = raw_pvalue_subset[:,4].astype(float)
+		power = np.sum(causal_pvalues < .05)/len(causal_pvalues)
+		se = np.sqrt((power)*(1.0-power))/np.sqrt(len(causal_pvalues))
+		t.write(str(eqtl_sample_size) + '\t' + str(power) + '\t' + str(power-(se*1.96)) + '\t' + str(power+(se*1.96)) + '\n')
+	t.close()
+	return	
+
 def create_file_containing_mediated_h2_power_to_detect_causal_tissues_across_thresholds(mediated_pvalue_by_tissue_output_file, power_output_file, eqtl_sample_sizes, thresholds):
 	raw_pvalue_file = np.loadtxt(mediated_pvalue_by_tissue_output_file,dtype=str, delimiter='\t')
 
@@ -388,6 +434,22 @@ def create_file_containing_mediated_h2_power_to_detect_causal_tissues_across_thr
 	t.close()
 	return
 
+def create_file_containing_mediated_h2_type_1_error_gaussian_approximation(mediated_iterative_sampler_gaussian_approximation_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes):
+	raw_pvalue_file = np.loadtxt(mediated_iterative_sampler_gaussian_approximation_pvalue_by_tissue_output_file,dtype=str, delimiter='\t')
+
+	t = open(type_1_error_output_file,'w')
+	t.write('eqtl_sample_size\ttype_1_error\ttype_1_error_lb\ttype_1_error_ub\n')
+
+	for eqtl_sample_size in eqtl_sample_sizes:
+		raw_pvalue_subset = raw_pvalue_file[raw_pvalue_file[:,0] == str(eqtl_sample_size), :]
+		raw_pvalue_subset = raw_pvalue_subset[raw_pvalue_subset[:,-1] == 'null',:]
+		null_pvalues = raw_pvalue_subset[:,4].astype(float)
+		type_1_error = np.sum(null_pvalues < .05)/len(null_pvalues)
+		se = np.sqrt((type_1_error)*(1.0-type_1_error))/np.sqrt(len(null_pvalues))
+
+		t.write(str(eqtl_sample_size) + '\t' + str(type_1_error) + '\t' + str(type_1_error-(se*1.96)) + '\t' + str(type_1_error+(se*1.96)) + '\n')
+	t.close()
+	return	
 
 def create_file_containing_mediated_h2_type_1_error_across_thresholds(mediated_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes, thresholds):
 	raw_pvalue_file = np.loadtxt(mediated_pvalue_by_tissue_output_file,dtype=str, delimiter='\t')
@@ -2736,7 +2798,6 @@ bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + chrom_num + '.
 # Used eQTL sample sizes
 eqtl_sample_sizes = np.asarray([300,500,1000])
 
-'''
 # Simulation runs
 # Currently hacky because had some failed simulations
 simulation_runs = np.arange(1,21)
@@ -2745,7 +2806,6 @@ thresholds = [1e-1, 1e-2, 1e-3, 5e-4, 2.5e-4, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9
 model_names = ['susie_pmces_uniform_iterative_variant_gene_prior_pip_level']
 
 for model_name in model_names:
-
 	##########################
 	# Power and Type 1 Error
 	##########################
@@ -2759,6 +2819,19 @@ for model_name in model_names:
 	type_1_error_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_h2_type_1_error_across_thresholds.txt'
 	create_file_containing_mediated_h2_type_1_error_across_thresholds(mediated_iterative_sampler_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes, thresholds)
 
+	##########################
+	# Power and Type 1 Error based on gaussian approximation
+	##########################
+	# Create file showing p-value in causal tissues and non-causal tissues
+	mediated_iterative_sampler_gaussian_approximation_pvalue_by_tissue_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_mediated_h2_gaussian_approximation_pvalue_by_tissue_est.txt'
+	create_file_containing_iterative_bootstrapped_sampler_prior_mediated_h2_gaussian_approximation_pvalue_in_causal_and_non_causal_tissues(simulated_tgfm_results_dir, global_simulation_name_string, eqtl_sample_sizes, simulation_runs, mediated_iterative_sampler_gaussian_approximation_pvalue_by_tissue_output_file, model_name)
+	# Create file showing type 1 error for null tissues using gaussian approximation
+	type_1_error_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_h2_type_1_error_gaussian_approximation.txt'
+	create_file_containing_mediated_h2_type_1_error_gaussian_approximation(mediated_iterative_sampler_gaussian_approximation_pvalue_by_tissue_output_file, type_1_error_output_file, eqtl_sample_sizes)
+	# Create file showing power for null tissues using gaussian approximation
+	power_output_file =  simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_mediated_h2_power_gaussian_approximation.txt'
+	create_file_containing_mediated_h2_power_to_detect_causal_tissues_gaussian_approximation(mediated_iterative_sampler_gaussian_approximation_pvalue_by_tissue_output_file, power_output_file, eqtl_sample_sizes)
+
 
 	##########################
 	# Bias in fraction of causal components going through gene expression
@@ -2769,7 +2842,6 @@ for model_name in model_names:
 	# Average estimates across simulations
 	organized_avg_fraction_expr_med_disease_components_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_avg_expected_fraction_expression_mediated_disease_components.txt'
 	create_file_containing_avg_fraction_h2_across_simulation_runs(fraction_expr_med_disease_components_output_file, organized_avg_fraction_expr_med_disease_components_output_file, eqtl_sample_sizes)
-	print(organized_avg_fraction_expr_med_disease_components_output_file)
 
 
 	##########################
@@ -2782,7 +2854,7 @@ for model_name in model_names:
 	organized_avg_fraction_causal_by_tissue_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_avg_fraction_causal_by_tissue.txt'
 	#create_file_containing_avg_med_h2_by_tissue_across_simulation_runs(fraction_causal_by_tissue_output_file, organized_avg_fraction_causal_by_tissue_output_file, eqtl_sample_sizes)
 	create_file_containing_avg_fraction_causal_by_tissue_across_simulation_runs(fraction_causal_by_tissue_output_file, organized_avg_fraction_causal_by_tissue_output_file, eqtl_sample_sizes)
-'''
+
 
 '''
 #############################################################
@@ -3048,7 +3120,7 @@ for pip_threshold in pip_thresholds:
 '''
 
 
-
+'''
 ##################################
 # coloc Power to detect snps with PIP > threshold
 ##################################
@@ -3067,7 +3139,7 @@ for pip_threshold in pip_thresholds:
 	create_file_containing_coloc_high_pip_gene_power_per_component(global_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_coloc_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, coloc_cs_power_per_component_output_file, pip_threshold, global_window_file)
 	coloc_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_gene_power.txt'
 	create_file_containing_averaged_focus_cs_power(coloc_cs_power_per_component_output_file, coloc_cs_power_output_file, eqtl_sample_sizes)
-
+'''
 
 
 

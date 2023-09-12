@@ -766,8 +766,9 @@ fi
 # Organize TGFM Results across parallel runs
 #################################
 echo $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_plus_independent_traits_sumstat_files_with_samp_size_and_h2_readable.txt"
+if false; then
 sh organize_tgfm_results_across_parallel_runs.sh $sc_tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_plus_independent_traits_sumstat_files_with_samp_size_and_h2_readable.txt" $merged_tissue_cell_type_file $gtex_pseudotissue_category_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir $sc_tgfm_organized_results_dir $gene_annotation_file
-
+fi
 
 
 

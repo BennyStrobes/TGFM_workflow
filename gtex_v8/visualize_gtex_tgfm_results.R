@@ -2357,7 +2357,7 @@ output_file <- paste0(visualize_tgfm_dir, "non_disease_specific_gene_set_enrichm
 ggsave(enrichment_barplot, file=output_file, width=7.2, height=4.6, units="in")
 }
 
-
+if (FALSE) {
 ##################################################
 # Violin plot showing bootstrapped prior distributions 
 ##################################################
@@ -2373,6 +2373,7 @@ for (trait_iter in 1:length(trait_names)) {
 	# Iterative version
 	output_file <- paste0(visualize_tgfm_dir, "tissue_violinplot_of_distribution_prior_probabilities_", trait_name_readable,".pdf")
 	ggsave(iterative_sampler_violin_plot, file=output_file, width=10.2, height=4.6, units="in")
+}
 }
 
 ##########################################################
@@ -2480,11 +2481,10 @@ for (pip_iter in 1:length(pip_threshs)) {
 }
 }
 
-
+if (FALSE) {
 ##########################################################
 # Make Figure 3
 ##########################################################
-if (FALSE) {
 # Get ordered traits according to number of hits identified by gene-tissue pairs
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 ordered_traits <- make_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_trait_order_according_to_gene_tissue_pairs(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits)
@@ -2522,7 +2522,16 @@ gene_tissue_heatmap_barplot2 <- plot_grid(NULL, gene_tissue_heatmap_barplot_ord+
 joint_heatmap_barplot <- plot_grid(NULL,gene_tissue_heatmap_barplot2, gene_heatmap_barplot2, variant_heatmap_barplot2, ncol=1, labels=c("","a", "b", "c"), rel_heights=c(.03, 1, 1,1.45))
 output_file_pdf <- paste0(visualize_tgfm_dir, "figure3.pdf")
 ggsave(joint_heatmap_barplot, file=output_file_pdf, width=7.2, height=6.2, units="in", dpi=400)
+
+output_file_pdf <- paste0(visualize_tgfm_dir, "figure3_for_poster.pdf")
+gene_tissue_heatmap_barplot2 <- plot_grid(NULL, gene_tissue_heatmap_barplot_ord+ annotate("text",  x=Inf, y = Inf, label = "Gene-Tissue", vjust=1, hjust=1,color=blue_color), rel_widths=c(.02,1),ncol=2)
+gene_heatmap_barplot2 <- plot_grid(NULL, gene_heatmap_barplot_ord + annotate("text",  x=Inf, y = Inf, label = "Gene", vjust=1, hjust=1,color=green_color), rel_widths=c(.02,1),ncol=2)
+variant_heatmap_barplot2 <- plot_grid(NULL, variant_heatmap_barplot_ord + annotate("text",  x=Inf, y = Inf, label = "Variant", vjust=1, hjust=1, color=red_color), rel_widths=c(.02,1),ncol=2)
+joint_heatmap_barplot_poster <- plot_grid(gene_tissue_heatmap_barplot2, gene_heatmap_barplot2, variant_heatmap_barplot2, ncol=3)
+
+ggsave(joint_heatmap_barplot_poster, file=output_file_pdf, width=21.2, height=2.7, units="in", dpi=400)
 }
+
 
 
 if (FALSE) {
@@ -2553,7 +2562,6 @@ ggsave(barplot, file=output_file, width=7.2, height=3.7, units="in")
 ##########################################################
 # Make Figure 4
 ##########################################################
-if (FALSE) {
 # FIG 4A
 pip_thresh <- "0.5"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
@@ -2567,8 +2575,16 @@ fig_4b <- plot_grid(NULL,mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_s
 fig_4 <- plot_grid(fig_4a + theme(legend.position="top"), fig_4b, ncol=1, rel_heights=c(.7,.4), labels=c("a","b"))
 output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
 ggsave(fig_4, file=output_file, width=7.2, height=6.7, units="in")
-}
 
+
+###################################################
+# Figure 4 for poster
+###################################################
+
+# MAke joint plot
+fig_4 <- plot_grid(fig_4a + theme(legend.position="top"), fig_4b, ncol=2)
+output_file <- paste0(visualize_tgfm_dir, "figure4_poster.pdf")
+ggsave(fig_4, file=output_file, width=7.2, height=6.7, units="in")
 
 
 
