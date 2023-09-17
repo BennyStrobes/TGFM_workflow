@@ -537,6 +537,7 @@ if false; then
 Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_sldsc_results_dir $tgfm_results_dir $tgfm_organized_results_dir $preprocessed_tgfm_sldsc_data_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir
 fi
 
+
 #################################
 # Run epimap cell type enrichment analysis
 #################################
@@ -713,13 +714,17 @@ done
 fi
 
 if false; then
-trait_name="biochemistry_VitaminD"
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_tmp.txt" | while read trait_name study_file sample_size h2; do
 	for job_number in $(seq 0 $(($num_jobs-1))); do
 		tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 		tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 		sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs
 	done
+done
 fi
+
+
+
 
 ########################################
 # Compute iterative prior

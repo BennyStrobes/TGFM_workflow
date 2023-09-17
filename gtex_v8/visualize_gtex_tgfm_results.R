@@ -1192,6 +1192,53 @@ make_violin_plot_showing_distribution_of_bootstrapped_taus_of_each_tissue <- fun
 
 }
 
+generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior <- function(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file) {
+	trait_vec <- c()
+	tissue_vec <- c()
+	sig_vec <- c()
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name = trait_names[trait_iter]
+		iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
+	
+		df <- read.table(iterative_prior_file, header=TRUE)
+		# Skip variants
+		nrow = dim(df)[1]
+
+		df <- df[2:nrow,]
+		df$tissue = df$element_name
+
+		n_tissues = length(unique(df$tissue))
+
+
+		for (tissue_iter in 1:length(df$tissue)) {
+			tissue_name <- as.character(df$tissue[tissue_iter])
+			prob_string = as.character(df$prior_distribution[tissue_iter])
+			prob_vec = as.numeric(strsplit(prob_string,";")[[1]])
+
+			sdev = sd(prob_vec)
+			if (sdev == 0.0) {
+				zz = 0
+			} else {
+				zz = mean(prob_vec)/(sd(prob_vec))
+			}
+
+			pvalue = pnorm(q=abs(zz), lower.tail=FALSE)
+			bonf_pvalue = pvalue*n_tissues
+
+			trait_vec <- c(trait_vec, trait_name)
+			tissue_vec <- c(tissue_vec, tissue_name)
+			sig_vec <- c(sig_vec, bonf_pvalue)
+		}
+
+	}
+
+	df <- data.frame(tissue=tissue_vec, trait=trait_vec, bonferonni_pvalue=sig_vec)
+
+
+	write.table(df, file=trait_tissue_prior_significance_file, quote=FALSE, sep="\t", row.names = FALSE)
+}
+
 
 make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue <- function(iterative_prior_file, method_version, trait_name_readable, threshold=1e-8) {
 	# Load in input data
@@ -1213,16 +1260,14 @@ make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tis
 
 		zz = mean(prob_vec)/(sd(prob_vec))
 
-		pvalue = 2*pnorm(q=zz, lower.tail=FALSE)
+		pvalue = pnorm(q=abs(zz), lower.tail=FALSE)
 		#pvalue = sum(prob_vec < threshold)/length(prob_vec)
 
-		#print(pvalue2)
-		#print(paste0(pvalue, "   ", pvalue2))
 		if (is.na(pvalue)) {
 			pvalue = 1.0
 		}
 
-		if (pvalue < (.1/37)) {
+		if (pvalue < (.05/38)) {
 			sigger = 'significant'
 		} else {
 			sigger = 'non_significant'
@@ -1329,10 +1374,13 @@ make_bar_plot_showing_iterative_prior_probability_of_each_tissue <- function(ite
 
 }
 
-make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits <- function(trait_names, trait_names_readable, method_version, tgfm_results_dir, ordered_tissues, pip_thresh, selected_traits) {
+make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits <- function(trait_names, trait_names_readable, method_version, tgfm_results_dir, ordered_tissues, pip_thresh, selected_traits, trait_tissue_prior_significance_file) {
+	df_prior = read.table(trait_tissue_prior_significance_file, header=TRUE)
+
 	tissue_vec <- c()
 	count_vec <- c()
 	trait_vec <- c()
+	sig_vec <- c()
 
 
 	for (trait_iter in 1:length(trait_names)) {
@@ -1341,10 +1389,9 @@ make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_
 		trait_name_readable <- trait_names_readable[trait_iter]
 		trait_gene_pip_summary_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_tgfm_per_gene_tissue_pip_summary.txt")
 		trait_df <- read.table(trait_gene_pip_summary_file, header=TRUE,sep="\t")
-
-
 		tmper <- c()
 		tmp_df <- trait_df[trait_df$PIP > as.numeric(pip_thresh),]
+		df_prior_trait_sub = df_prior[as.character(df_prior$trait)==trait_name,]
 		if (sum(tmp_df$PIP) > 2.0) {
 			#print(head(tmp_df))
 			for (tissue_iter in 1:length(ordered_tissues)) {
@@ -1354,6 +1401,16 @@ make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_
 				#count_vec <- c(count_vec, pip_sum)
 				trait_vec <- c(trait_vec, trait_name_readable)
 				tmper <- c(tmper, pip_sum)
+
+				# Extract bonferonni significane from prior
+				bonf_pvalue = df_prior_trait_sub$bonferonni_pvalue[as.character(df_prior_trait_sub$tissue)==tissue_name][1]
+				if (bonf_pvalue <= .05) {
+					sig_vec <- c(sig_vec, "**")
+				} else if (bonf_pvalue <= .2) {
+					sig_vec <- c(sig_vec, "*")
+				} else {
+					sig_vec <- c(sig_vec, "")
+				}
 			}
 			tmper = tmper/sum(tmper)
 			for (itera in 1:length(tmper)) {
@@ -1367,21 +1424,20 @@ make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_
 	new_trait_names = sort(unique(trait_vec))
 
 	valid_tissues <- c()
-	df <- data.frame(expected_causal_genes=count_vec, tissue=factor(tissue_vec,levels=ordered_tissues), trait=factor(trait_vec, levels=new_trait_names))
+	df <- data.frame(expected_causal_genes=count_vec, tissue=factor(tissue_vec,levels=ordered_tissues), trait=factor(trait_vec, levels=new_trait_names), significance=sig_vec)
 
 	for (tissue_iter in 1:length(ordered_tissues)) {
 		tissue_name = ordered_tissues[tissue_iter]
 		indices = as.character(df$tissue) == tissue_name
-		if (max(df$expected_causal_genes[indices]) > .15) {
+		if (max(df$expected_causal_genes[indices]) > .2) {
 			valid_tissues <- c(valid_tissues, tissue_name)
 		}
 
 	}
+	valid_tissues <- c(valid_tissues, "Lung")
 
 
 	df = df[as.character(df$tissue) %in% valid_tissues,]
-
-	print(df)
 
 	df$tissue = str_replace_all(as.character(df$tissue), "-", "_")
 	df$tissue <- recode(df$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin (sun exposed)",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord", Whole_Blood="Whole Blood", Colon_Sigmoid="Colon Sigmoid", Artery_Tibial="Artery Tibial", Brain_BasalGanglia="Brain Basal Ganglia", Esophagus_Mucosa="Esophagus Mucosa", Brain_Cortex="Brain Cortex", Artery_Heart="Artery Heart", Adrenal_Gland="Adrenal Gland")
@@ -1413,12 +1469,15 @@ make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_
 
 	pp <- ggplot(df, aes(tissue, trait, fill= expected_causal_genes)) + 
   		geom_tile() +
+  		geom_text(aes(label=significance)) +
   		figure_theme() +
   		#theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
   		theme(axis.text.x = element_text(angle = 45, hjust=1)) + 
   		theme(legend.position="bottom") +
   		scale_fill_gradient(low = "white", high = red_color) +
   		labs(x="",y="", fill="Expected fraction of fine-mapped  \ngene-tissue pairs")
+
+
 
   	return(pp)	
 }
@@ -2357,10 +2416,10 @@ output_file <- paste0(visualize_tgfm_dir, "non_disease_specific_gene_set_enrichm
 ggsave(enrichment_barplot, file=output_file, width=7.2, height=4.6, units="in")
 }
 
-if (FALSE) {
 ##################################################
 # Violin plot showing bootstrapped prior distributions 
 ##################################################
+if (FALSE) {
 for (trait_iter in 1:length(trait_names)) {
 	trait_name <- trait_names[trait_iter]
 	trait_name_readable <- trait_names_readable[trait_iter]
@@ -2375,6 +2434,16 @@ for (trait_iter in 1:length(trait_names)) {
 	ggsave(iterative_sampler_violin_plot, file=output_file, width=10.2, height=4.6, units="in")
 }
 }
+
+##################################################
+# Make file summarizing prior significance of each trait-tissue pair
+##################################################
+method_version="susie_pmces_uniform"
+trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, "trait_tissue_prior_bonferronni_corrected_significance.txt")
+if (FALSE) {
+generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file)
+}
+
 
 ##########################################################
 # Make TGFM PIP density across genetic element classes
@@ -2534,18 +2603,15 @@ ggsave(joint_heatmap_barplot_poster, file=output_file_pdf, width=21.2, height=2.
 
 
 
-if (FALSE) {
 ##########################################################
 # Make heatmap showing expected number of causal genes in each tissue-trait pair for selected traits
 ##########################################################
 pip_thresh <- "0.5"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 selected_traits <- c("disease_AID_ALL", "biochemistry_VitaminD", "body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "pigment_HAIR", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled")
-
-heatmap <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, selected_traits)
+heatmap <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, selected_traits,trait_tissue_prior_significance_file)
 output_file <- paste0(visualize_tgfm_dir, "expected_num_causal_genes_", pip_thresh, "_", method_version,"_selected_traits_heatmap.pdf")
-ggsave(heatmap, file=output_file, width=7.2, height=5.0, units="in")
-}
+ggsave(heatmap, file=output_file, width=7.2, height=6.0, units="in")
 
 ##########################################################
 # Make POPS enrichment standard error barplot
@@ -2562,6 +2628,7 @@ ggsave(barplot, file=output_file, width=7.2, height=3.7, units="in")
 ##########################################################
 # Make Figure 4
 ##########################################################
+if (FALSE) {
 # FIG 4A
 pip_thresh <- "0.5"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
@@ -2575,17 +2642,17 @@ fig_4b <- plot_grid(NULL,mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_s
 fig_4 <- plot_grid(fig_4a + theme(legend.position="top"), fig_4b, ncol=1, rel_heights=c(.7,.4), labels=c("a","b"))
 output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
 ggsave(fig_4, file=output_file, width=7.2, height=6.7, units="in")
-
+}
 
 ###################################################
 # Figure 4 for poster
 ###################################################
-
+if (FALSE) {
 # MAke joint plot
 fig_4 <- plot_grid(fig_4a + theme(legend.position="top"), fig_4b, ncol=2)
 output_file <- paste0(visualize_tgfm_dir, "figure4_poster.pdf")
 ggsave(fig_4, file=output_file, width=7.2, height=6.7, units="in")
-
+}
 
 
 
