@@ -737,10 +737,12 @@ sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_plus_independent_traits_su
 done
 fi
 if false; then
-trait_name="biochemistry_VitaminD"
-tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $merged_tissue_cell_type_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_sc_tgfm_prior_results_dir
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_tmp.txt" | while read trait_name study_file sample_size h2; do
+	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $merged_tissue_cell_type_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_sc_tgfm_prior_results_dir
+done
 fi
+
 
 #################################
 # Run TGFM with iterative prior
@@ -758,14 +760,15 @@ done
 fi
 
 if false; then
-trait_name="biochemistry_VitaminD"
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_tmp.txt" | while read trait_name study_file sample_size h2; do
 for job_number in $(seq 0 $(($num_jobs-1))); do
-
 	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $iterative_sc_tgfm_prior_results_dir $job_number $num_jobs
 done
+done
 fi
+
 
 #################################
 # Organize TGFM Results across parallel runs

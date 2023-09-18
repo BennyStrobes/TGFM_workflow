@@ -1374,7 +1374,7 @@ make_bar_plot_showing_iterative_prior_probability_of_each_tissue <- function(ite
 
 }
 
-make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits <- function(trait_names, trait_names_readable, method_version, tgfm_results_dir, ordered_tissues, pip_thresh, selected_traits, trait_tissue_prior_significance_file) {
+make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits <- function(trait_names, trait_names_readable, method_version, tgfm_results_dir, ordered_tissues, pip_thresh, selected_traits, trait_tissue_prior_significance_file, significance_bool=FALSE) {
 	df_prior = read.table(trait_tissue_prior_significance_file, header=TRUE)
 
 	tissue_vec <- c()
@@ -1469,13 +1469,16 @@ make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_
 
 	pp <- ggplot(df, aes(tissue, trait, fill= expected_causal_genes)) + 
   		geom_tile() +
-  		geom_text(aes(label=significance)) +
   		figure_theme() +
   		#theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
   		theme(axis.text.x = element_text(angle = 45, hjust=1)) + 
   		theme(legend.position="bottom") +
   		scale_fill_gradient(low = "white", high = red_color) +
   		labs(x="",y="", fill="Expected fraction of fine-mapped  \ngene-tissue pairs")
+
+  	if (significance_bool == TRUE) {
+  		pp = pp + geom_text(aes(label=significance))
+  	}
 
 
 

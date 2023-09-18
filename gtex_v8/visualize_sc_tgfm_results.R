@@ -455,15 +455,15 @@ make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot <- fu
 
 
 make_number_of_high_pip_sc_gene_tissue_pairs_heatmap_barplot_v2_trait_stratefied <- function(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits, preordered=FALSE, ordered_traits=NULL) {
-	blood_immune_traits <- c("blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MEAN_PLATELET_VOL", "blood_MONOCYTE_COUNT", "disease_ALLERGY_ECZEMA_DIAGNOSED", "disease_AID_ALL", "bmd_HEEL_TSCOREz")
+	blood_immune_traits <- c("blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MEAN_PLATELET_VOL", "blood_MONOCYTE_COUNT", "disease_ALLERGY_ECZEMA_DIAGNOSED", "disease_AID_ALL")
 	blood_immune_heatmap <- make_number_of_high_pip_sc_gene_tissue_pairs_heatmap_barplot_v2(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, blood_immune_traits)
 
-	non_blood_immune_traits <- c("biochemistry_VitaminD", "other_MORNINGPERSON", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FEV1FVCzSMOKE", "lung_FVCzSMOKE", "body_HEIGHTz", "pigment_HAIR", "repro_MENARCHE_AGE", "repro_NumberChildrenEverBorn_Pooled")
+	non_blood_immune_traits <- c("bmd_HEEL_TSCOREz", "biochemistry_VitaminD", "other_MORNINGPERSON", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FEV1FVCzSMOKE", "lung_FVCzSMOKE", "body_HEIGHTz", "pigment_HAIR", "repro_MENARCHE_AGE", "repro_NumberChildrenEverBorn_Pooled")
 	non_blood_immune_heatmap <- make_number_of_high_pip_sc_gene_tissue_pairs_heatmap_barplot_v2(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, non_blood_immune_traits)
 
 
 	legender <- get_legend(blood_immune_heatmap)
-	joint_heatmap <- plot_grid(blood_immune_heatmap + labs(title="Blood/Immune traits") + theme(legend.position="none"), plot_grid(non_blood_immune_heatmap+ theme(legend.position="none") + labs(title="Other traits", y=""), NULL,ncol=1,rel_heights=c(1.0,.013)), legender, ncol=3, rel_widths=c(.75, 1.05,.2), labels=c("a", "b", ""))
+	joint_heatmap <- plot_grid(blood_immune_heatmap + labs(title="Blood/Immune traits") + theme(legend.position="none"), plot_grid(non_blood_immune_heatmap+ theme(legend.position="none") + labs(title="Other traits", y=""), NULL,ncol=1,rel_heights=c(1.0,.013)), legender, ncol=3, rel_widths=c(.75, 1.19,.2), labels=c("a", "b", ""))
 
 	return(joint_heatmap)
 }
@@ -2620,7 +2620,6 @@ ggsave(tissue_bar_plot, file=output_file, width=7.2, height=5.7, units="in")
 ##########################################################
 # Heat-map barplot showing number of fine-mapped gene-tissue pairs from single cell celltypes stratefied by blood/immune not blood/immune
 ##########################################################
-if (FALSE) {
 # Make heatmap-barplot showing expected number of causal gene-tissue pairs
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 #output_file_pdf <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_v2.pdf")
@@ -2628,7 +2627,7 @@ sc_gene_tissue_heatmap_barplot <- make_number_of_high_pip_sc_gene_tissue_pairs_h
 
 output_file <- paste0(visualize_tgfm_dir, "number_of_sc_tgfm_gene_tissue_pairs_heatmap_barplot_trait_stratefied.pdf")
 ggsave(sc_gene_tissue_heatmap_barplot, file=output_file, width=7.2, height=4.7, units="in")
-}
+
 
 ##########################################################
 # Heat-map barplot for single trait showing number of fine-mapped gene-tissue pairs each cell types
