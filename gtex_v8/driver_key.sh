@@ -127,9 +127,6 @@ perm_output_root="/n/groups/price/ben/causal_eqtl_gwas/gtex_v8/"
 ukbb_sumstats_hg38_dir="/n/groups/price/ben/causal_eqtl_gwas/gtex_v8_causal_eqtl_gwas_38_tissues/ukbb_sumstats_hg38/"
 
 
-# Directory containing hg38 ukbb summary stats
-quasi_independent_ld_blocks_hg38_dir=$output_root"quasi_independent_ld_blocks_hg38/"
-
 # Directory containing misc. items
 misc_dir=$output_root"misc/"
 
@@ -262,20 +259,7 @@ if false; then
 sbatch liftover_ukbb_summary_statistics_from_hg19_to_hg38.sh $liftover_directory $ukbb_sumstats_hg19_dir $ukbb_sumstats_hg38_dir
 fi
 
-########################################
-# Liftover quasi-independent ld blocks to hg38
-########################################
-if false; then
-sh liftover_quasi_independent_ld_blocks_to_hg38.sh $liftover_directory $quasi_independent_dir $quasi_independent_ld_blocks_hg38_dir
-fi
 
-########################################
-# Convert hapmap3 rsids to snp ids
-########################################
-hapmap3_snpid_file=$misc_dir"w_hm3.noMHC.snp_id_list.txt"
-if false; then
-sh convert_hapmap3_rsids_to_snpids.sh $hapmap3_rsid_file $ukbb_hg38_genotype_dir $hapmap3_snpid_file
-fi
 
 
 ########################################
