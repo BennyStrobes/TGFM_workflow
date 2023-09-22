@@ -15,7 +15,7 @@ t = open(output_file,'w')
 
 
 for chrom_num in range(1,23):
-	input_file = ukbb_preprocessed_for_genome_wide_susie_dir + 'genome_wide_susie_windows_and_processed_data_chrom_fixed_ld' + str(chrom_num) + '.txt'
+	input_file = ukbb_preprocessed_for_genome_wide_susie_dir + 'genome_wide_susie_windows_and_processed_data_chrom_' + str(chrom_num) + '.txt'
 
 	head_count = 0
 	f = open(input_file)

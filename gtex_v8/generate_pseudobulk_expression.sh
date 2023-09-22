@@ -15,9 +15,10 @@ gene_annotation_file="$5"
 hg38_gene_annotation_file="$6"
 gtex_gene_list="$7"
 
+echo $hg38_gene_annotation_file
+echo $gtex_gene_list
 
 python3 generate_pseudobulk_expression.py $processed_sc_expression_dir $input_h5py_file $processed_genotype_dir $pseudobulk_expression_dir $gene_annotation_file
-
 
 
 python3 get_sc_pseudobulk_gene_tss.py $pseudobulk_expression_dir $hg38_gene_annotation_file $gtex_gene_list

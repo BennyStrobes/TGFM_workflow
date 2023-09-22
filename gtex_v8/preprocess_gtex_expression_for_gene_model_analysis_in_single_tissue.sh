@@ -2,7 +2,7 @@
 #SBATCH -c 1                               # Request one core
 #SBATCH -t 0-2:00                         # Runtime in D-HH:MM format
 #SBATCH -p short                           # Partition to run in
-#SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=4GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -24,7 +24,6 @@ echo $tissue_name
 
 tissue_gtex_expression_data_dir=$gtex_processed_expression_dir$tissue_name"/"
 mkdir $tissue_gtex_expression_data_dir
-
 
 python3 preprocess_gtex_data_for_fusion_weights_analysis.py $tissue_name $xt_pc_gene_list_file $gtex_expression_dir $gtex_covariate_dir $tissue_gtex_expression_data_dir
 

@@ -25,6 +25,7 @@ def extract_ukbb_trait_names_and_file(ukbb_trait_file):
 		trait_names.append(data[0])
 		trait_files.append(data[1])
 		trait_sample_sizes.append(data[2])
+		counter = counter +1
 	f.close()
 	return np.asarray(trait_names), np.asarray(trait_files), np.asarray(trait_sample_sizes)
 
@@ -93,23 +94,28 @@ def identify_ukbb_repeat_variants(trait_file, chrom_num):
 		line_chrom_num = data[1]
 		if line_chrom_num != chrom_num:
 			continue
+		line_rs_id = data[0]
 		line_variant_id = 'chr' + data[1] + '_' + data[2] + '_' + data[4] + '_' + data[5] + '_b38'
 		line_variant_id_alt = 'chr' + data[1] + '_' + data[2] + '_' + data[5] + '_' + data[4] + '_b38'
 
-		if line_variant_id in all_variants or line_variant_id_alt in all_variants:
+		if line_variant_id in all_variants or line_variant_id_alt in all_variants or line_rs_id in all_variants:
 			repeat_variants[line_variant_id] = 1
 			repeat_variants[line_variant_id_alt] = 1
+			repeat_variants[line_rs_id] = 1
 		all_variants[line_variant_id] = 1
 		all_variants[line_variant_id_alt] = 1
+		all_variants[line_rs_id] = 1
 	f.close()
 	return repeat_variants		
 
-def fill_in_window_dictionary_for_single_trait(trait_name, trait_file, chrom_num, window_names_chromosome, gtex_variants, window_dictionary):
+def fill_in_window_dictionary_for_single_trait(trait_name, trait_file, chrom_num, window_names_chromosome, ukbb_rs_id_variants, window_dictionary):
 	repeat_variants = identify_ukbb_repeat_variants(trait_file, chrom_num)
 	f = open(trait_file)
 	head_count = 0
 	used_variants = {}
 	afs = []
+	hits = 0
+	misses = 0
 	for line in f:
 		line = line.rstrip()
 		data = line.split('\t')
@@ -120,29 +126,16 @@ def fill_in_window_dictionary_for_single_trait(trait_name, trait_file, chrom_num
 		line_chrom_num = data[1]
 		if line_chrom_num != chrom_num:
 			continue
-		# Skip variants with MAF < .01
-		#af = float(data[6])
-		#if af > .99 or af < .01:
-		#	continue
 		# Get variant id for this line
 		line_variant_id = 'chr' + data[1] + '_' + data[2] + '_' + data[4] + '_' + data[5] + '_b38'
 		line_variant_id_alt = 'chr' + data[1] + '_' + data[2] + '_' + data[5] + '_' + data[4] + '_b38'
 		variant_pos = int(data[2])
 		rs_id = data[0]
 
-		# Ignore strand ambiguous variants from analysis
-		if data[4] == 'A' and data[5] == 'T':
-			continue
-		if data[4] == 'T' and data[5] == 'A':
-			continue
-		if data[4] == 'C' and data[5] == 'G':
-			continue
-		if data[4] == 'G' and data[5] == 'C':
-			continue
 
 		# Some repeats in this file..
 		# Skip variants seen twice in UKBB file
-		if line_variant_id in repeat_variants or line_variant_id_alt in repeat_variants:
+		if line_variant_id in repeat_variants or line_variant_id_alt in repeat_variants or rs_id in repeat_variants:
 			continue
 		# This just double checks that we have correctly filtered out repear variants
 		if line_variant_id in used_variants or line_variant_id_alt in used_variants:
@@ -151,31 +144,15 @@ def fill_in_window_dictionary_for_single_trait(trait_name, trait_file, chrom_num
 		used_variants[line_variant_id] =1
 		used_variants[line_variant_id_alt] = 1
 
-		'''
-		if rs_id.startswith('rs') == False:
-			print('non rsid variant')
-			continue
-		beta = float(data[10])
-		std_err = float(data[11])
-		stringer = trait_name + ',' + line_variant_id + ',' + str(beta) + ',' + str(std_err) + ',' + rs_id
-		window_string = window_names_chromosome[variant_pos]
-		windows = window_string.split(',')
-		for window in windows:
-			if window == 'NULL':  # This is necessary because we threw out some long range LD windows
-				continue
-			window_dictionary[window].append(stringer)
-		'''
 		# Variant id in gtex variants
-		if line_variant_id in gtex_variants:
-			if line_variant_id_alt in gtex_variants:
-				print('assumption error')
-				pdb.set_trace()
-			if rs_id.startswith('rs') == False:
-				print('non rsid variant')
-				continue
+		if rs_id in ukbb_rs_id_variants:
+			hits = hits + 1
+
 			beta = float(data[10])
 			std_err = float(data[11])
 			chi_sq_bolt_lmm = float(data[14])
+			if chi_sq_bolt_lmm <= 0.0:
+				continue
 			z_bolt_lmm = np.sqrt(chi_sq_bolt_lmm)
 			signer = 1.0
 			if beta <= 0.0:
@@ -188,36 +165,18 @@ def fill_in_window_dictionary_for_single_trait(trait_name, trait_file, chrom_num
 				if window == 'NULL':  # This is necessary because we threw out some long range LD windows
 					continue
 				window_dictionary[window].append(stringer)
-		# Flipped variant id in gtex variants 
-		elif line_variant_id_alt in gtex_variants:
-			if rs_id.startswith('rs') == False:
-				print('non rsid variant')
-				continue
-			beta = float(data[10])
-			std_err = float(data[11])
-			chi_sq_bolt_lmm = float(data[14])
-			z_bolt_lmm = np.sqrt(chi_sq_bolt_lmm)
-			signer = 1.0
-			if beta <= 0.0:
-				signer = -1.0
-			z_bolt_lmm = z_bolt_lmm*signer
-			stringer = trait_name + ',' + line_variant_id + ',' + str(z_bolt_lmm) + ',' + str(1.0) + ',' + rs_id
-			window_string = window_names_chromosome[variant_pos]
-			windows = window_string.split(',')
-			for window in windows:
-				if window == 'NULL':  # This is necessary because we threw out some long range LD windows
-					continue
-				window_dictionary[window].append(stringer)
+		else:
+			misses = misses + 1
 	f.close()
 
 	return window_dictionary
 
-def fill_in_window_dictionary(trait_names, trait_files, chrom_num, window_names_chromosome, gtex_variants, window_dictionary):
+def fill_in_window_dictionary(trait_names, trait_files, chrom_num, window_names_chromosome, ukbb_rs_id_variants, window_dictionary):
 	for trait_index, trait_name in enumerate(trait_names):
 		print(trait_name)
 		trait_file = trait_files[trait_index]
 		# need to first line valid variants
-		window_dictionary = fill_in_window_dictionary_for_single_trait(trait_name, trait_file, chrom_num, window_names_chromosome, gtex_variants, window_dictionary)
+		window_dictionary = fill_in_window_dictionary_for_single_trait(trait_name, trait_file, chrom_num, window_names_chromosome, ukbb_rs_id_variants, window_dictionary)
 	return window_dictionary
 
 def organize_window_test_arr(gene_test_arr):
@@ -311,7 +270,7 @@ def organize_window_test_arr(gene_test_arr):
 	return beta_mat, std_err_mat, new_variant_vec, tissue_vec, rs_id_vec
 
 
-def create_mapping_from_rsid_to_in_sample_variant_index(chrom_pvar_file):
+def create_mapping_from_rsid_to_in_sample_variant_index(chrom_pvar_file, maf_filtered_variants):
 	f = open(chrom_pvar_file)
 	dicti = {}
 	rs_id_to_alleles = {}
@@ -324,6 +283,8 @@ def create_mapping_from_rsid_to_in_sample_variant_index(chrom_pvar_file):
 			head_count = head_count + 1
 			continue
 		rsid = data[2]
+		if rsid not in maf_filtered_variants:
+			continue
 		alleles = data[4] + '_' + data[3]
 		if rsid in rs_id_to_alleles:
 			print('assumption eroror')
@@ -484,15 +445,17 @@ def extract_ld_mat_from_in_sample_ld(sample_ld_variant_indices, ukbb_in_sample_l
 	ld_mat = np.zeros((num_var, num_var)) + -2000.0
 
 	for file_name in os.listdir(ukbb_in_sample_ld_dir):
-		if file_name.startswith('ukb_imp_v3.c' + chrom_num + '_') == False:
+		if file_name.startswith('ukb_imp_v3_chimp.c' + chrom_num + '_') == False:
 			continue
 		if file_name.endswith('.compute_ld.sbatch.log'):
 			continue
 		full_file_name = ukbb_in_sample_ld_dir + file_name
 
 		file_info = file_name.split('_')
-		file_index_start = int(file_info[3].split('s')[1])
-		file_index_end = int(file_info[4].split('e')[1])
+
+
+		file_index_start = int(file_info[4].split('s')[1])
+		file_index_end = int(file_info[5].split('e')[1])
 
 		if indices_dont_lie_in_file(sample_ld_variant_indices, file_index_start, file_index_end):
 			continue
@@ -515,14 +478,21 @@ def extract_ld_mat_from_in_sample_ld(sample_ld_variant_indices, ukbb_in_sample_l
 	return ld_mat
 
 
-def get_ukbb_variants_on_this_chromosome(bim_file):
+def get_ukbb_variants_on_this_chromosome(pvar_file, maf_filtered_variants):
 	variants = {}
-	f = open(bim_file)
+	f = open(pvar_file)
+	head_count = 0
 	for line in f:
 		line = line.rstrip()
 		data = line.split('\t')
-		snp_id = 'chr' + data[0] + '_' + data[3] + '_' + data[4] + '_' + data[5] + '_b38'
-		variants[snp_id] = 1
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		rsid = data[2]
+		if rsid not in maf_filtered_variants:
+			continue
+		snp_id = 'chr' + data[0] + '_' + data[1] + '_' + data[3] + '_' + data[4] + '_b38'
+		variants[rsid] = 1
 	f.close()
 	return variants
 
@@ -534,27 +504,41 @@ def correct_ld_mat_for_af_standardization(ld_mat):
 		ld_mat[snp_iter,:] = ld_mat[snp_iter,:]*np.sqrt(correction[snp_iter])
 	return ld_mat
 
+def get_maf_filtered_variants(afreq_file, maf_thresh):
+	dicti = {}
+	f = open(afreq_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		rsid = data[1]
+		af = float(data[4])
+		if af > .5:
+			af = 1.0 - af
+		if af > maf_thresh:
+			dicti[rsid] = 1
+	return dicti
 
 #######################
 # Command line args
 chrom_num = sys.argv[1]
 genome_wide_window_file = sys.argv[2]
 ukbb_sumstats_hg38_dir = sys.argv[3]
-gtex_genotype_dir = sys.argv[4]
-ref_1kg_genotype_dir = sys.argv[5]
-ukbb_preprocessed_for_genome_wide_susie_dir = sys.argv[6]
-ukbb_in_sample_ld_dir = sys.argv[7]
-ukbb_in_sample_genotype_dir = sys.argv[8]
+ukbb_preprocessed_for_genome_wide_susie_dir = sys.argv[4]
+ukbb_in_sample_ld_dir = sys.argv[5]
+ukbb_in_sample_genotype_dir = sys.argv[6]
 ##########################
 
-
-
-
+# Get variants that pass MAF filter
+maf_thresh = 0.005
+maf_filtered_variants = get_maf_filtered_variants(ukbb_in_sample_genotype_dir + 'ukb_imp_chr' + chrom_num + '_v3_chimp.afreq', maf_thresh)
 
 # create mapping from RS_ID to UKBB in_sample LD variant INDEX
-chrom_pvar_file = ukbb_in_sample_genotype_dir + 'ukb_imp_chr' + chrom_num + '_v3.pvar'
-rs_id_to_in_sample_variant, rs_id_to_in_sample_alleles = create_mapping_from_rsid_to_in_sample_variant_index(chrom_pvar_file)
-
+chrom_pvar_file = ukbb_in_sample_genotype_dir + 'ukb_imp_chr' + chrom_num + '_v3_chimp.pvar'
+rs_id_to_in_sample_variant, rs_id_to_in_sample_alleles = create_mapping_from_rsid_to_in_sample_variant_index(chrom_pvar_file, maf_filtered_variants)
 
 
 # Extract names of UKBB studies for this analysis
@@ -572,52 +556,15 @@ for trait_index, trait_name in enumerate(trait_names):
 
 # First extract list of gtex variants in UKBB [we will be using gtex variant orientation]
 # Also note that these gtex variants are also found in UKBB
-gtex_variants = get_gtex_variants_on_this_chromosome(gtex_genotype_dir + 'Whole_Blood_GTEx_v8_genotype_EUR_' + chrom_num + '.bim')  #note: whole blood is randomly choosen but really doesn't matter b/c all tissues have the same variants
-ukbb_variants = get_ukbb_variants_on_this_chromosome(ref_1kg_genotype_dir + '1000G.EUR.hg38.' + str(chrom_num) + '.bim')
+ukbb_rs_id_variants = get_ukbb_variants_on_this_chromosome(ukbb_in_sample_genotype_dir + 'ukb_imp_chr' + chrom_num + '_v3_chimp.pvar', maf_filtered_variants)
 
 # Get names of windows on this chromosome (in data structure where of array of length chromosome)
 window_names_chromosome, window_dictionary = get_window_names_on_this_chromosome(genome_wide_window_file, chrom_num)
 
 
-
 # Fill in the dictionary with each elent in list is a string corresponding to info on a cis snp
-window_dictionary = fill_in_window_dictionary(trait_names, trait_files, chrom_num, window_names_chromosome, ukbb_variants, window_dictionary)
+window_dictionary = fill_in_window_dictionary(trait_names, trait_files, chrom_num, window_names_chromosome, ukbb_rs_id_variants, window_dictionary)
 
-
-
-# Load in Reference Genotype data
-geno_stem = ref_1kg_genotype_dir + '1000G.EUR.hg38.' + str(chrom_num) + '.'
-G_obj = read_plink1_bin(geno_stem + 'bed', geno_stem + 'bim', geno_stem + 'fam', verbose=False)
-G = G_obj.values # Numpy 2d array of dimension num samples X num snps
-ref_chrom = np.asarray(G_obj.chrom)
-ref_pos = np.asarray(G_obj.pos)
-# For our purposes, a0 is the effect allele
-# For case of plink package, a0 is the first column in the plink bim file
-ref_a0 = np.asarray(G_obj.a0)
-ref_a1 = np.asarray(G_obj.a1)
-# Extract reference snps names
-reference_snp_names = []
-reference_alt_snp_names = []
-for var_iter in range(len(G_obj.a1)):
-	snp_name = 'chr' + ref_chrom[var_iter] + '_' + str(ref_pos[var_iter]) + '_' + ref_a0[var_iter] + '_' + ref_a1[var_iter]
-	snp_name_alt = 'chr' + ref_chrom[var_iter] + '_' + str(ref_pos[var_iter]) + '_' + ref_a1[var_iter] + '_' + ref_a0[var_iter]
-	reference_snp_names.append(snp_name)
-	reference_alt_snp_names.append(snp_name_alt)
-reference_snp_names = np.asarray(reference_snp_names)
-reference_alt_snp_names = np.asarray(reference_alt_snp_names)
-# Create mapping from snp_name to (reference position, refValt)
-ref_snp_mapping = {}
-for itera in range(len(reference_snp_names)):
-	ref_snp_name = reference_snp_names[itera]
-	ref_alt_snp_name = reference_alt_snp_names[itera]
-
-	if ref_snp_name in ref_snp_mapping:
-		print('extra')
-	if ref_alt_snp_name in ref_snp_mapping:
-		print('extra')
-
-	ref_snp_mapping[ref_snp_name] = (itera, 1.0)
-	ref_snp_mapping[ref_alt_snp_name] = (itera, -1.0)
 
 
 output_file = ukbb_preprocessed_for_genome_wide_susie_dir + 'genome_wide_susie_windows_and_processed_data_chrom_' + chrom_num + '.txt'
@@ -640,6 +587,7 @@ for line in f:
 		continue
 	# Info about this window
 	window_name = data[0] + ':' + data[1] + ':' + data[2]
+	print(window_name)
 
 	# Extract SNPs and gwas effects in this window
 	window_test_arr = window_dictionary[window_name]
@@ -649,6 +597,7 @@ for line in f:
 
 	# Throw out windows with fewer than 50 variants
 	if len(window_variant_arr) < 50:
+		print('skipped window')
 		continue
 
 	# Get sample sizes
@@ -657,32 +606,6 @@ for line in f:
 		window_sample_sizes.append(trait_name_to_sample_size[study_name])
 	window_sample_sizes = np.asarray(window_sample_sizes)
 
-	# Extract indices in reference data that the above snps correspond to
-	# Also extract whether above snp is flipped relative to reference data
-	reference_indices = []
-	flip_values = []
-	for variant_id in window_variant_arr:
-		info = ref_snp_mapping[variant_id]
-		reference_indices.append(info[0])
-		flip_values.append(info[1])
-	reference_indices = np.asarray(reference_indices)
-	flip_values = np.asarray(flip_values)
-	
-	# Get reference genotype for this gene
-	gene_reference_genotype = G[:, reference_indices]
-
-
-	# Correct for flips in 1KG data (assuming UKBB is reference)
-	for snp_index, flip_value in enumerate(flip_values):
-		if flip_value == -1.0:
-			# correct for flips (assuming UKBB is reference)
-			gene_reference_genotype[:, snp_index] = 2.0 - gene_reference_genotype[:, snp_index]
-			# correct for flips (assuming 1KG is reference)
-			#window_beta_mat[:, snp_index] = window_beta_mat[:, snp_index]*-1.0
-			#old_snp = window_variant_arr[snp_index]
-			#snp_info = old_snp.split('_')
-			#new_snp = snp_info[0] + '_' + snp_info[1] + '_' + snp_info[3] + '_' + snp_info[2]
-			#window_variant_arr[snp_index] = new_snp
 
 	# Quick error check
 	if len(window_variant_arr) != len(np.unique(window_variant_arr)):
@@ -702,14 +625,14 @@ for line in f:
 		continue
 
 	# NOW GET LD matrix
-	'''
 	ukbb_in_sample_ld_mat = extract_ld_mat_from_in_sample_ld(sample_ld_variant_indices, ukbb_in_sample_ld_dir, chrom_num)
 	# Flip alleles to make sure it matches summary statistics
 	for var_index, sample_ld_flip_value in enumerate(sample_ld_flips):
 		if sample_ld_flip_value == -1.0:
 			ukbb_in_sample_ld_mat[var_index, :] = ukbb_in_sample_ld_mat[var_index, :]*-1.0
 			ukbb_in_sample_ld_mat[:, var_index] = ukbb_in_sample_ld_mat[:, var_index]*-1.0
-	'''
+	# Correct ld mat to make it a true correlation
+	corrected_ukbb_in_sample_ld_mat = correct_ld_mat_for_af_standardization(ukbb_in_sample_ld_mat)
 
 	# Save data to output file
 	# Beta file
@@ -725,11 +648,12 @@ for line in f:
 	study_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_studies.txt'
 	np.savetxt(study_file, window_study_arr, fmt="%s", delimiter='\t')
 	# Reference Genotype
-	ref_geno_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_ref_1kg_genotype.txt'
-	np.savetxt(ref_geno_file, gene_reference_genotype[:, valid_window_indices], fmt="%s", delimiter='\t')
+	ref_geno_file = 'NA'
+	#ref_geno_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_ref_1kg_genotype.txt'
+	#np.savetxt(ref_geno_file, gene_reference_genotype[:, valid_window_indices], fmt="%s", delimiter='\t')
 	# In sample LD
-	in_sample_ld_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_ukbb_in_sample_ld.npy'
-	#np.save(in_sample_ld_file, ukbb_in_sample_ld_mat)
+	in_sample_ld_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_ukbb_in_sample_ld_af_corrected.npy'
+	np.save(in_sample_ld_file, corrected_ukbb_in_sample_ld_mat)
 	# Sample sizes
 	sample_size_file = ukbb_preprocessed_for_genome_wide_susie_dir + window_name + '_study_sample_sizes.txt'
 	np.savetxt(sample_size_file, window_sample_sizes, fmt="%s", delimiter='\t')

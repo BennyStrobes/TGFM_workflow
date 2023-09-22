@@ -64,9 +64,25 @@ def create_mapping_from_gene_name_to_gene_info(gene_annotation_file):
 original_gene_file = sys.argv[1]
 gene_file = sys.argv[2]
 gene_annotation_file = sys.argv[3]
+hg38_gene_annotation_file = sys.argv[4]
 
 
 mapping = create_mapping_from_gene_name_to_gene_info(gene_annotation_file)
+
+
+
+valid_chroms = {}
+for chrom_num in range(1,23):
+	valid_chroms['chr' + str(chrom_num)] = 1
+
+genes = {}
+types = {}
+for gene_id in [*mapping]:
+	if mapping[gene_id][1] in valid_chroms:
+		if mapping[gene_id][0] == 'protein_coding':
+			genes[gene_id] = 1
+			types[mapping[gene_id][0]] = 1
+print(len(genes))
 
 
 f = open(original_gene_file)
@@ -88,3 +104,4 @@ for line in f:
 	t.write(line + '\n')
 t.close()
 f.close()
+

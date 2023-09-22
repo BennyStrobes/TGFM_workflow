@@ -8,12 +8,10 @@
 source ~/.bash_profile
 
 ukbb_sumstats_hg38_dir="$1"
-gtex_genotype_dir="$2"
-ref_1kg_genotype_dir="$3"
-ukbb_preprocessed_for_genome_wide_susie_dir="$4"
-ukbb_sumstats_hg19_dir="$5"
-ukbb_in_sample_ld_dir="$6"
-ukbb_in_sample_genotype_dir="$7"
+ukbb_preprocessed_for_genome_wide_susie_dir="$2"
+ukbb_sumstats_hg19_dir="$3"
+ukbb_in_sample_ld_dir="$4"
+ukbb_in_sample_genotype_dir="$5"
 
 
 
@@ -35,23 +33,19 @@ fi
 
 ##################################################
 # Generate processed input data for SuSiE for each window
-##################################################G
+##################################################
 if false; then
-for chrom_num in $(seq 21 22); do 
-	sbatch preprocess_ukbb_data_for_genome_wide_susie_analysis.sh $chrom_num $genome_wide_window_file $ukbb_sumstats_hg38_dir $gtex_genotype_dir $ref_1kg_genotype_dir $ukbb_preprocessed_for_genome_wide_susie_dir $ukbb_in_sample_ld_dir $ukbb_in_sample_genotype_dir
+for chrom_num in $(seq 1 22); do 
+	sbatch preprocess_ukbb_data_for_genome_wide_susie_analysis.sh $chrom_num $genome_wide_window_file $ukbb_sumstats_hg38_dir $ukbb_preprocessed_for_genome_wide_susie_dir $ukbb_in_sample_ld_dir $ukbb_in_sample_genotype_dir
 done
 fi
 
-if false; then
-for chrom_num in $(seq 1 20); do 
-	sbatch preprocess_ukbb_data_for_genome_wide_susie_analysis.sh $chrom_num $genome_wide_window_file $ukbb_sumstats_hg38_dir $gtex_genotype_dir $ref_1kg_genotype_dir $ukbb_preprocessed_for_genome_wide_susie_dir $ukbb_in_sample_ld_dir $ukbb_in_sample_genotype_dir
-done
-fi
+
+
 
 
 ##################################################
 # Concatenate window summary files across chromosomes
 ##################################################
-if false; then
 python3 merge_susie_input_window_file_across_chromosomes.py $ukbb_preprocessed_for_genome_wide_susie_dir
-fi
+

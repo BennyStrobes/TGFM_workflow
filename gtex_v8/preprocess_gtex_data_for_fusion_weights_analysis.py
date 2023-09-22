@@ -141,4 +141,3 @@ for chrom_num in range(1,23):
 		t.write(gene_name + '\t' + str(chrom_num) + '\t' + str(gene_tss) + '\t' + gene_pheno_file_name + '\t' + study_covariate_file + '\n')
 	f.close()
 t.close()
-

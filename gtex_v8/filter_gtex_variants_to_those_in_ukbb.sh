@@ -22,5 +22,4 @@ python3 convert_ukbb_sumstat_file_to_gtex_snp_id_format.py $ukbb_preprocessed_fo
 
 
 
-
 plink --bfile ${gtex_genotype_dir}${tissue_name}"_GTEx_v8_genotype_EUR_"${chrom_num} --extract $ukbb_gtex_formatted_bim --make-bed --keep-allele-order --out ${tissue_gtex_genotype_data_dir}${tissue_name}"_GTEx_v8_genotype_EUR_overlap_1kg_and_ukbb_"${chrom_num}

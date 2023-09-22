@@ -22,29 +22,26 @@ def extract_chromosome_variant_list_from_winow_file(window_file):
 			variant_list[variant] = 1
 	f.close()
 
+	variant_list_no_strand_ambig = {}
 	# Quick error checking
 	for variant in np.asarray([*variant_list]):
 		variant_info = variant.split('_')
-		a1 = data[2]
-		a2 = data[3]
+		a1 = variant_info[2]
+		a2 = variant_info[3]
 		alt_variant = variant_info[0] + '_' + variant_info[1] + '_' + variant_info[3] + '_' + variant_info[2]
 		if alt_variant in variant_list:
 			print('assumption errorororo')
 			pdb.set_trace()
 		if a1 == 'A' and a2 == 'T':
-			print('assumption errorr')
-			pdb.set_trace()
+			continue
 		if a1 == 'T' and a2 == 'A':
-			print('assumption errorr')
-			pdb.set_trace()
+			continue
 		if a1 == 'C' and a2 == 'G':
-			print('assumption errorororo')
-			pdb.set_trace()
+			continue
 		if a1 == 'G' and a2 == 'C':
-			print('assumption errorororo')
-			pdb.set_trace()
-
-	return variant_list
+			continue
+		variant_list_no_strand_ambig[variant] = 1
+	return variant_list_no_strand_ambig
 
 
 
@@ -59,6 +56,7 @@ chrom_num = sys.argv[3]
 # Extract dictionary list of all variants used by UKBB in this analysis
 window_file = ukbb_preprocessed_for_genome_wide_susie_dir + 'genome_wide_susie_windows_and_processed_data_chrom_' + chrom_num + '.txt'
 variant_list = extract_chromosome_variant_list_from_winow_file(window_file)
+
 
 # Print those variants to Bim formatted file
 t = open(ukbb_gtex_formatted_bim, 'w')
