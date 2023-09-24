@@ -1070,13 +1070,12 @@ def extract_variant_gene_log_prior_probabilities(gene_names, variant_names, stud
 
 
 ukkbb_window_summary_file = sys.argv[1]
-hapmap3_snpid_file = sys.argv[2]
-gtex_pseudotissue_file = sys.argv[3]
-gtex_susie_gene_models_dir = sys.argv[4]
-preprocessed_tgfm_data_dir = sys.argv[5] # Output dir
-job_number = int(sys.argv[6])  # For parallelization purposes
-num_jobs = int(sys.argv[7])  # For parallelization purposes
-gene_type = sys.argv[8]
+gtex_pseudotissue_file = sys.argv[2]
+gtex_susie_gene_models_dir = sys.argv[3]
+preprocessed_tgfm_data_dir = sys.argv[4] # Output dir
+job_number = int(sys.argv[5])  # For parallelization purposes
+num_jobs = int(sys.argv[6])  # For parallelization purposes
+gene_type = sys.argv[7]
 
 # Number of bootstrap samples
 n_bs = 100
@@ -1092,14 +1091,14 @@ ukbb_windows_parr = np.array_split(ukbb_windows, num_jobs)[job_number]
 print(ukbb_windows_parr.shape)
 
 # Get array of pseudotissue names
-pseudotissues = get_pseudotissue_names(gtex_pseudotissue_file, remove_testis=True)
+pseudotissues = get_pseudotissue_names(gtex_pseudotissue_file, remove_testis=False)
 
 
 # Create dictionary from pseudotissue to array of gene models for that tissue
 tissue_to_gene_model_df = create_tissue_to_gene_model_df(pseudotissues, gtex_susie_gene_models_dir, gene_type)
 
 # Get dictionary list of hapmap3 snpids
-hapmap3_snps = get_dictionary_list_of_hapmap3_snpids(hapmap3_snpid_file)
+#hapmap3_snps = get_dictionary_list_of_hapmap3_snpids(hapmap3_snpid_file)
 # This is all hapmap3 snps that fall in the middle of a window that is tested
 #all_regression_snps = get_dictionary_list_of_all_regression_snps(hapmap3_snps, ukbb_windows)
 

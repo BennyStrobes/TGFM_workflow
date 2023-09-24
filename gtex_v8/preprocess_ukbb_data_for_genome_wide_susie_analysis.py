@@ -270,7 +270,7 @@ def organize_window_test_arr(gene_test_arr):
 	return beta_mat, std_err_mat, new_variant_vec, tissue_vec, rs_id_vec
 
 
-def create_mapping_from_rsid_to_in_sample_variant_index(chrom_pvar_file, maf_filtered_variants):
+def create_mapping_from_rsid_to_in_sample_variant_index(chrom_pvar_file):
 	f = open(chrom_pvar_file)
 	dicti = {}
 	rs_id_to_alleles = {}
@@ -283,8 +283,6 @@ def create_mapping_from_rsid_to_in_sample_variant_index(chrom_pvar_file, maf_fil
 			head_count = head_count + 1
 			continue
 		rsid = data[2]
-		if rsid not in maf_filtered_variants:
-			continue
 		alleles = data[4] + '_' + data[3]
 		if rsid in rs_id_to_alleles:
 			print('assumption eroror')
@@ -538,7 +536,7 @@ maf_filtered_variants = get_maf_filtered_variants(ukbb_in_sample_genotype_dir + 
 
 # create mapping from RS_ID to UKBB in_sample LD variant INDEX
 chrom_pvar_file = ukbb_in_sample_genotype_dir + 'ukb_imp_chr' + chrom_num + '_v3_chimp.pvar'
-rs_id_to_in_sample_variant, rs_id_to_in_sample_alleles = create_mapping_from_rsid_to_in_sample_variant_index(chrom_pvar_file, maf_filtered_variants)
+rs_id_to_in_sample_variant, rs_id_to_in_sample_alleles = create_mapping_from_rsid_to_in_sample_variant_index(chrom_pvar_file)
 
 
 # Extract names of UKBB studies for this analysis
