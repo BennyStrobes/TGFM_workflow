@@ -156,6 +156,82 @@ def create_predicted_causal_effect_size_file(cs_input_file, pred_causal_effect_s
 	print(np.mean(probs))
 
 
+def print_trait_pips_to_all_pip_file(ttt, concatenated_pip_summary_file, data_file_stem, file_stem, model_version, processed_tgfm_input_stem, trait_name):
+	f = open(concatenated_pip_summary_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		window_name = data[0]
+
+		# Load in TGFM results pkl file for this window
+		window_pkl_file = data_file_stem + '_' + window_name + '_results.pkl'
+		if os.path.isfile(window_pkl_file) == False:
+			continue
+		# Load in tgfm results data
+		g = open(window_pkl_file, "rb")
+		tgfm_results = pickle.load(g)
+		g.close()
+
+		# Load in tgfm results data
+		g = open(processed_tgfm_input_stem + '_' + window_name + '_tgfm_trait_agnostic_input_data_obj.pkl', "rb")
+		tgfm_data = pickle.load(g)
+		g.close()
+
+		# GENE-TISSUE
+		# Add middle gene indices to tgfm results
+		tgfm_results['middle_gene_indices'] = np.copy(tgfm_data['middle_gene_indices'])
+		# Middle gene-tissue pips
+		middle_gene_pips = tgfm_results['expected_alpha_pips'][tgfm_results['middle_gene_indices']]
+		middle_gene_names = tgfm_results['genes'][tgfm_results['middle_gene_indices']]
+		for ii, gene_tissue_name in enumerate(middle_gene_names):
+			gene_tissue_pip = middle_gene_pips[ii]
+			ttt.write(trait_name + '\t' + 'gene_tissue' + '\t' + gene_tissue_name + '\t' + str(gene_tissue_pip) + '\n')
+
+		# VARIANTS
+		tgfm_results['middle_variant_indices'] = np.copy(tgfm_data['middle_variant_indices'])
+		middle_variant_names = tgfm_results['variants'][tgfm_results['middle_variant_indices']]
+		middle_variant_pips = tgfm_results['expected_beta_pips'][tgfm_results['middle_variant_indices']]
+		for ii, variant_name in enumerate(middle_variant_names):
+			variant_pip = middle_variant_pips[ii]
+			ttt.write(trait_name + '\t' + 'variant' + '\t' + variant_name + '\t' + str(variant_pip) + '\n')
+
+
+		# GENES
+		middle_gene_pips = tgfm_results['expected_alpha_pips'][tgfm_results['middle_gene_indices']]
+		middle_gene_names = tgfm_results['genes'][tgfm_results['middle_gene_indices']]
+
+		alphas = tgfm_results['alpha_phis']
+		middle_genes_indices = tgfm_results['middle_gene_indices']
+		middle_gene_tissues = tgfm_results['genes'][middle_genes_indices]
+
+		gene_to_indices = {}
+		for ii, middle_gene_tissue in enumerate(middle_gene_tissues):
+			gene_name = middle_gene_tissue.split('_')[0].split('.')[0]
+			if gene_name not in gene_to_indices:
+				gene_to_indices[gene_name] = []
+			gene_to_indices[gene_name].append(ii)
+		n_genes = len(gene_to_indices)
+		ordered_genes = [*gene_to_indices]
+		LL = len(alphas)
+		gene_alphas = []
+		for ll in range(LL):
+			new_alpha = np.zeros((alphas[ll].shape[0], n_genes))
+			for ii,gene_name in enumerate(ordered_genes):
+				tmper = alphas[ll][:, middle_genes_indices]
+				new_alpha[:, ii] = np.sum(tmper[:, gene_to_indices[gene_name]],axis=1)
+			gene_alphas.append(new_alpha)
+		expected_alpha_pips = compute_expected_pips_from_sampler_pis(gene_alphas)
+
+		for ii, gene_name in enumerate(ordered_genes):
+			agg_pip = expected_alpha_pips[ii]
+			ttt.write(trait_name + '\t' + 'gene' + '\t' + gene_name + '\t' + str(agg_pip) + '\n')
+	return ttt
+
+
 def generate_per_gene_tissue_pip_full_summary_file(concatenated_pip_summary_file, per_gene_tissue_full_pip_summary_file, tissue_name_to_broad_category, data_file_stem, file_stem, model_version, processed_tgfm_input_stem):
 	f = open(concatenated_pip_summary_file)
 	t = open(per_gene_tissue_full_pip_summary_file,'w')
@@ -1501,6 +1577,7 @@ def generate_per_gene_pip_summary_file(concatenated_pip_summary_file, per_gene_p
 		tgfm_results = pickle.load(g)
 		g.close()
 
+
 		# Load in tgfm results data
 		g = open(processed_tgfm_input_stem + '_' + window_name + '_tgfm_trait_agnostic_input_data_obj.pkl', "rb")
 		tgfm_data = pickle.load(g)
@@ -1536,7 +1613,7 @@ def generate_per_gene_pip_summary_file(concatenated_pip_summary_file, per_gene_p
 		expected_alpha_pips = compute_expected_pips_from_sampler_pis(gene_alphas)
 		for ii, gene_name in enumerate(ordered_genes):
 			agg_pip = expected_alpha_pips[ii]
-			if agg_pip > .01:
+			if agg_pip >= .01:
 				t.write(gene_name + '\t' + window_name + '\t' + str(agg_pip) + '\n')
 	f.close()
 	t.close()
@@ -1746,9 +1823,8 @@ gtex_pseudotissue_file = sys.argv[5]
 gtex_pseudotissue_category_file = sys.argv[6]
 processed_tgfm_input_stem = sys.argv[7]
 ukbb_preprocessed_for_genome_wide_susie_dir = sys.argv[8]
-tgfm_sldsc_results_dir = sys.argv[9]
-tgfm_organized_results_dir = sys.argv[10]
-gene_annotation_file = sys.argv[11]
+tgfm_organized_results_dir = sys.argv[9]
+gene_annotation_file = sys.argv[10]
 
 
 
@@ -1785,6 +1861,15 @@ print(trait_names)
 print(len((trait_names)))
 arr1 = []
 arr2 = []
+
+
+# Open output file handle keeping track of all PIPs
+ttt = open(tgfm_organized_results_dir + 'cross_trait_TGFM_PIPs.txt','w')
+ttt.write('trait_name\tgenetic_element_class\tgenetic_element_name\tTGFM_PIP\n')
+
+
+
+
 # Concatenate parrallelized results across runs for each trait
 for trait_name in trait_names:
 	print('###################################')
@@ -1810,25 +1895,31 @@ for trait_name in trait_names:
 		per_gene_tissue_full_pip_summary_file = file_stem + '_tgfm_per_gene_tissue_full_pip_summary.txt'
 		#generate_per_gene_tissue_pip_full_summary_file(concatenated_pip_summary_file, per_gene_tissue_full_pip_summary_file, tissue_name_to_broad_category, data_file_stem, file_stem, model_version, processed_tgfm_input_stem)
 
+		###################################################
+		# Update all PIP file
+		###################################################
+		ttt = print_trait_pips_to_all_pip_file(ttt, concatenated_pip_summary_file, data_file_stem, file_stem, model_version, processed_tgfm_input_stem, trait_name)
+		ttt.flush()
 
+		'''
 		###################################################
 		# Create gene-Tissue pip summary file
 		###################################################
 		per_gene_tissue_pip_summary_file = file_stem + '_tgfm_per_gene_tissue_pip_summary.txt'
-		#generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per_gene_tissue_pip_summary_file, tissue_name_to_broad_category)
+		generate_per_gene_tissue_pip_summary_file(concatenated_pip_summary_file, per_gene_tissue_pip_summary_file, tissue_name_to_broad_category)
 
 		###################################################
 		# Create gene pip summary file
 		###################################################
 		per_gene_pip_summary_file = file_stem + '_tgfm_per_gene_pip_summary.txt'
-		#generate_per_gene_pip_summary_file(concatenated_pip_summary_file, per_gene_pip_summary_file, data_file_stem, file_stem, model_version, processed_tgfm_input_stem)
+		generate_per_gene_pip_summary_file(concatenated_pip_summary_file, per_gene_pip_summary_file, data_file_stem, file_stem, model_version, processed_tgfm_input_stem)
 
 
 		###################################################
 		# Create hit summary file
 		###################################################
 		gene_hit_summary_file = file_stem + '_tgfm_gene_tissue_hit_summary.txt'
-		#create_hit_summary_file(per_gene_tissue_pip_summary_file, per_gene_pip_summary_file, ensamble_id_to_gene_id, gene_hit_summary_file)
+		create_hit_summary_file(per_gene_tissue_pip_summary_file, per_gene_pip_summary_file, ensamble_id_to_gene_id, gene_hit_summary_file)
 
 
 
@@ -1837,7 +1928,7 @@ for trait_name in trait_names:
 		###################################################
 		n_causal_genetic_elements_summary_file = file_stem + '_tgfm_expected_n_causal_genetic_elements.txt'
 		n_causal_genetic_elements_by_tissue_summary_file = file_stem + '_tgfm_expected_n_causal_genetic_elements_tissue_stratefied.txt'
-		#tally_expected_number_of_causal_genetic_elements(concatenated_pip_summary_file, n_causal_genetic_elements_summary_file, n_causal_genetic_elements_by_tissue_summary_file, data_file_stem,file_stem, model_version, processed_tgfm_input_stem, tissue_names)
+		tally_expected_number_of_causal_genetic_elements(concatenated_pip_summary_file, n_causal_genetic_elements_summary_file, n_causal_genetic_elements_by_tissue_summary_file, data_file_stem,file_stem, model_version, processed_tgfm_input_stem, tissue_names)
 
 		###################################################
 		# Tally up number of causal genetic elements
@@ -1861,19 +1952,19 @@ for trait_name in trait_names:
 		# Tally up number of causal gene-tissue pairs across thresholds
 		###################################################
 		n_causal_gene_tissue_pairs_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_gene_tissue_pairs_cross_pip_threshold_sqrt_plot_input.txt'
-		#tally_number_of_causal_gene_tissue_pairs_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_gene_tissue_pairs_summary_cross_threshold_file)
+		tally_number_of_causal_gene_tissue_pairs_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_gene_tissue_pairs_summary_cross_threshold_file)
 
 		###################################################
 		# Tally up number of variants across thresholds
 		###################################################
 		n_causal_variants_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_variants_cross_pip_threshold_sqrt_plot_input.txt'
-		#tally_number_of_causal_variants_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_variants_summary_cross_threshold_file)
+		tally_number_of_causal_variants_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_variants_summary_cross_threshold_file)
 
 		###################################################
 		# Tally up number of genes across thresholds
 		###################################################
 		n_causal_genes_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_genes_cross_pip_threshold_sqrt_plot_input.txt'
-		#tally_number_of_causal_genes_cross_pip_thresholds(per_gene_pip_summary_file, n_causal_genes_summary_cross_threshold_file)
+		tally_number_of_causal_genes_cross_pip_thresholds(per_gene_pip_summary_file, n_causal_genes_summary_cross_threshold_file)
 
 
 		###################################################
@@ -1892,6 +1983,7 @@ for trait_name in trait_names:
 			#tally_number_of_causal_sc_gene_tissue_pairs_cross_pip_thresholds_in_single_cell_type(concatenated_pip_summary_file, n_causal_sc_single_cell_type_gene_tissue_pairs_summary_cross_threshold_file, blood_cell_type)
 
 
+		'''
 
 
 
@@ -1909,8 +2001,7 @@ for trait_name in trait_names:
 
 
 
-
-
+		'''
 
 		###################################################
 		# Tally up number of causal genetic elements into 5 sqaure root bins
@@ -2003,5 +2094,7 @@ for trait_name in trait_names:
 		per_gene_tissue_high_pip_extensive_summary_file = file_stem + '_tgfm_per_high_pip_gene_tissue_extensive_summary.txt'
 		per_gene_tissue_high_pip_high_confidence_extensive_summary_file = file_stem + '_tgfm_per_high_pip_high_confidence_gene_tissue_extensive_summary.txt'
 		#generate_extensive_per_gene_tissue_pip_summary_file(per_gene_tissue_pip_summary_file, per_gene_tissue_high_pip_extensive_summary_file, tissue_names, file_stem, model_version, processed_tgfm_input_stem,pip_threshold, ukbb_preprocessed_for_genome_wide_susie_dir, trait_name, per_gene_tissue_high_pip_high_confidence_extensive_summary_file)
+		'''
 
+ttt.close()
 

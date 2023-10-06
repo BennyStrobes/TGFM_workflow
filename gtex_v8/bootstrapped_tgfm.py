@@ -105,6 +105,7 @@ class TGFM(object):
 
 		# DONE WITH CAVI
 		# COMPUTE PIPS for each bootstrap
+		print('computing pips')
 		self.compute_pips()
 
 

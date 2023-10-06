@@ -23,28 +23,26 @@ def extract_chromosome_variant_list_from_winow_file(window_file):
 	f.close()
 
 	# Quick error checking
+	new_variant_list = {}
 	for variant in np.asarray([*variant_list]):
 		variant_info = variant.split('_')
-		a1 = data[2]
-		a2 = data[3]
+		a1 = variant_info[2]
+		a2 = variant_info[3]
 		alt_variant = variant_info[0] + '_' + variant_info[1] + '_' + variant_info[3] + '_' + variant_info[2]
 		if alt_variant in variant_list:
 			print('assumption errorororo')
 			pdb.set_trace()
 		if a1 == 'A' and a2 == 'T':
-			print('assumption errorr')
-			pdb.set_trace()
+			continue
 		if a1 == 'T' and a2 == 'A':
-			print('assumption errorr')
-			pdb.set_trace()
+			continue
 		if a1 == 'C' and a2 == 'G':
-			print('assumption errorororo')
-			pdb.set_trace()
+			continue
 		if a1 == 'G' and a2 == 'C':
-			print('assumption errorororo')
-			pdb.set_trace()
+			continue
+		new_variant_list[variant] = 1
 
-	return variant_list
+	return new_variant_list
 
 
 

@@ -14,7 +14,6 @@ ukbb_preprocessed_for_genome_wide_susie_dir="$5"
 
 
 plink_format_filter_sample_info_file=$processed_genotype_dir"plink_formatted_filtered_sample_info.txt"
-
 python3 extract_ordered_individuals_in_plink_format.py $filtered_sample_info_file $plink_format_filter_sample_info_file
 
 
@@ -38,7 +37,6 @@ python3 liftover_sc_genotype_data_to_hg38.py $processed_genotype_dir"plink_geno.
 
 ukbb_sc_pbmc_formatted_bim=$processed_genotype_dir"ukbb_snps_sc_pbmc_formatted.bim"
 python3 convert_ukbb_sumstat_file_to_sc_pbmc_snp_id_format.py $ukbb_preprocessed_for_genome_wide_susie_dir $ukbb_sc_pbmc_formatted_bim
-
 
 # Hacky fix
 mv $processed_genotype_dir"plink_geno.bed" $processed_genotype_dir"plink_geno_hg38.bed" 

@@ -792,98 +792,107 @@ for window_iter in range(n_windows):
 	##############################
 	# Run TGFM
 	###############################
-	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method, bootstrap_prior)
-
-	'''
-	##############################
-	# Extract valid tgfm components
-	###############################
-	valid_tgfm_sampler_components = extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, ld_mat)
-
-	# Extract middle valid tgfm components
-	valid_middle_tgfm_components = []
-	for sample_iter in range(len(valid_tgfm_sampler_components)):
-		middle_tmp = []
-		for valid_tgfm_component in valid_tgfm_sampler_components[sample_iter]:
-			if component_in_middle_of_window(tgfm_obj.alpha_phis[valid_tgfm_component][sample_iter, :], tgfm_obj.beta_phis[valid_tgfm_component][sample_iter, :], tgfm_data['middle_gene_indices'], tgfm_data['middle_variant_indices']):
-				middle_tmp.append(valid_tgfm_component)
-		valid_middle_tgfm_components.append(np.asarray(middle_tmp))
-	'''
-	print('organizing')
-
-	##############################
-	# Organize TGFM data and print to results
-	###############################
-	# Extract names of genetic elements
-	genetic_element_names = np.hstack((tgfm_data['genes'], tgfm_data['variants']))
-	# Extract dictionary list of genetic elements in the middel of this window
-	middle_genetic_elements = extract_middle_genetic_elements(tgfm_data['genes'], tgfm_data['middle_gene_indices'], tgfm_data['variants'], tgfm_data['middle_variant_indices'])
-	# Extract genetic element pips
-	genetic_element_pips = np.hstack((tgfm_obj.expected_alpha_pips, tgfm_obj.expected_beta_pips))
-
-	# Extract genetic elements and pips only corresponding to middle genetic elements
-	middle_pips = []
-	middle_names = []
-	for genetic_element_iter, genetic_element_name in enumerate(genetic_element_names):
-		if genetic_element_name not in middle_genetic_elements:
-			continue
-		if genetic_element_pips[genetic_element_iter] < .01:
-			continue
-		middle_pips.append(genetic_element_pips[genetic_element_iter])
-		middle_names.append(genetic_element_name)
-	middle_pips = np.asarray(middle_pips)
-	middle_names = np.asarray(middle_names)
-
-	# Sort middle pips
-	indices = np.argsort(-middle_pips)
-	ordered_middle_pips = middle_pips[indices]
-	ordered_middle_names = middle_names[indices]
-
-	# Note could compute expected mediated probability
-
-	# Write to credible set output
-	t_pip.write(window_name + '\t')
-	t_pip.write(';'.join(ordered_middle_names) + '\t')
-	t_pip.write(';'.join(ordered_middle_pips.astype(str)) + '\n')
-
-	# Save all TGFM results to pkl
-	'''
-	tgfm_results = {}
-	tgfm_results['variants'] = tgfm_data['variants']
-	tgfm_results['genes'] = tgfm_data['genes']
-	tgfm_results['alpha_phis'] = tgfm_obj.alpha_phis
-	tgfm_results['beta_phis'] = tgfm_obj.beta_phis
-	tgfm_results['alpha_lbfs'] = tgfm_obj.alpha_lbfs
-	tgfm_results['beta_lbfs'] = tgfm_obj.beta_lbfs
-	tgfm_results['alpha_pips'] = tgfm_obj.alpha_pips
-	tgfm_results['beta_pips'] = tgfm_obj.beta_pips
-	tgfm_results['expected_alpha_pips'] = tgfm_obj.expected_alpha_pips
-	tgfm_results['expected_beta_pips'] = tgfm_obj.expected_beta_pips
-	tgfm_results['valid_components'] = valid_tgfm_sampler_components
-	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
-	'''
-	tgfm_results = {}
-	tgfm_results['variants'] = tgfm_data['variants']
-	tgfm_results['genes'] = tgfm_data['genes']
-	tgfm_results['alpha_phis'] = tgfm_obj.alpha_phis
-	tgfm_results['alpha_mus'] = tgfm_obj.alpha_mus
-	tgfm_results['alpha_vars'] = tgfm_obj.alpha_vars
-	#tgfm_results['beta_phis'] = tgfm_obj.beta_phis
-	#tgfm_results['alpha_lbfs'] = tgfm_obj.alpha_lbfs
-	#tgfm_results['beta_lbfs'] = tgfm_obj.beta_lbfs
-	tgfm_results['alpha_pips'] = tgfm_obj.alpha_pips
-	#tgfm_results['beta_pips'] = tgfm_obj.beta_pips
-	tgfm_results['expected_alpha_pips'] = tgfm_obj.expected_alpha_pips
-	tgfm_results['expected_beta_pips'] = tgfm_obj.expected_beta_pips
-	#tgfm_results['valid_components'] = valid_tgfm_sampler_components
-	#tgfm_results['valid_middle_components'] = valid_middle_tgfm_components
-	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
-
-	# Write pickle file
 	window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
-	g = open(window_tgfm_output_file, "wb")
-	pickle.dump(tgfm_results, g)
-	g.close()
+	if os.path.isfile(window_tgfm_output_file) == False:
+		tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method, bootstrap_prior)
+
+		print('organizing')
+
+		##############################
+		# Organize TGFM data and print to results
+		###############################
+		# Extract names of genetic elements
+		genetic_element_names = np.hstack((tgfm_data['genes'], tgfm_data['variants']))
+		# Extract dictionary list of genetic elements in the middel of this window
+		middle_genetic_elements = extract_middle_genetic_elements(tgfm_data['genes'], tgfm_data['middle_gene_indices'], tgfm_data['variants'], tgfm_data['middle_variant_indices'])
+		# Extract genetic element pips
+		genetic_element_pips = np.hstack((tgfm_obj.expected_alpha_pips, tgfm_obj.expected_beta_pips))
+
+		# Extract genetic elements and pips only corresponding to middle genetic elements
+		middle_pips = []
+		middle_names = []
+		for genetic_element_iter, genetic_element_name in enumerate(genetic_element_names):
+			if genetic_element_name not in middle_genetic_elements:
+				continue
+			if genetic_element_pips[genetic_element_iter] < .01:
+				continue
+			middle_pips.append(genetic_element_pips[genetic_element_iter])
+			middle_names.append(genetic_element_name)
+		middle_pips = np.asarray(middle_pips)
+		middle_names = np.asarray(middle_names)
+
+		# Sort middle pips
+		indices = np.argsort(-middle_pips)
+		ordered_middle_pips = middle_pips[indices]
+		ordered_middle_names = middle_names[indices]
+
+		# Note could compute expected mediated probability
+
+		# Write to credible set output
+		t_pip.write(window_name + '\t')
+		t_pip.write(';'.join(ordered_middle_names) + '\t')
+		t_pip.write(';'.join(ordered_middle_pips.astype(str)) + '\n')
+
+		# Save all TGFM results to pkl
+		tgfm_results = {}
+		tgfm_results['variants'] = tgfm_data['variants']
+		tgfm_results['genes'] = tgfm_data['genes']
+		tgfm_results['alpha_phis'] = tgfm_obj.alpha_phis
+		tgfm_results['alpha_mus'] = tgfm_obj.alpha_mus
+		tgfm_results['alpha_vars'] = tgfm_obj.alpha_vars
+		tgfm_results['alpha_pips'] = tgfm_obj.alpha_pips
+		#tgfm_results['beta_pips'] = tgfm_obj.beta_pips
+		tgfm_results['expected_alpha_pips'] = tgfm_obj.expected_alpha_pips
+		tgfm_results['expected_beta_pips'] = tgfm_obj.expected_beta_pips
+		#tgfm_results['valid_components'] = valid_tgfm_sampler_components
+		#tgfm_results['valid_middle_components'] = valid_middle_tgfm_components
+		tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
+
+		# Write pickle file
+		window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
+		g = open(window_tgfm_output_file, "wb")
+		pickle.dump(tgfm_results, g)
+		g.close()
+	else:
+		print('already run')
+		g = open(window_tgfm_output_file, "rb")
+		tgfm_results = pickle.load(g)
+		g.close()
+
+		##############################
+		# Organize TGFM data and print to results
+		###############################
+		# Extract names of genetic elements
+		genetic_element_names = np.hstack((tgfm_data['genes'], tgfm_data['variants']))
+		# Extract dictionary list of genetic elements in the middel of this window
+		middle_genetic_elements = extract_middle_genetic_elements(tgfm_data['genes'], tgfm_data['middle_gene_indices'], tgfm_data['variants'], tgfm_data['middle_variant_indices'])
+		# Extract genetic element pips
+		genetic_element_pips = np.hstack((tgfm_results['expected_alpha_pips'], tgfm_results['expected_beta_pips']))
+
+		# Extract genetic elements and pips only corresponding to middle genetic elements
+		middle_pips = []
+		middle_names = []
+		for genetic_element_iter, genetic_element_name in enumerate(genetic_element_names):
+			if genetic_element_name not in middle_genetic_elements:
+				continue
+			if genetic_element_pips[genetic_element_iter] < .01:
+				continue
+			middle_pips.append(genetic_element_pips[genetic_element_iter])
+			middle_names.append(genetic_element_name)
+		middle_pips = np.asarray(middle_pips)
+		middle_names = np.asarray(middle_names)
+
+		# Sort middle pips
+		indices = np.argsort(-middle_pips)
+		ordered_middle_pips = middle_pips[indices]
+		ordered_middle_names = middle_names[indices]
+
+		# Note could compute expected mediated probability
+
+		# Write to credible set output
+		t_pip.write(window_name + '\t')
+		t_pip.write(';'.join(ordered_middle_names) + '\t')
+		t_pip.write(';'.join(ordered_middle_pips.astype(str)) + '\n')
 
 
 

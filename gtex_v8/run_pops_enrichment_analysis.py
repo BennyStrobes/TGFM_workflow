@@ -18,6 +18,8 @@ def create_file_containing_list_of_gene_models_tested_by_tgfm(gtex_susie_gene_mo
 
 	used_genes = {}
 	for tissue_name in os.listdir(gtex_susie_gene_models_dir):
+		if tissue_name == 'temp.py':
+			continue
 		tissue_gene_list = gtex_susie_gene_models_dir + tissue_name + '/' + tissue_name + '_component_gene_pos_file.txt'
 		head_count = 0
 		f = open(tissue_gene_list)
@@ -342,6 +344,7 @@ preprocessed_tgfm_data_dir = sys.argv[5]
 pops_results_summary_file = sys.argv[6]
 pops_enrichment_dir = sys.argv[7]
 tgfm_organized_results_dir = sys.argv[8]
+
 
 # Create file containing list of gene models tested by TGFM
 tgfm_gene_tissue_list_file = pops_enrichment_dir + 'tgfm_gene_tissues_tested.txt'

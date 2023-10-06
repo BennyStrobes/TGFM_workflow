@@ -1091,7 +1091,7 @@ ukbb_windows_parr = np.array_split(ukbb_windows, num_jobs)[job_number]
 print(ukbb_windows_parr.shape)
 
 # Get array of pseudotissue names
-pseudotissues = get_pseudotissue_names(gtex_pseudotissue_file, remove_testis=False)
+pseudotissues = get_pseudotissue_names(gtex_pseudotissue_file, remove_testis=True)
 
 
 # Create dictionary from pseudotissue to array of gene models for that tissue

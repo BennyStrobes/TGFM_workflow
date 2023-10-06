@@ -235,7 +235,6 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 		susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=10, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
 		susie_null_init_elbo = susie_null_init.rx2('elbo')[-1]
 		tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_null_init)
-		pdb.set_trace()
 		del susie_null_init
 
 		# Only run alternative variant-only inititialization if we have high pip genes
@@ -464,7 +463,7 @@ else:
 
 # Extract ordered tissue information
 # Extract ordered tissue information
-ordered_tissue_names = extract_tissue_names(gtex_pseudotissue_file, remove_testis=False)
+ordered_tissue_names = extract_tissue_names(gtex_pseudotissue_file, remove_testis=True)
 tissue_to_position_mapping = {}
 for i, val in enumerate(ordered_tissue_names):
 	tissue_to_position_mapping[val] = i
@@ -526,7 +525,6 @@ for window_iter in range(n_windows):
 	tgfm_input_pkl = data[2]
 	tgfm_trait_input_pkl = data[3]
 
-
 	'''
 	############################
 	# DEBUGGING
@@ -558,6 +556,21 @@ for window_iter in range(n_windows):
 	if np.min(gwas_p) > window_pvalue_thresh:
 		print('skipped because of window pvalue threshold')
 		continue
+	# Hacky fix
+	if trait_name == 'blood_RED_COUNT' and window_name == '10:44014743:47014743':
+		continue
+	if trait_name == 'blood_RED_COUNT' and window_name == '10:45014743:48014743':
+		continue
+	if trait_name == 'blood_RED_COUNT' and window_name == '10:46014743:49014743':
+		continue
+	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:43014743:46014743':
+		continue
+	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:44014743:47014743':
+		continue
+	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:45014743:48014743':
+		continue
+	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:46014743:49014743':
+		continue
 
 	# Load in LD
 	ld_mat = np.load(ld_file)
@@ -568,111 +581,6 @@ for window_iter in range(n_windows):
 	# Add ld to tgfm_data obj
 	tgfm_data['reference_ld'] = ld_mat
 
-
-
-
-
-	###############################
-	# DEBUGGING
-	old_root = '/n/scratch3/users/b/bes710/causal_eqtl_gwas/gtex/preprocessed_sc_tgfm_data/'
-	old_tgfm_trait_data_pkl = old_root + tgfm_trait_input_pkl.split('/')[-1]
-	old_tgfm_input_pkl = old_root + tgfm_input_pkl.split('/')[-1]
-	# Load in tgfm trait input data
-	g = open(old_tgfm_trait_data_pkl, "rb")
-	old_tgfm_trait_data = pickle.load(g)
-	g.close()
-
-	g = open(old_tgfm_input_pkl, "rb")
-	old_tgfm_data = pickle.load(g)
-	g.close()
-
-	# Get dictionary list of old variants
-	old_variants = {}
-	for variant_id in old_tgfm_data['variants']:
-		old_variants[variant_id] = 1
-	# Get dictionary of shared variants
-	shared_variants = {}
-	for variant_id in tgfm_data['variants']:
-		if variant_id in old_variants:
-			shared_variants[variant_id] = 1
-	# Get new indices
-	new_indices = []
-	for ii, val in enumerate(tgfm_data['variants']):
-		if val in shared_variants:
-			new_indices.append(ii)
-	new_indices = np.asarray(new_indices)
-	old_indices = []
-	for ii, val in enumerate(old_tgfm_data['variants']):
-		if val in shared_variants:
-			old_indices.append(ii)
-	old_indices = np.asarray(old_indices)
-
-	# Quick error checking
-	if np.array_equal(old_tgfm_data['variants'][old_indices], tgfm_data['variants'][new_indices]) == False:
-		print('assumptino eroror')
-		pdb.set_trace()
-
-	old_gwas_beta = old_tgfm_trait_data['gwas_beta'][trait_index,:][old_indices]
-	new_gwas_beta = gwas_beta[new_indices]
-
-	# merge genes
-	old_genes_dicti = {}
-	for gene in old_tgfm_data['genes']:
-		old_genes_dicti[gene] = 1
-	shared_genes_dicti = {}
-	for gene in tgfm_data['genes']:
-		if gene in old_genes_dicti:
-			shared_genes_dicti[gene] = 1
-	old_gene_indices = []
-	new_genes_indices = []
-	for ii, gene in enumerate(old_tgfm_data['genes']):
-		if gene in shared_genes_dicti:
-			old_gene_indices.append(ii)
-	old_gene_indices = np.asarray(old_gene_indices)
-	for ii, gene in enumerate(tgfm_data['genes']):
-		if gene in shared_genes_dicti:
-			new_genes_indices.append(ii)
-	new_genes_indices = np.asarray(new_genes_indices)
-
-	# quick error checking
-	if np.array_equal(tgfm_data['genes'][new_genes_indices], old_tgfm_data['genes'][old_gene_indices]) == False:
-		pdb.set_trace()
-		continue
-
-	old_pmces = old_tgfm_data['gene_eqtl_pmces'][old_gene_indices,:][:, old_indices]
-	new_pmces = tgfm_data['gene_eqtl_pmces'][new_genes_indices,:][:, new_indices]
-	corrz = []
-	for ii in range(old_pmces.shape[0]):
-		corr = np.corrcoef(old_pmces[ii,:], new_pmces[ii,:])[0,1]
-		corrz.append(corr)
-	corrz = np.asarray(corrz)
-
-	pdb.set_trace()
-
-
-	# Limit to old variants
-	tgfm_data['gene_eqtl_pmces'] = tgfm_data['gene_eqtl_pmces'][:, new_indices]
-	tgfm_data['variants'] = tgfm_data['variants'][new_indices]
-	tgfm_data['varriant_positions'] = tgfm_data['varriant_positions'][new_indices]
-	gwas_beta = gwas_beta[new_indices]
-	gwas_beta_se = gwas_beta_se[new_indices]
-	tgfm_trait_data['uniform_ln_prior_variant'] = tgfm_trait_data['uniform_ln_prior_variant'][:, new_indices]
-	tgfm_data['reference_ld'] = tgfm_data['reference_ld'][new_indices, :][:, new_indices]
-	ld_mat = ld_mat[new_indices, :][:, new_indices]
-	# Set current ld to old (debugging)
-	old_ld_file = '/n/groups/price/ben/causal_eqtl_gwas/gtex_v8/ukbb_preprocessed_for_genome_wide_susie_old/' + ld_file.split('/')[-1]
-	old_ld = (np.load(old_ld_file))[old_indices, :][:, old_indices]
-
-	#ld_mat = old_ld[old_indices,:][:, old_indices]
-	#tgfm_data['reference_ld'] = old_ld[old_indices,:][:, old_indices]
-	corrz = []
-	for ii in range(len(gwas_beta)):
-		corr = np.corrcoef(ld_mat[ii,:], old_ld[ii,:])[0,1]
-		corrz.append(corr)
-	corrz = np.asarray(corrz)
-	pdb.set_trace()
-
-	###################################
 
 	# Skip windows with no genes
 	if len(tgfm_data['genes']) == 0:

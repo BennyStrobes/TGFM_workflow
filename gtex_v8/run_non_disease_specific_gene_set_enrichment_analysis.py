@@ -220,7 +220,6 @@ independent_traits= np.asarray(["body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_
 gene_set_universe, gene_set_names, gene_set_name_to_gene_dictionary = extract_gene_set_info(non_disease_specific_gene_sets_file)
 
 # oepn output file handles
-'''
 tt = {}
 for gene_set_name in gene_set_names:
 	output_file = non_disease_specific_gene_set_enrichment_dir + gene_set_name + '_enrichment_summary.txt'
@@ -257,7 +256,8 @@ for trait_name in independent_traits:
 for gene_set_name in gene_set_names:
 	output_file = non_disease_specific_gene_set_enrichment_dir + gene_set_name + '_enrichment_summary.txt'
 	tt[gene_set_name].close()
-'''
+
+	
 
 valid_gene_sets = {}
 valid_gene_sets['MGI_essential'] = 'MGI essential'

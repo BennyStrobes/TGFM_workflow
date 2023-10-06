@@ -1213,18 +1213,16 @@ def get_cell_type_names(pb_cell_type_file):
 	arr = np.asarray(arr)
 	return arr
 
-ukkbb_window_summary_file = sys.argv[1]
-hapmap3_snpid_file = sys.argv[2]
-gtex_pseudotissue_file = sys.argv[3]
-gtex_susie_gene_models_dir = sys.argv[4]
-preprocessed_tgfm_data_dir = sys.argv[5] # Output dir
-job_number = int(sys.argv[6])  # For parallelization purposes
-num_jobs = int(sys.argv[7])  # For parallelization purposes
-gene_type = sys.argv[8]
-annotation_dir = sys.argv[9]
-pb_cell_type_file = sys.argv[10]
-sc_pbmc_susie_gene_models_dir = sys.argv[11]
 
+ukkbb_window_summary_file = sys.argv[1]
+gtex_pseudotissue_file = sys.argv[2]
+gtex_susie_gene_models_dir = sys.argv[3]
+preprocessed_tgfm_data_dir = sys.argv[4] # Output dir
+job_number = int(sys.argv[5])  # For parallelization purposes
+num_jobs = int(sys.argv[6])  # For parallelization purposes
+gene_type = sys.argv[7]
+pb_cell_type_file = sys.argv[8]
+sc_pbmc_susie_gene_models_dir = sys.argv[9]
 
 
 

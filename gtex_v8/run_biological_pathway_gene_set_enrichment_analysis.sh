@@ -35,5 +35,6 @@ fi
 
 
 
-
+if false; then
 python3 organize_biological_pathway_gene_set_enrichment_analysis_results.py ${biological_pathway_enrichment_dir}
+fi
