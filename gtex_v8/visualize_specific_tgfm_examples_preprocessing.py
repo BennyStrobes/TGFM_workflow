@@ -129,7 +129,7 @@ def generate_gene_df_input_data(trait_name, window_name, tgfm_input_summary_file
 	neg_log_10_p_lb = []
 	neg_log_10_p_ub = []
 	for gene_iter in range(n_genes):
-		mean_neg_log10_p.append(np.mean(neg_log10_p_mat[:, gene_iter]))
+		mean_neg_log10_p.append(np.median(neg_log10_p_mat[:, gene_iter]))
 		sorted_p = np.sort(neg_log10_p_mat[:, gene_iter])
 		neg_log_10_p_lb.append(sorted_p[4])
 		neg_log_10_p_ub.append(sorted_p[95])

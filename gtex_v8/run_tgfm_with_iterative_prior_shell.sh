@@ -2,7 +2,7 @@
 #SBATCH -c 1                               # Request one core
 #SBATCH -t 0-40:30                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=60GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=80GB                         # Memory total in MiB (for all cores)
 
 
 

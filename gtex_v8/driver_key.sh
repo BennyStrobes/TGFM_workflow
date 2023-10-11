@@ -54,6 +54,9 @@ biological_pathway_gene_set_file="/n/groups/price/ben/gene_annotation_files/biol
 # Non-disease specific gene sets
 non_disease_specific_gene_sets_file="/n/groups/price/martin/LDSPEC_data/sam_gene_annotation/geneset_list_curated.csv"
 
+# Epigenetic modifier gene sets
+em_gene_set_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/EM_genes.csv"
+
 # Genotype data from 1KG
 ref_1kg_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/plink_files/"
 
@@ -371,7 +374,7 @@ fi
 gene_type="component_gene"
 num_jobs="8"
 if false; then
-echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_a.txt"
+echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt"
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_a.txt" | while read trait_name study_file sample_size h2; do
 echo $trait_name
 for job_number in $(seq 0 $(($num_jobs-1))); do
@@ -385,7 +388,7 @@ fi
 gene_type="component_gene"
 num_jobs="8"
 if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_b.txt" | while read trait_name study_file sample_size h2; do
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
 echo $trait_name
 for job_number in $(seq 0 $(($num_jobs-1))); do
 	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
@@ -396,156 +399,6 @@ done
 fi
 
 
-if false; then
-trait_name="disease_CARDIOVASCULAR"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="disease_HYPERTENSION_DIAGNOSED"
-job_number="4"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="disease_HYPERTENSION_DIAGNOSED"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="body_HEIGHTz"
-job_number="4"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-fi
-
-if false; then
-trait_name="bp_DIASTOLICadjMEDz"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-fi
-
-if false; then
-trait_name="bp_SYSTOLICadjMEDz"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="biochemistry_HDLcholesterol"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="biochemistry_Triglycerides"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="blood_EOSINOPHIL_COUNT"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="blood_MEAN_PLATELET_VOL"
-job_number="7"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="blood_RED_COUNT"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-fi
-if false; then
-trait_name="body_HEIGHTz"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-fi
-
-if false; then
-trait_name="biochemistry_Cholesterol"
-job_number="7"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="blood_LYMPHOCYTE_COUNT"
-job_number="7"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="blood_MEAN_CORPUSCULAR_HEMOGLOBIN"
-job_number="7"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="blood_MONOCYTE_COUNT"
-job_number="7"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="blood_PLATELET_COUNT"
-job_number="7"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="blood_RBC_DISTRIB_WIDTH"
-job_number="7"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="blood_RED_COUNT"
-job_number="7"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-
-trait_name="blood_WHITE_COUNT"
-job_number="7"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-
-trait_name="body_HEIGHTz"
-job_number="5"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-
-trait_name="body_HEIGHTz"
-job_number="7"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
-fi
-
-
 
 
 
@@ -553,9 +406,18 @@ fi
 # Organize TGFM Results across parallel runs
 #################################
 if false; then
-sbatch organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file
+sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file
 fi
 
+
+#################################
+# Compute average correlation in predicted expression for each pair of tissues
+#################################
+tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+tissue_tissue_correlation_file=${preprocessed_tgfm_data_dir}${gene_type}"_average_tissue_tissue_correlation_across_genes.txt"
+if false; then
+sbatch compute_average_tissue_tissue_correlation_in_predicted_expression_across_genes.sh $tgfm_input_summary_file $gtex_pseudotissue_file $tissue_tissue_correlation_file
+fi
 
 #################################
 # Visualize specific TGFM examples
@@ -591,19 +453,26 @@ fi
 # Run run non-disease specific gene set enrichment analysis
 #################################
 if false; then
-sh run_non_disease_specific_gene_set_enrichment_analysis.sh $tgfm_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $tgfm_organized_results_dir $non_disease_specific_gene_sets_file $non_disease_specific_gene_set_enrichment_dir
+sh run_non_disease_specific_gene_set_enrichment_analysis.sh $tgfm_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $tgfm_organized_results_dir $non_disease_specific_gene_sets_file $em_gene_set_file $non_disease_specific_gene_set_enrichment_dir
 fi
 
 #################################
 # Visualize TGFM results
 #################################
+# 1. blood red count, SMIM1
+# 2. Eczema, OVOL1, lymphocytes (Check if eczema is not genetically correlated with Asthma, where this also comes up)
+# 3. Cholesterol, liver example, plausible case (could also do vitamin D example here)
+# 4. Hypothyroidism, TPO
+# 5. Systolic BP, artery aorta PHACTR1
+# 6. Systolic BP, brain MC4R
 if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
+if false; then
 echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt"
 Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_results_dir $tgfm_organized_results_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir
-
+fi
 
 
 
@@ -740,50 +609,6 @@ sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_rea
 done
 fi
 
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
-	job_number="4"
-	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs
-
-	job_number="6"
-	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs
-
-	job_number="0"
-	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs
-	
-	job_number="1"
-	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs
-
-	job_number="2"
-	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs
-	
-	job_number="3"
-	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs
-
-	job_number="5"
-	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs
-	
-	job_number="7"
-	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs
-
-done
-fi
 
 
 ########################################
@@ -791,13 +616,7 @@ fi
 ########################################
 tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_plus_independent_traits_sumstat_files_with_samp_size_and_h2_readable.txt" | while read trait_name study_file sample_size h2; do
-	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $merged_tissue_cell_type_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_sc_tgfm_prior_results_dir
-done
-fi
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_tmp.txt" | while read trait_name study_file sample_size h2; do
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
 	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $merged_tissue_cell_type_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_sc_tgfm_prior_results_dir
 done
@@ -807,10 +626,8 @@ fi
 #################################
 # Run TGFM with iterative prior
 #################################
-gene_type="component_gene"
-num_jobs="8"
 if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_plus_independent_traits_sumstat_files_with_samp_size_and_h2_readable.txt" | while read trait_name study_file sample_size h2; do
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
 for job_number in $(seq 0 $(($num_jobs-1))); do
 	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
@@ -819,22 +636,13 @@ done
 done
 fi
 
-if false; then
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_tmp.txt" | while read trait_name study_file sample_size h2; do
-for job_number in $(seq 0 $(($num_jobs-1))); do
-	tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $iterative_sc_tgfm_prior_results_dir $job_number $num_jobs
-done
-done
-fi
 
 
 #################################
 # Organize TGFM Results across parallel runs
 #################################
 if false; then
-sh organize_tgfm_results_across_parallel_runs.sh $sc_tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_plus_independent_traits_sumstat_files_with_samp_size_and_h2_readable.txt" $merged_tissue_cell_type_file $gtex_pseudotissue_category_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir $sc_tgfm_organized_results_dir $gene_annotation_file
+sbatch organize_sc_tgfm_results_across_parallel_runs.sh $sc_tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $merged_tissue_cell_type_file $gtex_pseudotissue_category_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir $sc_tgfm_organized_results_dir $gene_annotation_file
 fi
 
 

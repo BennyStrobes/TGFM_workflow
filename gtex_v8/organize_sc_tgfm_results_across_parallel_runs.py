@@ -1945,7 +1945,6 @@ ensamble_id_to_gene_id = create_ensamble_id_to_gene_name_mapping(gene_annotation
 
 # Create mapping from category to tissue names
 tissue_categories, tissue_category_to_tissue_names, tissue_name_to_broad_category, tissue_name_to_alt_tissue, alt_tissues = create_mapping_from_tissue_category_to_tissue_names(gtex_pseudotissue_category_file, ignore_testis=True)
-'''
 tissue_name_to_broad_category['B'] = 'sc_blood'
 tissue_name_to_broad_category['NK'] = 'sc_blood'
 tissue_name_to_broad_category['Prolif'] = 'sc_blood'
@@ -1955,7 +1954,7 @@ tissue_name_to_broad_category['cDC'] = 'sc_blood'
 tissue_name_to_broad_category['cM'] = 'sc_blood'
 tissue_name_to_broad_category['ncM'] = 'sc_blood'
 tissue_name_to_broad_category['pDC'] = 'sc_blood'
-'''
+
 
 # Extract trait names
 trait_names = extract_trait_names(trait_names_file)
@@ -1971,7 +1970,7 @@ arr2 = []
 
 
 # Open output file handle keeping track of all PIPs
-ttt = open(tgfm_organized_results_dir + 'cross_trait_TGFM_PIPs.txt','w')
+ttt = open(tgfm_organized_results_dir + 'cross_trait_sc_TGFM_PIPs.txt','w')
 ttt.write('trait_name\tgenetic_element_class\tgenetic_element_name\tTGFM_PIP\n')
 
 
@@ -2079,7 +2078,7 @@ for trait_name in trait_names:
 		n_causal_sc_gene_tissue_pairs_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_sc_gene_tissue_pairs_cross_pip_threshold_sqrt_plot_input.txt'
 		tally_number_of_causal_sc_gene_tissue_pairs_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_sc_gene_tissue_pairs_summary_cross_threshold_file, tissue_name_to_broad_category)
 
-		'''
+	
 		###################################################
 		# Tally up number of causal sc gene-tissue pairs across thresholds in each cell type
 		###################################################	
@@ -2087,7 +2086,7 @@ for trait_name in trait_names:
 		for blood_cell_type in blood_cell_types:
 			n_causal_sc_single_cell_type_gene_tissue_pairs_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_sc_gene_tissue_pairs_' + str(blood_cell_type) + '_cross_pip_threshold_sqrt_plot_input.txt'
 			tally_number_of_causal_sc_gene_tissue_pairs_cross_pip_thresholds_in_single_cell_type(concatenated_pip_summary_file, n_causal_sc_single_cell_type_gene_tissue_pairs_summary_cross_threshold_file, blood_cell_type)
-		'''
+
 
 
 

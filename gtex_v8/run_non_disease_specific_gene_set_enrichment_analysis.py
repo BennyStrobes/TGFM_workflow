@@ -56,7 +56,7 @@ def extract_tgfm_tested_genes(tgfm_gene_list_file):
 	return np.asarray(arr), dicti
 
 
-def extract_gene_set_info(non_disease_specific_gene_sets_file):
+def extract_gene_set_info(non_disease_specific_gene_sets_file, em_gene_set_file):
 	f = open(non_disease_specific_gene_sets_file)
 	head_count = 0
 	universe_genes = {}
@@ -82,6 +82,34 @@ def extract_gene_set_info(non_disease_specific_gene_sets_file):
 				continue
 			gene_set_name_to_gene_dictionary[gene_set_name][gene_name] = 1
 	f.close()
+
+	# Add an additional gene annotation not in initial file
+	gene_set_name_to_gene_dictionary['EM'] = {}
+	f = open(em_gene_set_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split(',')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		# Get gene name of line
+		line_gene_name = ''
+		for ele in data:
+			if ele.startswith('"ENSG'):
+				if line_gene_name != '':
+					print('assumption eroror')
+					pdb.set_trace()
+				line_gene_name = ele.split('"')[1]
+		if line_gene_name == '':
+			print('assumption eroror')
+			pdb.set_trace()
+		if line_gene_name in universe_genes:
+			gene_set_name_to_gene_dictionary['EM'][line_gene_name] = 1
+	f.close()
+	gene_set_names = np.hstack((gene_set_names,['EM']))
+
+
 	return universe_genes, gene_set_names, gene_set_name_to_gene_dictionary 
 
 
@@ -201,7 +229,9 @@ gtex_susie_gene_models_dir=sys.argv[3]
 preprocessed_tgfm_data_dir=sys.argv[4]
 tgfm_organized_results_dir=sys.argv[5]
 non_disease_specific_gene_sets_file=sys.argv[6]
-non_disease_specific_gene_set_enrichment_dir=sys.argv[7]
+em_gene_set_file = sys.argv[7]
+non_disease_specific_gene_set_enrichment_dir=sys.argv[8]
+
 
 print(non_disease_specific_gene_set_enrichment_dir)
 
@@ -217,7 +247,7 @@ tgfm_tested_genes_arr, tgfm_tested_genes_dicti = extract_tgfm_tested_genes(tgfm_
 
 independent_traits= np.asarray(["body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "pigment_HAIR", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled"])
 
-gene_set_universe, gene_set_names, gene_set_name_to_gene_dictionary = extract_gene_set_info(non_disease_specific_gene_sets_file)
+gene_set_universe, gene_set_names, gene_set_name_to_gene_dictionary = extract_gene_set_info(non_disease_specific_gene_sets_file, em_gene_set_file)
 
 # oepn output file handles
 tt = {}
@@ -268,11 +298,12 @@ valid_gene_sets['high_EDS'] = 'High Enhancer Domain Score'
 valid_gene_sets['highShet_Cassa'] = 'High Shet'
 valid_gene_sets['Hart2017_nonessential'] = 'Non-essential'
 valid_gene_sets['Genes_withSNPs_allSNPs_100kb'] = 'Most SNPs in 100kb'
+valid_gene_sets['EM'] = 'Epigenetic modifier'
 
 output_file = non_disease_specific_gene_set_enrichment_dir +'global_enrichment_summary.txt'
 print(output_file)
 t = open(output_file,'w')
-t.write('gene_set_name\todds_ratio\todds_ratio_lb\todds_ratio_ub\todds_ratio_pvalue\n')
+t.write('gene_set_name\tPIP\todds_ratio\todds_ratio_lb\todds_ratio_ub\todds_ratio_pvalue\n')
 
 for gene_set_name in gene_set_names:
 	if gene_set_name not in valid_gene_sets:
@@ -284,7 +315,7 @@ for gene_set_name in gene_set_names:
 	pips = aa[1:,-2].astype(float)
 	labels = aa[1:,-1].astype(float)
 	denom = np.sum(labels)/len(labels)
-	for pip in [.5]:
+	for pip in [.25, .5, .75]:
 		'''
 		indices = pips > pip
 		numer = np.sum(labels[indices])/np.sum(indices)
@@ -314,7 +345,7 @@ for gene_set_name in gene_set_names:
 		odds_ratio = np.exp(param)
 		odds_ratio_lb = np.exp(param_lb)
 		odds_ratio_ub = np.exp(param_ub)
-		t.write(readable_gene_set_name + '\t' + str(odds_ratio) + '\t' + str(odds_ratio_lb) + '\t' + str(odds_ratio_ub) + '\t' + str(pvalue) + '\n')
+		t.write(readable_gene_set_name + '\t' + str(pip) + '\t' + str(odds_ratio) + '\t' + str(odds_ratio_lb) + '\t' + str(odds_ratio_ub) + '\t' + str(pvalue) + '\n')
 t.close()
 
 

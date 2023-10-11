@@ -1447,7 +1447,7 @@ make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_
 	df = df[as.character(df$tissue) %in% valid_tissues,]
 
 	df$tissue = str_replace_all(as.character(df$tissue), "-", "_")
-	df$tissue <- recode(df$tissue, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin (sun exposed)",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain Basal Ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord", Whole_Blood="Whole Blood", Colon_Sigmoid="Colon Sigmoid", Artery_Tibial="Artery Tibial", Artery_Aorta="Artery Aorta", Brain_Cerebellum="Brain Cerebellum", Brain_BasalGanglia="Brain Basal Ganglia", Esophagus_Mucosa="Esophagus Mucosa", Brain_Cortex="Brain Cortex", Artery_Heart="Artery Heart", Adrenal_Gland="Adrenal Gland")
+	df$tissue <- recode(df$tissue, Spleen="spleen", Pituitary="pituitary", Liver="liver",Lung="lung", Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="adipose visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="skin (sun exposed)",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain Basal Ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord", Whole_Blood="whole blood", Colon_Sigmoid="Colon Sigmoid", Artery_Tibial="artery tibial", Artery_Aorta="artery aorta", Brain_Cerebellum="brain cerebellum", Brain_BasalGanglia="brain basal ganglia", Esophagus_Mucosa="esophagus mucosa", Brain_Cortex="brain cortex", Artery_Heart="artery heart", Adrenal_Gland="adrenal gland")
 	df$tissue = factor(df$tissue)
 	df$value = df$expected_causal_genes
 
@@ -1460,7 +1460,7 @@ make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_
 
 	ord <- hclust( dist(matrix, method = "euclidean"), method = "ward.D" )$order
 	df$tissue <- factor(df$tissue, levels=as.character(tissue_names)[ord])
-	custom_tissue_names <- c("Spleen", "Lymphocytes","Whole Blood", "Skin (sun exposed)", "Esophagus Mucosa", "Brain Basal Ganglia","Brain Cerebellum", "Pituitary", "Adipose Visceral", "Liver", "Artery Aorta","Artery Tibial", "Adrenal Gland", "Lung", "Fibroblast", "Thyroid", "Brain_Limbic")
+	custom_tissue_names <- c("spleen", "lymphocytes","whole blood", "skin (sun exposed)", "esophagus mucosa", "brain basal ganglia","brain cerebellum", "pituitary", "adipose visceral", "liver", "artery aorta","artery tibial", "adrenal gland", "lung", "fibroblast", "thyroid", "Brain_Limbic")
 	df$tissue <- factor(df$tissue, levels=custom_tissue_names)
 	
 	#ord2 <- hclust( dist(t(matrix), method = "euclidean"), method = "ward.D" )$order
@@ -1713,7 +1713,7 @@ get_heatmap_data_showing_expected_number_of_causal_gene_tissue_pairs_cross_trait
 
 	new_trait_names = sort(unique(trait_vec))
 
-	df <- data.frame(trait=factor(trait_vec, levels=new_trait_names), tissue=factor(tissue_vec,levels=ordered_tissues),expected_causal_genes=count_vec, significance=sig_vec, pvalue=pvalue_vec, bonf_pvalue=bonf_pvalue_vec)
+	df <- data.frame(trait=factor(trait_vec, levels=new_trait_names), tissue=factor(tissue_vec,levels=ordered_tissues),proportion_fine_mapped_gene_tissue_pairs=count_vec, pvalue=pvalue_vec, bonf_pvalue=bonf_pvalue_vec)
 
 
   	return(df)
@@ -2390,6 +2390,72 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip <- function(df_full, independen
 
 }
 
+mean_se_barplot_of_pops_score_binned_by_tgfm_pip_supp_table <- function(df_full, independent_traits) {
+
+	indices = df_full$trait_name %in% independent_traits
+	df = df_full[indices,]
+
+
+	pops_mean_vec <- c()
+	pops_mean_se_vec <- c()
+	bin_names_vec <- c()
+
+	threshold_lb <- 0.0
+	threshold_ub <- .01
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+
+	threshold_lb <- .01
+	threshold_ub <- .25
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+
+
+	threshold_lb <- .25
+	threshold_ub <- .5
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+
+	threshold_lb <- .5
+	threshold_ub <- .7
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+
+	threshold_lb <- .7
+	threshold_ub <- .9
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+
+
+	threshold_lb <- .9
+	threshold_ub <- 1.0
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip <= threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df$pops_score[indices])/sqrt(length(df$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP <= ", threshold_ub))
+
+
+	df2 <- data.frame(tgfm_bin=factor(bin_names_vec), pops=pops_mean_vec, pops_se=pops_mean_se_vec)
+
+
+
+
+    return(df2)
+
+
+}
+
+
 count_up_number_of_genetic_elements <- function(trait_names,tgfm_organized_results_dir, pip_threshold) {
 	gts = 0
 	genes = 0
@@ -2410,14 +2476,66 @@ count_up_number_of_genetic_elements <- function(trait_names,tgfm_organized_resul
 	print(paste0("Gene count: ", genes))
 	print(paste0("Variant count: ", variants))
 }
-
-
-make_non_disease_specific_gene_set_enrichment_barplot <- function(non_disease_specific_gene_set_enrichment_dir) {
+make_non_disease_specific_gene_set_enrichment_barplot_cross_pip_thresholds <- function(non_disease_specific_gene_set_enrichment_dir) {
 	# Enrichment summary file
 	enrichment_summary_file = paste0(non_disease_specific_gene_set_enrichment_dir, "global_enrichment_summary.txt")
 	df <- read.table(enrichment_summary_file, header=TRUE, sep="\t")
+	
+	df2 = df[df$PIP==.5,]
+
+
+    ordering = order(-df2$odds_ratio)
+    df$gene_set_name = factor(df$gene_set_name, levels=as.character(df2$gene_set_name)[ordering])
+
+    df$PIP = factor(df$PIP)
+
+	red_color=brewer.pal(n = 9, name = "Greens")[7]
+	red_color1=brewer.pal(n = 9, name = "Greens")[3]
+	red_color2=brewer.pal(n = 9, name = "Greens")[5]
+
+
+	p <- ggplot(df) +
+    		geom_bar( aes(x=gene_set_name, y=odds_ratio, fill=PIP), stat="identity", position="dodge") +
+    		#theme(axis.text.x = element_text(angle = 90,hjust=1, vjust=.5)) +
+    		labs(y="Odds ratio", x="") +
+    		geom_errorbar( aes(x=gene_set_name,fill=PIP, ymin=odds_ratio_lb, ymax=odds_ratio_ub), width=0.4, colour="grey45", alpha=0.9, size=1.0,position=position_dodge(.9)) +
+    		theme(axis.text.x = element_text(angle = 64, hjust=1)) + 
+    		scale_fill_manual(values=c(red_color1, red_color2, red_color))+
+    		geom_hline(yintercept=1) + 
+    		figure_theme()
+
+
+    return(p)
+}
+
+make_non_disease_specific_gene_set_enrichment_suppData_at_single_pip_thresh <- function(non_disease_specific_gene_set_enrichment_dir) {
+	# Enrichment summary file
+	enrichment_summary_file = paste0(non_disease_specific_gene_set_enrichment_dir, "global_enrichment_summary.txt")
+	df <- read.table(enrichment_summary_file, header=TRUE, sep="\t")
+	df = df[df$PIP==.5,]
 
 	green_color=brewer.pal(n = 9, name = "Greens")[6]
+
+
+    ordering = order(-df$odds_ratio)
+    df$gene_set_name = factor(df$gene_set_name, levels=as.character(df$gene_set_name)[ordering])
+
+    df2 = data.frame(gene_set_name=df$gene_set_name,odds_ratio=df$odds_ratio, odds_ratio_95_ci_lb=df$odds_ratio_lb, odds_ratio_95_ci_ub=df$odds_ratio_ub, odds_ratio_pvalue=df$odds_ratio_pvalue)
+
+    df2$gene_set_name = factor(df2$gene_set_name, levels=as.character(df$gene_set_name)[ordering])
+
+    return(df2)
+}
+
+
+make_non_disease_specific_gene_set_enrichment_barplot_at_single_pip_thresh <- function(non_disease_specific_gene_set_enrichment_dir) {
+	# Enrichment summary file
+	enrichment_summary_file = paste0(non_disease_specific_gene_set_enrichment_dir, "global_enrichment_summary.txt")
+	df <- read.table(enrichment_summary_file, header=TRUE, sep="\t")
+	df = df[df$PIP==.5,]
+
+	green_color=brewer.pal(n = 9, name = "Greens")[6]
+
 
     ordering = order(-df$odds_ratio)
     df$gene_set_name = factor(df$gene_set_name, levels=as.character(df$gene_set_name)[ordering])
@@ -2427,7 +2545,7 @@ make_non_disease_specific_gene_set_enrichment_barplot <- function(non_disease_sp
     		#theme(axis.text.x = element_text(angle = 90,hjust=1, vjust=.5)) +
     		labs(y="Odds ratio", x="") +
     		geom_errorbar( aes(x=gene_set_name, ymin=odds_ratio_lb, ymax=odds_ratio_ub), width=0.4, colour="grey45", alpha=0.9, size=1.0) +
-    		theme(axis.text.x = element_text(angle = 45, hjust=1)) + 
+    		theme(axis.text.x = element_text(angle = 64, hjust=1)) + 
     		geom_hline(yintercept=1) + 
     		figure_theme()
 
@@ -2497,8 +2615,25 @@ count_up_number_of_genetic_elements(trait_names, tgfm_organized_results_dir,pip_
 # standard error barplot showing non-disease-specific gene set enrichments
 ##################################################
 if (FALSE) {
-enrichment_barplot <- make_non_disease_specific_gene_set_enrichment_barplot(non_disease_specific_gene_set_enrichment_dir)
+enrichment_barplot <- make_non_disease_specific_gene_set_enrichment_barplot_at_single_pip_thresh(non_disease_specific_gene_set_enrichment_dir)
 output_file <- paste0(visualize_tgfm_dir, "non_disease_specific_gene_set_enrichments_standard_error_barplot.pdf")
+ggsave(enrichment_barplot, file=output_file, width=7.2, height=4.6, units="in")
+}
+##################################################
+# Supp data table showing standard error barplot showing non-disease-specific gene set enrichments
+##################################################
+supp_table_df <- make_non_disease_specific_gene_set_enrichment_suppData_at_single_pip_thresh(non_disease_specific_gene_set_enrichment_dir)
+supp_table_file = paste0(visualize_tgfm_dir, "suppTable_non_disease_gene_set_enrichment.txt")
+write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
+print(supp_table_file)
+
+
+##################################################
+# standard error barplot showing non-disease-specific gene set enrichments cross pip threshold
+##################################################
+if (FALSE) {
+enrichment_barplot <- make_non_disease_specific_gene_set_enrichment_barplot_cross_pip_thresholds(non_disease_specific_gene_set_enrichment_dir)
+output_file <- paste0(visualize_tgfm_dir, "non_disease_specific_gene_set_enrichments_cross_pip_thresholds_standard_error_barplot.pdf")
 ggsave(enrichment_barplot, file=output_file, width=7.2, height=4.6, units="in")
 }
 
@@ -2613,6 +2748,7 @@ ggsave(n_genes_joint_plot, file=output_file, width=7.2, height=5.7, units="in")
 ##########################################################
 # Heatmap showing expected number of causal genes in each tissue-trait pair
 ##########################################################
+if (FALSE) {
 pip_threshs <- c(0.0,.01, .1, .3, .5, .7)
 for (pip_iter in 1:length(pip_threshs)) {
 	pip_thresh <- pip_threshs[pip_iter]
@@ -2621,6 +2757,7 @@ for (pip_iter in 1:length(pip_threshs)) {
 	heatmap <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, trait_tissue_prior_significance_file)
 	output_file <- paste0(visualize_tgfm_dir, "expected_num_causal_genes_", pip_thresh, "_", method_version,"_heatmap.pdf")
 	ggsave(heatmap, file=output_file, width=7.2, height=8.0, units="in")
+}
 }
 
 
@@ -2709,6 +2846,11 @@ pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgf
 output_file <- paste0(visualize_tgfm_dir, "mean_se_barplot_pops_score_binned_by_tgfm_pip_x_trait.pdf")
 barplot <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits)
 ggsave(barplot, file=output_file, width=7.2, height=3.7, units="in")
+# Make PoPS supp data file
+pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
+supp_table_df <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip_supp_table(pops_summary_df, independent_traits)
+supp_table_file = paste0(visualize_tgfm_dir, "suppTable_figure4b_numerical.txt")
+write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
 }
 
 
@@ -2716,7 +2858,6 @@ ggsave(barplot, file=output_file, width=7.2, height=3.7, units="in")
 # Make Figure 4
 ##########################################################
 # FIG 4A
-if (FALSE) {
 pip_thresh <- "0.5"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 selected_traits <- c("disease_AID_ALL", "biochemistry_VitaminD", "body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled")
@@ -2729,7 +2870,7 @@ fig_4b <- plot_grid(NULL,mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_s
 fig_4 <- plot_grid(fig_4a + theme(legend.position="top"), fig_4b, ncol=1, rel_heights=c(.77,.4), labels=c("a","b"))
 output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
 ggsave(fig_4, file=output_file, width=7.2, height=6.7, units="in")
-}
+
 
 ###################################################
 # Figure 4 for poster
