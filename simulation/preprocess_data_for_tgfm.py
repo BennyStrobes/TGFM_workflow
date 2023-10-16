@@ -643,10 +643,9 @@ annotation_file = sys.argv[7]
 simulated_gwas_dir = sys.argv[8]
 simulated_gene_expression_dir = sys.argv[9]
 simulated_learned_gene_models_dir = sys.argv[10]
-simulated_sldsc_results_dir = sys.argv[11]
-simulated_tgfm_input_data_dir = sys.argv[12]
-eqtl_type = sys.argv[13]
-processed_genotype_data_dir = sys.argv[14]
+simulated_tgfm_input_data_dir = sys.argv[11]
+eqtl_type = sys.argv[12]
+processed_genotype_data_dir = sys.argv[13]
 
 
 n_bs = 100
@@ -694,7 +693,7 @@ for line in f:
 		continue
 
 	# Create annotation matrix for window rsids
-	window_anno_mat = create_anno_matrix_for_set_of_rsids(rsid_to_genomic_annotation, window_rsids)
+	#window_anno_mat = create_anno_matrix_for_set_of_rsids(rsid_to_genomic_annotation, window_rsids)
 
 	# Extract LD
 	ld_mat_file = processed_genotype_data_dir + window_name + '_in_sample_ld.npy'
@@ -760,7 +759,7 @@ for line in f:
 	tgfm_data['gene_eqtl_pmces'] = pmces_weights
 	tgfm_data['gene_variances'] = gene_variances
 	tgfm_data['full_gene_variances'] = full_gene_variances
-	tgfm_data['annotation'] = window_anno_mat
+	#tgfm_data['annotation'] = window_anno_mat
 	tgfm_data['tss'] = gene_tissue_pairs_tss
 	tgfm_data['variant_positions'] = window_variant_position_vec
 	tgfm_data['gene_susie_mu'] = gene_susie_mus

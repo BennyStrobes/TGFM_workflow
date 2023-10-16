@@ -23,10 +23,10 @@ simulated_focus_results_dir="${14}"
 
 
 eqtl_sample_size="300"
-sh run_single_focus_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $eqtl_sample_size $simulated_focus_input_dir $simulated_focus_results_dir
+sh run_single_focus_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $eqtl_sample_size $simulated_focus_input_dir $simulated_focus_results_dir
 
 eqtl_sample_size="500"
-sh run_single_focus_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $eqtl_sample_size $simulated_focus_input_dir $simulated_focus_results_dir
+sh run_single_focus_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $eqtl_sample_size $simulated_focus_input_dir $simulated_focus_results_dir
 
 eqtl_sample_size="1000"
-sh run_single_focus_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $eqtl_sample_size $simulated_focus_input_dir $simulated_focus_results_dir
+sh run_single_focus_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $eqtl_sample_size $simulated_focus_input_dir $simulated_focus_results_dir

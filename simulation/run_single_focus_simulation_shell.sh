@@ -58,9 +58,8 @@ module load gcc/9.2.0
 module load python/3.9.14
 module load R/4.1.2
 # Cross tissue version
-if false; then
 focus import ${focus_gene_model_pos_file} fusion --tissue all --name ${simulation_name_string}"_eqtlss_"${eqtl_sample_size} --assay rnaseq --output ${focus_gene_models_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample_size}"_focus_input"
-fi
+
 
 # Per tissue version
 for tissue_number in $(seq 0 9); do 
@@ -106,9 +105,8 @@ sum_stats_file=${focus_cleaned_gwas_summary_stat_stem}".sumstats.gz"
 genotype_file=${processed_genotype_data_dir}"simulated_gwas_data_"${chrom_num}
 db_file=${focus_gene_models_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample_size}"_focus_input.db"
 output_stem=${simulated_focus_results_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample_size}"_focus_res"
-if false; then
 focus finemap $sum_stats_file $genotype_file $db_file --chr ${chrom_num} --out $output_stem
-fi
+
 
 
 # per tissue version

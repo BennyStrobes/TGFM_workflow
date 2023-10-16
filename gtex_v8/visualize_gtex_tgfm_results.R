@@ -177,6 +177,62 @@ make_number_of_high_pip_cross_2_threshold_gene_tissue_pairs_barplot <- function(
     return(p)
 }
 
+make_number_of_high_pip_genes_heatmap_barplot_v2_transpose <- function(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits, preordered=FALSE, ordered_traits=NULL) {
+	trait_names_vec <- c()
+	number_elements_vec <- c()
+	pip_threshold_vec <- c()
+
+	total_hits_vec <- c()
+	mid_point_vec <- c()
+	trait_names_vec2 <- c()
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- trait_names[trait_iter]
+		trait_name_readable <- trait_names_readable[trait_iter]
+		if (trait_name %in% independent_traits) {
+
+			summary_file <- paste0(tgfm_organized_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_tgfm_n_causal_genes_cross_pip_threshold_sqrt_plot_input.txt")
+			tmp_data <- read.table(summary_file, header=TRUE, sep="\t")
+			tmp_data <- tmp_data[as.character(tmp_data$element_class)=="gene",]
+
+			tmp_data = tmp_data[tmp_data$PIP_threshold >= .2,]
+			
+			number_elements_vec <- c(number_elements_vec, tmp_data$n_elements)
+			pip_threshold_vec <- c(pip_threshold_vec, tmp_data$PIP_threshold)
+			trait_names_vec <- c(trait_names_vec, rep(trait_name_readable, length(tmp_data$PIP_threshold)))
+
+			total_hits_vec <- c(total_hits_vec, sum(tmp_data$n_elements))
+			trait_names_vec2 <- c(trait_names_vec2, trait_name_readable)
+			mid_point_vec <- c(mid_point_vec, sum(tmp_data$n_elements[tmp_data$PIP_threshold >= .5]))
+
+		}
+
+	}
+	df <- data.frame(trait=trait_names_vec, PIP=pip_threshold_vec, num_elements=number_elements_vec)
+
+	indices = order(mid_point_vec, total_hits_vec)
+
+	if (preordered == FALSE) {
+		df$trait = factor(df$trait, levels=as.character(trait_names_vec2)[indices])
+		df2 <- data.frame(trait=factor(trait_names_vec2, levels=as.character(trait_names_vec2)[indices]), midpoint=mid_point_vec)
+	} else {
+		df$trait = factor(df$trait, levels=ordered_traits)
+		df2 <- data.frame(trait=factor(trait_names_vec2, levels=ordered_traits), midpoint=mid_point_vec)
+	}
+
+   p <- ggplot() +
+  	geom_bar(data=df, aes(y = trait,x = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
+  	figure_theme() +
+  	scale_x_continuous(breaks=c(0.0,sqrt(25), sqrt(100), sqrt(250), sqrt(500), sqrt(1000)), labels=c("0", "25", "100", "250", "  500", "1000")) +
+  	#theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
+  	scale_fill_distiller(direction=1, palette = "Greens", limits=c(.2,1.0)) +
+  	scale_color_distiller(direction=1, palette = "Greens", limits=c(.2,1.0)) +	
+  	theme(plot.title = element_text(hjust = 0.5)) +
+  	 geom_errorbar(data  = df2, aes(y=trait,x=midpoint, xmax=midpoint, xmin=midpoint)) +
+  	 labs(y="", x="No. fine-mapped genes")
+ 	return(p)
+}
+
 make_number_of_high_pip_genes_heatmap_barplot_v2 <- function(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits, preordered=FALSE, ordered_traits=NULL) {
 	trait_names_vec <- c()
 	number_elements_vec <- c()
@@ -232,6 +288,64 @@ make_number_of_high_pip_genes_heatmap_barplot_v2 <- function(trait_names, trait_
   	 labs(x="", y="No. fine-mapped\nGenes")
  	return(p)
 }
+
+make_number_of_high_pip_variants_heatmap_barplot_v2_transpose <- function(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits, preordered=FALSE, ordered_traits=NULL) {
+	trait_names_vec <- c()
+	number_elements_vec <- c()
+	pip_threshold_vec <- c()
+
+	total_hits_vec <- c()
+	mid_point_vec <- c()
+	trait_names_vec2 <- c()
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- trait_names[trait_iter]
+		trait_name_readable <- trait_names_readable[trait_iter]
+		if (trait_name %in% independent_traits) {
+
+			summary_file <- paste0(tgfm_organized_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_tgfm_n_causal_variants_cross_pip_threshold_sqrt_plot_input.txt")
+			tmp_data <- read.table(summary_file, header=TRUE, sep="\t")
+			tmp_data <- tmp_data[as.character(tmp_data$element_class)=="variant",]
+
+			tmp_data = tmp_data[tmp_data$PIP_threshold >= .2,]
+			
+			number_elements_vec <- c(number_elements_vec, tmp_data$n_elements)
+			pip_threshold_vec <- c(pip_threshold_vec, tmp_data$PIP_threshold)
+			trait_names_vec <- c(trait_names_vec, rep(trait_name_readable, length(tmp_data$PIP_threshold)))
+
+			total_hits_vec <- c(total_hits_vec, sum(tmp_data$n_elements))
+			trait_names_vec2 <- c(trait_names_vec2, trait_name_readable)
+			mid_point_vec <- c(mid_point_vec, sum(tmp_data$n_elements[tmp_data$PIP_threshold >= .5]))
+
+		}
+
+	}
+	df <- data.frame(trait=trait_names_vec, PIP=pip_threshold_vec, num_elements=number_elements_vec)
+
+
+	indices = order(mid_point_vec,total_hits_vec)
+
+	if (preordered == FALSE) {
+		df$trait = factor(df$trait, levels=as.character(trait_names_vec2)[indices])
+		df2 <- data.frame(trait=factor(trait_names_vec2, levels=as.character(trait_names_vec2)[indices]), midpoint=mid_point_vec)
+	} else {
+		df$trait = factor(df$trait, levels=ordered_traits)
+		df2 <- data.frame(trait=factor(trait_names_vec2, levels=ordered_traits), midpoint=mid_point_vec)
+	}
+
+   p <- ggplot() +
+  	geom_bar(data=df, aes(y = trait,x = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
+  	figure_theme() +
+  	scale_x_continuous(breaks=c(0.0, sqrt(100), sqrt(500), sqrt(1000), sqrt(2000)), labels=c(0, 100, 500, 1000, 2000)) +
+  	#theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
+  	scale_fill_distiller(direction=1, palette = "Blues", limits=c(.2,1.0)) +
+  	scale_color_distiller(direction=1, palette = "Blues", limits=c(.2,1.0)) +	
+  	theme(plot.title = element_text(hjust = 0.5)) +
+  	 geom_errorbar(data  = df2, aes(y=trait,x=midpoint, xmax=midpoint, xmin=midpoint)) +
+  	 labs(y="", x="No. fine-mapped variants")
+ 	return(p)
+}
+
 
 
 make_number_of_high_pip_variants_heatmap_barplot_v2 <- function(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits, preordered=FALSE, ordered_traits=NULL) {
@@ -328,6 +442,63 @@ make_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_trait_order_according_
 	df$trait = factor(df$trait, levels=as.character(trait_names_vec2)[indices])
 
 	return(as.character(trait_names_vec2)[indices])
+}
+
+make_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_v2_transpose <- function(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits, preordered=FALSE, ordered_traits=NULL) {
+	trait_names_vec <- c()
+	number_elements_vec <- c()
+	pip_threshold_vec <- c()
+
+	total_hits_vec <- c()
+	mid_point_vec <- c()
+	trait_names_vec2 <- c()
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- trait_names[trait_iter]
+		trait_name_readable <- trait_names_readable[trait_iter]
+		if (trait_name %in% independent_traits) {
+
+			summary_file <- paste0(tgfm_organized_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_tgfm_n_causal_gene_tissue_pairs_cross_pip_threshold_sqrt_plot_input.txt")
+			tmp_data <- read.table(summary_file, header=TRUE, sep="\t")
+			tmp_data <- tmp_data[as.character(tmp_data$element_class)=="gene",]
+
+			tmp_data = tmp_data[tmp_data$PIP_threshold >= .2,]
+			
+			number_elements_vec <- c(number_elements_vec, tmp_data$n_elements)
+			pip_threshold_vec <- c(pip_threshold_vec, tmp_data$PIP_threshold)
+			trait_names_vec <- c(trait_names_vec, rep(trait_name_readable, length(tmp_data$PIP_threshold)))
+
+			total_hits_vec <- c(total_hits_vec, sum(tmp_data$n_elements))
+			trait_names_vec2 <- c(trait_names_vec2, trait_name_readable)
+			mid_point_vec <- c(mid_point_vec, sum(tmp_data$n_elements[tmp_data$PIP_threshold >= .5]))
+
+		}
+
+	}
+	df <- data.frame(trait=trait_names_vec, PIP=pip_threshold_vec, num_elements=number_elements_vec)
+
+	indices = order(mid_point_vec, total_hits_vec)
+
+	if (preordered == FALSE) {
+		df$trait = factor(df$trait, levels=as.character(trait_names_vec2)[indices])
+		df2 <- data.frame(trait=factor(trait_names_vec2, levels=as.character(trait_names_vec2)[indices]), midpoint=mid_point_vec)
+	} else {
+		df$trait = factor(df$trait, levels=ordered_traits)
+		df2 <- data.frame(trait=factor(trait_names_vec2, levels=ordered_traits), midpoint=mid_point_vec)		
+	}
+
+   p <- ggplot() +
+  	geom_bar(data=df, aes(y = trait,x = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
+  	figure_theme() +
+  	#scale_y_continuous(breaks=c(0.0,sqrt(5), sqrt(20), sqrt(50), sqrt(100), sqrt(200), sqrt(400), sqrt(600)), labels=c(0, 5, 20, 50, 100, 200, 400,600)) +
+  	scale_x_continuous(breaks=c(0.0,sqrt(10), sqrt(50), sqrt(100), sqrt(200)), labels=c("0", "10", "50", "100", "  200")) +
+  	#theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
+  	scale_fill_distiller(direction=1, palette = "Reds", limits=c(.2,1.0)) +
+  	scale_color_distiller(direction=1, palette = "Reds", limits=c(.2,1.0)) +	
+  	theme(plot.title = element_text(hjust = 0.5)) +
+  	 geom_errorbar(data  = df2, aes(y=trait,x=midpoint, xmax=midpoint, xmin=midpoint)) +
+  	 labs(y="", x="No. fine-mapped gene-tissue pairs")
+ 	return(p)
 }
 
 
@@ -691,6 +862,9 @@ make_fraction_of_genetic_elements_from_gene_expression_se_barplot <- function(tr
 
 	pip_thresholds <- c("0.25", "0.5", "0.75")
 
+	gene_tot_count = 0
+	total_total_count = 0
+
 
 	for (trait_iter in 1:length(trait_names)) {
 		trait_name <- trait_names[trait_iter]
@@ -715,7 +889,14 @@ make_fraction_of_genetic_elements_from_gene_expression_se_barplot <- function(tr
 			fraction_mediated_vec <- c(fraction_mediated_vec, mean_mediated_prob)
 			fraction_mediated_se_vec <- c(fraction_mediated_se_vec, se_mediated_prob)
 			pip_threshold_vec <- c(pip_threshold_vec, pip_threshold)
+
+			if (pip_threshold == "0.5") {
+				gene_tot_count = gene_tot_count + gene_count
+				total_total_count = total_total_count + gene_count + variant_count
+			}
 		}
+
+
 		}
 	}
 
@@ -1721,6 +1902,40 @@ get_heatmap_data_showing_expected_number_of_causal_gene_tissue_pairs_cross_trait
 
 }
 
+make_tissue_tissue_correlation_heatmap <- function(tissue_tissue_correlation_file) {
+	df <- read.table(tissue_tissue_correlation_file, header=TRUE)
+
+	df$value = df$average_correlation
+
+	df$tissue_ii = str_replace_all(as.character(df$tissue_ii), "-", "_")
+	df$tissue_ii <- recode(df$tissue_ii, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+	df$tissue_jj = str_replace_all(as.character(df$tissue_jj), "-", "_")
+	df$tissue_jj <- recode(df$tissue_jj, Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="Skin_Sun",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="Lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+
+
+
+	matrix <- dcast(df, tissue_ii ~ tissue_jj)
+	tissue_names <- matrix$tissue_ii
+	matrix <- as.matrix(matrix[,2:dim(matrix)[2]])
+
+	ord <- hclust( dist(matrix, method = "euclidean"), method = "ward.D" )$order
+	print(as.character(tissue_names))
+	print(as.character(tissue_names)[ord])
+
+	df$tissue_ii <- factor(df$tissue_ii, levels=as.character(tissue_names)[ord])
+	df$tissue_jj <- factor(df$tissue_jj, levels=as.character(tissue_names)[ord])
+
+	pp <- ggplot(df, aes(tissue_ii, tissue_jj, fill= average_correlation)) + 
+  		geom_tile() +
+  		figure_theme() +
+  		labs(fill="Avg. correlation",x="", y="") +
+  		theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  		theme(legend.position="bottom") +
+  		scale_fill_gradient(low = "white", high = "red")
+  	return(pp)
+}
+
+
 
 
 make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_traits <- function(trait_names, trait_names_readable, method_version, tgfm_results_dir, ordered_tissues, pip_thresh, trait_tissue_prior_significance_file) {
@@ -2553,6 +2768,37 @@ make_non_disease_specific_gene_set_enrichment_barplot_at_single_pip_thresh <- fu
     return(p)
 }
 
+make_tissue_tissue_correlation_sample_size_scatterplot <- function(tissue_tissue_correlation_file, tissue_names, tissue_ss) {
+	df <- read.table(tissue_tissue_correlation_file, header=TRUE)
+	nrow = dim(df)[1]
+
+	tissue_names <- as.character(tissue_names)
+	indices = tissue_names != "Testis"
+	tissue_names = tissue_names[indices]
+	tissue_ss = tissue_ss[indices]
+	avg_corr_vec <- c()
+
+	for (tiss_iter in 1:length(tissue_names)) {
+		tissue_name = tissue_names[tiss_iter]
+
+		tmp_df = df[df$tissue_ii == tissue_name,]
+		tmp_df = tmp_df[tmp_df$tissue_jj != tissue_name,]
+
+		mean_corry = mean(tmp_df$average_correlation)
+		avg_corr_vec <- c(avg_corr_vec, mean_corry)
+	}
+
+	df2 <- data.frame(tissue=tissue_names, sample_size=tissue_ss, average_correlation=avg_corr_vec)
+
+
+
+	pp <- ggplot(df2, aes(x=sample_size, y=average_correlation)) + geom_point() +
+		figure_theme() +
+		labs(x="Tissue sample size", y="Average correlation")
+	return(pp)
+}
+
+
 
 
 
@@ -2568,7 +2814,8 @@ iterative_tgfm_prior_dir <- args[5]
 pops_enrichment_dir <- args[6]
 non_disease_specific_gene_set_enrichment_dir <- args[7]
 visualize_tgfm_dir <- args[8]
-
+tissue_tissue_correlation_file <- args[9]
+gtex_pseudotissue_file <- args[10]
 
 
 
@@ -2579,7 +2826,10 @@ visualize_tgfm_dir <- args[8]
 # Independent traits used in https://www.nature.com/articles/s41588-020-00735-5
 independent_traits <- c("body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "pigment_HAIR", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled")
 
-
+# Load in pseudotissue names and sample sizes
+pseudotissue_df <- read.table(gtex_pseudotissue_file, header=TRUE, sep="\t")
+pseudotissue_names <- pseudotissue_df$pseudotissue_name
+pseudotissue_ss <- pseudotissue_df$sample_size
 
 # Load in gtex tissue colors 
 gtex_colors_df <- read.table(gtex_tissue_colors_file, header=TRUE, sep="\t")
@@ -2599,6 +2849,25 @@ iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_
 aa = read.table(iterative_prior_file, header=TRUE,sep="\t")
 tissue_names = as.character(aa$element_name[2:length(aa$element_name)])
 
+
+
+##################################################
+# Make tissue-tissue correlation heatmap
+##################################################
+if (FALSE) {
+output_file <- paste0(visualize_tgfm_dir, "tissue_tissue_correlation_heatmap.pdf")
+tt_corr_heatmap = make_tissue_tissue_correlation_heatmap(tissue_tissue_correlation_file)
+ggsave(tt_corr_heatmap, file=output_file, width=7.2, height=7.5, units="in")
+}
+
+##################################################
+# Make scatterplot showing relationship between sample size and average correlation
+##################################################
+if (FALSE) {
+output_file <- paste0(visualize_tgfm_dir, "tissue_tissue_correlation_sample_size_scatter.pdf")
+tt_corr_ss_scatter = make_tissue_tissue_correlation_sample_size_scatterplot(tissue_tissue_correlation_file, pseudotissue_names, pseudotissue_ss)
+ggsave(tt_corr_ss_scatter, file=output_file, width=7.2, height=5.5, units="in")
+}
 
 
 ##################################################
@@ -2622,11 +2891,12 @@ ggsave(enrichment_barplot, file=output_file, width=7.2, height=4.6, units="in")
 ##################################################
 # Supp data table showing standard error barplot showing non-disease-specific gene set enrichments
 ##################################################
+if (FALSE) {
 supp_table_df <- make_non_disease_specific_gene_set_enrichment_suppData_at_single_pip_thresh(non_disease_specific_gene_set_enrichment_dir)
 supp_table_file = paste0(visualize_tgfm_dir, "suppTable_non_disease_gene_set_enrichment.txt")
 write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
 print(supp_table_file)
-
+}
 
 ##################################################
 # standard error barplot showing non-disease-specific gene set enrichments cross pip threshold
@@ -2689,7 +2959,6 @@ ggsave(beeswarm_plot, file=output_file, width=15.2, height=4.5, units="in")
 ##########################################################
 # Barplot with standard errors showing fraction of high pip genetic elements from gene expression
 ##########################################################
-if (FALSE) {
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 output_file <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_average_fraction_of_high_pip_genetic_elements_from_gene_expression_se_barplot.pdf")
 med_prob_se_barplot <- make_fraction_of_genetic_elements_from_gene_expression_se_barplot(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits)
@@ -2709,7 +2978,6 @@ ggsave(med_prob_se_barplot2, file=output_file, width=7.2, height=4.2, units="in"
 joint_fraction_med_plot <- plot_grid(plot_grid(NULL,med_prob_se_barplot, ncol=2,rel_widths=c(.02,1)),plot_grid(NULL,med_prob_se_barplot2,ncol=2,rel_widths=c(.02,1.0)), ncol=1, labels=c("a","b"), rel_heights=c(1.3,1.0))
 output_file <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_joint_fraction_mediated_plot.pdf")
 ggsave(joint_fraction_med_plot, file=output_file, width=7.2, height=6.2, units="in")
-}
 
 
 ##########################################################
@@ -2823,6 +3091,27 @@ joint_heatmap_barplot_poster <- plot_grid(gene_tissue_heatmap_barplot2, gene_hea
 ggsave(joint_heatmap_barplot_poster, file=output_file_pdf, width=21.2, height=2.7, units="in", dpi=400)
 }
 
+#######################################################
+# Supp figure for figure 3 (one for variant, gene, and gene-tissue)
+#######################################################
+# Make heatmap-barplot showing expected number of causal variants
+method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
+
+# Variants
+variant_heatmap_t_barplot <- make_number_of_high_pip_variants_heatmap_barplot_v2_transpose(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, trait_names)
+output_file_pdf <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_number_of_high_pip_variants_heatmap_barplot_all_traits.pdf")
+ggsave(variant_heatmap_t_barplot, file=output_file_pdf, width=7.2, height=6.0, units="in", dpi=400)
+
+# Genes
+gene_heatmap_t_barplot <- make_number_of_high_pip_genes_heatmap_barplot_v2_transpose(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, trait_names)
+output_file_pdf <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_number_of_high_pip_genes_heatmap_barplot_all_traits.pdf")
+ggsave(gene_heatmap_t_barplot, file=output_file_pdf, width=7.2, height=6.0, units="in", dpi=400)
+
+# Gene-tissue pairs
+gene_tissue_heatmap_t_barplot <- make_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_v2_transpose(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, trait_names)
+output_file_pdf <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_all_traits.pdf")
+ggsave(gene_tissue_heatmap_t_barplot, file=output_file_pdf, width=7.2, height=6.0, units="in", dpi=400)
+
 
 ##########################################################
 # Make heatmap showing expected number of causal genes in each tissue-trait pair for selected traits
@@ -2857,6 +3146,7 @@ write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.name
 ##########################################################
 # Make Figure 4
 ##########################################################
+if (FALSE) {
 # FIG 4A
 pip_thresh <- "0.5"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
@@ -2870,7 +3160,7 @@ fig_4b <- plot_grid(NULL,mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_s
 fig_4 <- plot_grid(fig_4a + theme(legend.position="top"), fig_4b, ncol=1, rel_heights=c(.77,.4), labels=c("a","b"))
 output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
 ggsave(fig_4, file=output_file, width=7.2, height=6.7, units="in")
-
+}
 
 ###################################################
 # Figure 4 for poster

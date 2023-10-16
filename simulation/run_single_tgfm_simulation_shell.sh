@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-24:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-45:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=8GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=25GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -17,14 +17,9 @@ simulated_gene_expression_dir="$8"
 simulated_learned_gene_models_dir="$9"
 simulated_trait_dir="${10}"
 simulated_gwas_dir="${11}"
-ldsc_weights_dir="${12}"
-simulated_ld_scores_dir="${13}"
-mod_ldsc_code_dir="${14}"
-simulated_sldsc_results_dir="${15}"
-simulated_tgfm_input_data_dir="${16}"
-simulated_tgfm_results_dir="${17}"
-eqtl_sample_size="${18}"
-parr_version="${19}"
+simulated_tgfm_input_data_dir="${12}"
+simulated_tgfm_results_dir="${13}"
+eqtl_sample_size="${14}"
 
 
 
@@ -34,7 +29,6 @@ module load R/4.0.1
 date
 echo $simulation_number
 echo $eqtl_sample_size
-echo $parr_version
 
 # TGFM parameters
 init_method="best"
@@ -43,8 +37,60 @@ est_resid_var="False"
 # File summarizing TGFM input
 tgfm_input_summary_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_bootstrapped_tgfm_input_data_summary.txt"
 
+echo "Part 1: Uniform PMCES"
+# Uniform (PMCES)
+ln_pi_method="uniform"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
+python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
+
+echo "Part 2: Uniform Sampler"
+# Uniform (sampler)
+ln_pi_method="uniform"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
+python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
 
 
+echo "Part 3: iterative prior"
+# Iterative prior (PMCES)
+version="pmces"
+ln_pi_method="uniform"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
+python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $tgfm_input_summary_file $tgfm_output_stem $version
+
+echo "Part 4: prior - sampler"
+ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
+python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+################
+# OLD
+################
+
+
+
+
+
+
+if false; then
 if [ $parr_version == "parallel_1" ]; then
 
 echo "Part 1"
@@ -78,19 +124,6 @@ if false; then
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
 fi
 fi
-
-
-if [ $parr_version == "parallel_3" ]; then
-
-# Uniform (sampler)
-ln_pi_method="uniform"
-init_method="standard"
-tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_bayesian_"${init_method}"_"${ln_pi_method}
-python3 run_tgfm_bayesian.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
-
-
-fi
-
 
 
 
@@ -244,6 +277,6 @@ python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_met
 fi
 
 
-
+fi
 
 date

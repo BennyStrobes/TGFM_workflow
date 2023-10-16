@@ -78,11 +78,6 @@ simulated_trait_dir=$temp_output_root"simulated_trait/"
 # Directory contaiing simulated gwas results
 simulated_gwas_dir=$temp_output_root"simulated_gwas/"
 
-# Directory containing simulated ld scores
-simulated_ld_scores_dir=$temp_output_root"simulated_ld_scores/"
-
-# Directory containing simulated sldsc results
-simulated_sldsc_results_dir=$temp_output_root"simulated_sldsc_results/"
 
 # Directory containing simulated coloc results
 simulated_coloc_results_dir=$temp_output_root"simulated_coloc_results/"
@@ -110,23 +105,9 @@ visualize_simulated_results_dir=$perm_output_root"visualize_simulated_results/"
 ############################
 # Simulation parameters
 ############################
-# Number of simulated individuals in GWAS
-n_gwas_individuals="100000"
-
 # Chromosome to simulate on 
 chrom_num="1"
 
-# cis window arround genes to define eQTLs
-cis_window="100000"
-
-# Per genetic-element heritabilities
-per_element_heritability="0.0005"
-
-# Total heritability
-total_heritability="0.3"
-
-# Fraction of heritability mediated by gene expression
-fraction_expression_mediated_heritability="0.1"
 
 
 
@@ -147,9 +128,21 @@ fi
 ############################
 # NOTE: THERE IS CURRENTLY A HACK IN HERE TO REMOVE 3 variants (out of 500000) on chrom 1 that have no variance across the 100-sample eqtl data set.
 ############################
+n_gwas_individuals="100000"
 if false; then
 sbatch prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir
 fi
+
+# Need to run these 2
+n_gwas_individuals="200000"
+if false; then
+sbatch prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir
+fi
+n_gwas_individuals="50000"
+if false; then
+sbatch prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir
+fi
+
 
 ############################
 # Prepare gene file for simulation:
@@ -165,19 +158,44 @@ fi
 
 
 
+
 ############################
-# Run single simulation of processing and TGLR
+# Main simulation parameters
 ############################
+# Number of simulated individuals in GWAS
+n_gwas_individuals="100000"
+
 # cis window arround genes to define eQTLs
 cis_window="100000"
+
+# Per genetic-element heritabilities
+per_element_heritability="0.0005"
+
+# Total heritability
+total_heritability="0.3"
+
+# Fraction of heritability mediated by gene expression
+fraction_expression_mediated_heritability="0.1"
+
+# cis window arround genes to define eQTLs
+cis_window="100000"
+
+# Gene expression heritability
+ge_h2="075"
+
+
+############################
+# Run single simulation of processing
+############################
 # Iteration of simulation (also works as seed)
 if false; then
 for simulation_number in $(seq 1 20); do 
-	# Simulation string used for output file
-	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
-	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir
+
+	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}
+	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir
 done
 fi
+
 
 
 
@@ -188,55 +206,22 @@ fi
 cis_window="100000"
 if false; then
 for simulation_number in $(seq 1 20); do 
-# Simulation string used for output file
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
+	# Simulation string used for output file
+	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}
 
-eqtl_sample_size="300"
-parr_version="parallel_1"
-sh run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
-eqtl_sample_size="500"
-parr_version="parallel_1"
-sh run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
-eqtl_sample_size="1000"
-parr_version="parallel_1"
-sh run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
+	eqtl_sample_size="300"
+	sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size
+	
+	eqtl_sample_size="500"
+	sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size
+
+	eqtl_sample_size="1000"
+	sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size
 done
 fi
 
 
-if false; then
-for simulation_number in $(seq 2 20); do 
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
-eqtl_sample_size="300"
-parr_version="parallel_2"
-sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
-eqtl_sample_size="500"
-parr_version="parallel_2"
-sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
-eqtl_sample_size="1000"
-parr_version="parallel_2"
-sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
-done
-fi
 
-
-if false; then
-for simulation_number in $(seq 1 20); do 
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
-eqtl_sample_size="300"
-parr_version="parallel_3"
-sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
-eqtl_sample_size="500"
-parr_version="parallel_3"
-sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
-
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
-eqtl_sample_size="1000"
-parr_version="parallel_3"
-sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $ldsc_weights_dir $simulated_ld_scores_dir $mod_ldsc_code_dir $simulated_sldsc_results_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $parr_version
-done
-fi
 
 
 
@@ -244,13 +229,13 @@ fi
 if false; then
 for simulation_number in $(seq 1 20); do 
 	# Simulation string used for output file
-	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
+	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}
 	sbatch run_single_focus_simulation_shell_outer.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_focus_input_dir $simulated_focus_results_dir
 done
 fi
-simulation_number="1"
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}
 if false; then
+simulation_number="1"
+simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}
 sbatch run_single_focus_simulation_shell_outer.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_focus_input_dir $simulated_focus_results_dir
 fi
 
@@ -259,6 +244,7 @@ fi
 
 # Organize simulation results across parallel simulations
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
+global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}
 if false; then
 sh organize_simulation_results_across_parallel_simulations.sh $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_sldsc_results_dir $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $simulated_gene_position_file $processed_genotype_data_dir $simulated_ld_scores_dir $simulated_focus_results_dir $simulated_coloc_results_dir
 fi

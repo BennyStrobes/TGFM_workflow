@@ -9,7 +9,7 @@
 
 
 ukbb_genotype_dir="$1"
-processed_genotype_data_dir="$2"
+processed_genotype_data_root_dir="$2"
 chrom_num="$3"
 n_gwas_individuals="$4"
 ldsc_baseline_hg19_annotation_dir="$5"
@@ -20,11 +20,15 @@ source ~/.bash_profile
 ###############################
 # Extract list of variants in ldsc baseline analysis
 ###############################
-ldsc_annotation_rs_id_file=${processed_genotype_data_dir}"ldsc_annotation_rsids_chr"${chrom_num}".txt"
+ldsc_annotation_rs_id_file=${processed_genotype_data_root_dir}"ldsc_annotation_rsids_chr"${chrom_num}".txt"
 python3 extract_list_of_ldsc_annotation_rs_ids.py $ldsc_baseline_hg19_annotation_dir $chrom_num $kg_genotype_dir $ldsc_annotation_rs_id_file
 
-
-
+###############################
+# Make genotype subdirectory for this gwas sampel size
+###############################
+processed_genotype_data_dir=${processed_genotype_data_root_dir}"gwas_sample_size_"${n_gwas_individuals}"/"
+mkdir $processed_genotype_data_dir
+echo $processed_genotype_data_dir
 
 ###############################
 # Filter UKBB genotype data to only include those variants in ldsc baseline analysis

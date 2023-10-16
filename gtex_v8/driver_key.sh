@@ -470,8 +470,7 @@ source ~/.bash_profile
 module load R/3.5.1
 fi
 if false; then
-echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt"
-Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_results_dir $tgfm_organized_results_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir
+Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_results_dir $tgfm_organized_results_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir $tissue_tissue_correlation_file $gtex_pseudotissue_file
 fi
 
 
@@ -642,10 +641,18 @@ fi
 # Organize TGFM Results across parallel runs
 #################################
 if false; then
-sbatch organize_sc_tgfm_results_across_parallel_runs.sh $sc_tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $merged_tissue_cell_type_file $gtex_pseudotissue_category_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir $sc_tgfm_organized_results_dir $gene_annotation_file
+sh organize_sc_tgfm_results_across_parallel_runs.sh $sc_tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $merged_tissue_cell_type_file $gtex_pseudotissue_category_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir $sc_tgfm_organized_results_dir $gene_annotation_file
 fi
 
+#################################
+# Compute average correlation in predicted expression for each pair of tissues
+#################################
+tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+tissue_tissue_ct_ct_correlation_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_average_tissue_tissue_ct_ct_correlation_across_genes.txt"
+if false; then
+sbatch compute_average_tissue_tissue_correlation_in_predicted_expression_across_genes.sh $tgfm_input_summary_file $merged_tissue_cell_type_file $tissue_tissue_ct_ct_correlation_file
 
+fi
 
 
 #################################
@@ -668,10 +675,8 @@ source ~/.bash_profile
 module load R/3.5.1
 fi
 if false; then
-echo $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_plus_independent_traits_sumstat_files_with_samp_size_and_h2_readable.txt"
-Rscript visualize_sc_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_blood_immune_plus_independent_traits_sumstat_files_with_samp_size_and_h2_readable.txt" $sc_tgfm_results_dir $sc_tgfm_organized_results_dir $iterative_sc_tgfm_prior_results_dir $visualize_sc_tgfm_dir
+Rscript visualize_sc_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $sc_tgfm_results_dir $sc_tgfm_organized_results_dir $iterative_sc_tgfm_prior_results_dir $visualize_sc_tgfm_dir $tissue_tissue_ct_ct_correlation_file
 fi
-
 
 
 #################################

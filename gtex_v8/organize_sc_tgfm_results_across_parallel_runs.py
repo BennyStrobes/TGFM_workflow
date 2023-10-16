@@ -1204,7 +1204,7 @@ def tally_number_of_causal_sc_gene_tissue_pairs_cross_pip_thresholds(concatenate
 					gene_pips.append(ele_prob)
 	f.close()
 	gene_pips = np.asarray(gene_pips)
-	total_genes = np.sum(gene_pips > .1)
+	total_genes = np.sum(gene_pips >= .2)
 	t = open(n_causal_gene_tissue_pairs_summary_cross_threshold_file,'w')
 	t.write('element_class\tPIP_threshold\tn_elements\n')
 	if total_genes == 0:

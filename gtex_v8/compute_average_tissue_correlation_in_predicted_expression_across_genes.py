@@ -46,6 +46,7 @@ output_file = sys.argv[3]
 # Extract ordered tissue information
 ordered_tissue_names = extract_tissue_names(gtex_pseudotissue_file, remove_testis=True)
 
+
 # Create mapping to keep track of correlations
 mapping = {}
 num_tissues = len(ordered_tissue_names)
@@ -115,8 +116,8 @@ for window_iter in range(n_windows):
 	for ii in range(n_genes):
 		for jj in range(n_genes):
 			if ii != jj:
-				gene_ii = middle_gene_names[ii].split('_')[0]
-				gene_jj = middle_gene_names[jj].split('_')[0]
+				gene_ii = middle_gene_names[ii].split('_')[0].split('.')[0]
+				gene_jj = middle_gene_names[jj].split('_')[0].split('.')[0]
 				if gene_ii == gene_jj:
 					tissue_ii = '_'.join(middle_gene_names[ii].split('_')[1:])
 					tissue_jj = '_'.join(middle_gene_names[jj].split('_')[1:])
