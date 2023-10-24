@@ -2079,15 +2079,16 @@ for trait_name in trait_names:
 		n_causal_sc_gene_tissue_pairs_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_sc_gene_tissue_pairs_cross_pip_threshold_sqrt_plot_input.txt'
 		tally_number_of_causal_sc_gene_tissue_pairs_cross_pip_thresholds(concatenated_pip_summary_file, n_causal_sc_gene_tissue_pairs_summary_cross_threshold_file, tissue_name_to_broad_category)
 
-		'''
 		###################################################
 		# Tally up number of causal sc gene-tissue pairs across thresholds in each cell type
 		###################################################	
+		if trait_name == 'blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT':
+			continue
 		blood_cell_types = np.asarray(['B', 'NK', 'Prolif', 'T4', 'T8', 'cDC', 'cM', 'ncM', 'pDC'])
+		blood_cell_types = np.copy(tissue_names)
 		for blood_cell_type in blood_cell_types:
-			n_causal_sc_single_cell_type_gene_tissue_pairs_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_sc_gene_tissue_pairs_' + str(blood_cell_type) + '_cross_pip_threshold_sqrt_plot_input.txt'
+			n_causal_sc_single_cell_type_gene_tissue_pairs_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_tissue_gene_tissue_pairs_' + str(blood_cell_type) + '_cross_pip_threshold_sqrt_plot_input.txt'
 			tally_number_of_causal_sc_gene_tissue_pairs_cross_pip_thresholds_in_single_cell_type(concatenated_pip_summary_file, n_causal_sc_single_cell_type_gene_tissue_pairs_summary_cross_threshold_file, blood_cell_type)
-		'''
 
 
 

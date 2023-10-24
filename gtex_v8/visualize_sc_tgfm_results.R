@@ -2698,7 +2698,7 @@ make_trait_cell_type_heatmap <- function(trait_names, trait_names_readable, pip_
 	pp <- ggplot(df, aes(cell_type, trait, fill= hits)) + 
   		geom_tile() +
   		figure_theme() +
-  		labs(fill=paste0("No. fine-mapped gene-PBMC ct pairs (PIP > ", pip_threshold, ")"),x="", y="") +
+  		labs(title=paste0("No. gene-ct pairs\nPIP > ", pip_threshold),fill="",x="", y="") +
   		theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
   		theme(legend.position="bottom") +
   		scale_fill_gradient(low = "white", high = "red")
@@ -2817,30 +2817,41 @@ ggsave(ct_tissue_corr_heatmap, file=output_file, width=7.2, height=5.5, units="i
 }
 
 ##################################################
-# Make trait-ct heatmap
-##################################################
-# Probably add prior and make supp data.
-if (FALSE) {
-pip_threshold="0.2"
-single_cell_cell_types <- c("B", "NK", "Prolif", "T4", "T8", "cDC", "cM", "ncM", "pDC")
-output_file <- paste0(visualize_tgfm_dir, "trait_ct_heatmap_pip_", pip_threshold,".pdf")
-trait_ct_heatmap <- make_trait_cell_type_heatmap(trait_names, trait_names_readable, pip_threshold, single_cell_cell_types, tgfm_organized_results_dir)
-ggsave(trait_ct_heatmap, file=output_file, width=7.2, height=6.5, units="in")
-
-pip_threshold="0.5"
-single_cell_cell_types <- c("B", "NK", "Prolif", "T4", "T8", "cDC", "cM", "ncM", "pDC")
-output_file <- paste0(visualize_tgfm_dir, "trait_ct_heatmap_pip_", pip_threshold,".pdf")
-trait_ct_heatmap <- make_trait_cell_type_heatmap(trait_names, trait_names_readable, pip_threshold, single_cell_cell_types, tgfm_organized_results_dir)
-ggsave(trait_ct_heatmap, file=output_file, width=7.2, height=6.5, units="in")
-}
-
-##################################################
 # Make file summarizing prior significance of each trait-tissue pair
 ##################################################
 method_version="susie_pmces_uniform"
 trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, "trait_cell_type_tissue_prior_bonferronni_corrected_significance.txt")
 generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file)
 print(trait_tissue_prior_significance_file)
+
+
+
+##################################################
+# Make trait-ct heatmap
+##################################################
+if (FALSE) {
+# Probably add prior and make supp data.
+pip_threshold="0.2"
+single_cell_cell_types <- c("B", "NK", "Prolif", "T4", "T8", "cDC", "cM", "ncM", "pDC")
+output_file <- paste0(visualize_tgfm_dir, "trait_ct_heatmap_pip_", pip_threshold,".pdf")
+trait_ct_heatmap_2 <- make_trait_cell_type_heatmap(trait_names, trait_names_readable, pip_threshold, single_cell_cell_types, tgfm_organized_results_dir)
+ggsave(trait_ct_heatmap_2, file=output_file, width=7.2, height=6.5, units="in")
+
+pip_threshold="0.5"
+single_cell_cell_types <- c("B", "NK", "Prolif", "T4", "T8", "cDC", "cM", "ncM", "pDC")
+output_file <- paste0(visualize_tgfm_dir, "trait_ct_heatmap_pip_", pip_threshold,".pdf")
+trait_ct_heatmap_5 <- make_trait_cell_type_heatmap(trait_names, trait_names_readable, pip_threshold, single_cell_cell_types, tgfm_organized_results_dir)
+ggsave(trait_ct_heatmap_5, file=output_file, width=7.2, height=6.5, units="in")
+
+# Joint heatmap
+output_file <- paste0(visualize_tgfm_dir, "trait_ct_heatmap_joint.pdf")
+joint_plot <- plot_grid(trait_ct_heatmap_2, trait_ct_heatmap_5, ncol=2, labels=c("a","b"))
+ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
+}
+
+
+
+
 
 ##################################################
 # Violin plot showing bootstrapped prior distributions 

@@ -459,19 +459,13 @@ fi
 #################################
 # Visualize TGFM results
 #################################
-# 1. blood red count, SMIM1
-# 2. Eczema, OVOL1, lymphocytes (Check if eczema is not genetically correlated with Asthma, where this also comes up)
-# 3. Cholesterol, liver example, plausible case (could also do vitamin D example here)
-# 4. Hypothyroidism, TPO
-# 5. Systolic BP, artery aorta PHACTR1
-# 6. Systolic BP, brain MC4R
 if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
-if false; then
+echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt"
 Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_results_dir $tgfm_organized_results_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir $tissue_tissue_correlation_file $gtex_pseudotissue_file
-fi
+
 
 
 
@@ -651,7 +645,6 @@ tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input
 tissue_tissue_ct_ct_correlation_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_average_tissue_tissue_ct_ct_correlation_across_genes.txt"
 if false; then
 sbatch compute_average_tissue_tissue_correlation_in_predicted_expression_across_genes.sh $tgfm_input_summary_file $merged_tissue_cell_type_file $tissue_tissue_ct_ct_correlation_file
-
 fi
 
 
@@ -683,7 +676,7 @@ fi
 # Prepare miscellaneous supp data
 #################################
 if false; then
-sh prepare_misc_supp_data.sh $supp_data_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $gtex_pseudotissue_file $gtex_covariate_dir $tgfm_organized_results_dir
+sh prepare_misc_supp_data.sh $supp_data_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $gtex_pseudotissue_file $gtex_covariate_dir $tgfm_organized_results_dir $gtex_susie_gene_models_dir $sc_pbmc_susie_gene_models_dir $sc_pseudobulk_expression_dir $sc_tgfm_organized_results_dir
 fi
 
 

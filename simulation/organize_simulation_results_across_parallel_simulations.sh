@@ -13,18 +13,18 @@ n_gwas_individuals="$3"
 global_simulation_name_string="$4"
 total_heritability="$5"
 fraction_expression_mediated_heritability="$6"
-simulated_sldsc_results_dir="$7"
-simulated_organized_results_dir="$8"
-simulated_tgfm_results_dir="$9"
-simulated_trait_dir="${10}"
-simulated_gene_expression_dir="${11}"
-simulated_learned_gene_models_dir="${12}"
-simulated_tgfm_input_data_dir="${13}"
-simulated_gene_position_file="${14}"
-processed_genotype_data_dir="${15}"
-simulated_ld_scores_dir="${16}"
-simulated_focus_results_dir="${17}"
-simulated_coloc_results_dir="${18}"
+simulated_organized_results_dir="$7"
+simulated_tgfm_results_dir="$8"
+simulated_trait_dir="${9}"
+simulated_gene_expression_dir="${10}"
+simulated_learned_gene_models_dir="${11}"
+simulated_tgfm_input_data_dir="${12}"
+simulated_gene_position_file="${13}"
+processed_genotype_data_dir="${14}"
+simulated_focus_results_dir="${15}"
+simulated_coloc_results_dir="${16}"
+
+
 
 
 
@@ -32,4 +32,4 @@ source ~/.bash_profile
 
 
 
-python3 organize_simulation_results_across_parallel_simulations.py $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_sldsc_results_dir $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $simulated_gene_position_file $processed_genotype_data_dir $simulated_ld_scores_dir $simulated_focus_results_dir $simulated_coloc_results_dir
+python3 organize_simulation_results_across_parallel_simulations.py $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $simulated_gene_position_file $processed_genotype_data_dir $simulated_focus_results_dir $simulated_coloc_results_dir

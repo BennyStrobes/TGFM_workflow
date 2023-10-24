@@ -778,7 +778,7 @@ generate_component_level_abf_summary_data(tgfm_input_summary_file, component_lev
 # Learn iterative distribution variant-gene-tissue prior (doing non-distribution based prior)
 ###################################################
 n_bootstraps=100
-variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=3, n_bootstraps=n_bootstraps)
+variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=400, n_bootstraps=n_bootstraps)
 
 
 

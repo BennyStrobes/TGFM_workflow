@@ -1641,7 +1641,7 @@ make_fraction_high_pip_elements_from_gene_expression_plot_with_standard_errors <
   		geom_errorbar(aes(ymin=expression_mediated_fraction_lb, ymax=expression_mediated_fraction_ub), width=.4, position=position_dodge(.9))  +
   		#scale_fill_manual(values=c("#56B4E9", "darkorchid3"))+
   		figure_theme() +
-  		labs(x="eQTL sample size", y="Expected fraction of fine-mapped genetic elements\nmediated through gene expression", fill="PIP") +
+  		labs(x="eQTL sample size", y="Expected fraction of fine-mapped genetic\nelements mediated by gene expression", fill="PIP") +
   		geom_hline(yintercept=.1, linetype=2) 
   	return(p)
 }
@@ -1661,7 +1661,6 @@ visualize_simulated_results_dir = args[3]
 # Genome-wide PRIOR
 #####################################################################
 #####################################################################
-if (FALSE) {
 #####################################################################
 # Make barplot with standard error showing AVG fraction-mediated per tissue
 #####################################################################
@@ -1728,10 +1727,9 @@ power_se_barplot <- make_power_med_h2_se_barplot_at_single_threshold(power_h2_df
 
 
 # Make joint plot
-joint_plot <- plot_grid(t1e_se_barplot + theme(legend.position="none"), power_se_barplot+ theme(legend.position="none"), ncol=1, rel_heights=c(1, 1))
+joint_plot <- plot_grid(t1e_se_barplot + theme(legend.position="none"), power_se_barplot+ theme(legend.position="none"), ncol=1, rel_heights=c(1, 1), labels=c("a","b"))
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_at_", threshold, ".pdf")
 ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
-}
 
 #####################################################################
 # Make barplot with standard error showing Type 1 error using gaussian approximation of bootstrapped iterative VGT PMCES
@@ -1755,15 +1753,13 @@ power_h2_df <- read.table(power_h2_file, header=TRUE)
 power_se_barplot <- make_power_med_h2_se_barplot_gaussian_approximation(power_h2_df)
 
 # Make joint plot
-joint_plot <- plot_grid(t1e_se_barplot + theme(legend.position="none"), power_se_barplot+ theme(legend.position="none"), ncol=1, rel_heights=c(1, 1))
+joint_plot <- plot_grid(t1e_se_barplot + theme(legend.position="none"), power_se_barplot+ theme(legend.position="none"), ncol=1, rel_heights=c(1, 1), labels=c("a","b"))
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_gaussian_approximation.pdf")
 ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
 
 
 
 
-
-if (FALSE) {
 
 #####################################################################
 #####################################################################
@@ -1778,10 +1774,10 @@ if (FALSE) {
 expr_med_frac_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_expected_fraction_elements_mediated_by_gene_expresssion.txt")
 expr_med_frac_df <- read.table(expr_med_frac_file, header=TRUE)
 # Make plot
-expr_med_frac_se_plot <- make_expr_med_fraction_plot_with_standard_errors2(expr_med_frac_df)
+expr_med_frac_se_plot1 <- make_expr_med_fraction_plot_with_standard_errors2(expr_med_frac_df)
 # Save to output
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_expected_fraction_TGFM_PIP_mediated_by_expression.pdf")
-ggsave(expr_med_frac_se_plot, file=output_file, width=7.2, height=4.0, units="in")
+ggsave(expr_med_frac_se_plot1, file=output_file, width=7.2, height=4.0, units="in")
 
 
 #####################################################################
@@ -1791,13 +1787,20 @@ ggsave(expr_med_frac_se_plot, file=output_file, width=7.2, height=4.0, units="in
 expr_med_frac_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_fraction_high_pip_elements_mediated_by_gene_expresssion.txt")
 expr_med_frac_df <- read.table(expr_med_frac_file, header=TRUE)
 # Make plot
-expr_med_frac_se_plot <- make_fraction_high_pip_elements_from_gene_expression_plot_with_standard_errors(expr_med_frac_df)
+expr_med_frac_se_plot2 <- make_fraction_high_pip_elements_from_gene_expression_plot_with_standard_errors(expr_med_frac_df)
 # Save to output
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_fraction_TGFM_high_PIP_mediated_by_expression.pdf")
-ggsave(expr_med_frac_se_plot, file=output_file, width=7.2, height=4.0, units="in")
-}
+ggsave(expr_med_frac_se_plot2, file=output_file, width=7.2, height=4.0, units="in")
 
-if (FALSE) {
+
+# Joint plot
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_suppfig_estimated_fraction_mediated_by_expression.pdf")
+joint_plot <- plot_grid(expr_med_frac_se_plot2, expr_med_frac_se_plot1, ncol=1, labels=c("a","b"))
+ggsave(joint_plot, file=output_file, width=7.2, height=7.5, units="in")
+
+
+
 #####################################################################
 # Make Figure 1
 #####################################################################
@@ -1822,10 +1825,8 @@ figure1 <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.positio
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_figure1.pdf")
 ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
-}
 
 
-if (FALSE) {
 
 #####################################################################
 # Make Figure 2: TGFM variant and gene precision and power as a function of eQTL sample size
@@ -1874,13 +1875,11 @@ joint_figure <- plot_grid( legender, NULL, plot_grid(precision_plot_5 +theme(leg
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_figure2.pdf")
 ggsave(joint_figure, file=output_file, width=7.2, height=5.5, units="in")
-}
 
 
 #####################################################################
 # Make Figure 1-2 hybrid for poster
 #####################################################################
-if (FALSE) {
 # Precision plots
 pip_threshold <- "0.5"
 fdr_plot_5 <- make_gene_fdr_plot_across_methods_and_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
@@ -1905,12 +1904,10 @@ fig_2_poster <- plot_grid(plot_grid(precision_plot_5+theme(legend.position="none
 poster_fig <- plot_grid(fig_1_poster, fig_2_poster, ncol=2)
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_poster_figure.pdf")
 ggsave(poster_fig, file=output_file, width=21.2, height=3.0, units="in")
-}
 
 
 
 
-if (FALSE) {
 #####################################################################
 # Plot precision over a range of thresholds
 #####################################################################
@@ -1939,8 +1936,6 @@ figure <- plot_grid(legender, plot_grid(fdr_plot_3+theme(legend.position="none")
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_method_precision_pip_range.pdf")
 ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
-}
-if (FALSE) {
 
 # Precision plots
 pip_threshold <- "0.3"
@@ -1971,12 +1966,9 @@ ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
 
 
 
-
-}
 #####################################################################
 # Plot power over a range of thresholds
 #####################################################################
-if (FALSE) {
 # Precision plots
 pip_threshold <- "0.3"
 precision_plot_3 <- make_gene_power_plot_across_methods_and_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
@@ -2001,9 +1993,7 @@ figure <- plot_grid(legender, plot_grid(precision_plot_3+theme(legend.position="
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_method_power_pip_range.pdf")
 ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
-}
 
-if (FALSE) {
 # Precision plots
 pip_threshold <- "0.3"
 precision_plot_3 <- make_tgfm_variant_gene_power_plot_across_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
@@ -2057,12 +2047,8 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
 
 
-}
 
 
-
-
-if (FALSE) {
 #####################################################################
 # Make gene-level (not gene-tissue) version of Figure 1
 #####################################################################
@@ -2087,7 +2073,6 @@ figure1 <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.positio
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_level_version_of_figure1.pdf")
 ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
-}
 
 
 
