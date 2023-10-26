@@ -2789,6 +2789,110 @@ def get_simulation_runs(simulated_tgfm_results_dir):
 	return np.asarray(valid_sim_runs)
 
 
+def extract_window_variant_pips_for_comparison(susie_window_summary_file, tgfm_window_summary_file):
+	# Load in TGFM results file
+	g = open(tgfm_window_summary_file, "rb")
+	tgfm_res = pickle.load(g)
+	g.close()
+
+	# Load in susie results file
+	g = open(susie_window_summary_file, "rb")
+	susie_res = pickle.load(g)
+	g.close()
+
+
+	tgfm_pips = tgfm_res['expected_beta_pips'][tgfm_res['middle_variant_indices']]
+	susie_pips = susie_res['pips'][susie_res['middle_variant_indices']]
+	# abs correlation thresh: .25, gene pip thresh .05
+	valid_indices = susie_res['valid_indices_mat'][0,:][susie_res['middle_variant_indices']]
+
+
+	return susie_pips, tgfm_pips, valid_indices
+
+
+def create_file_summarizing_tgfm_variant_pip_and_susie_variant_pip_comparison(eqtl_sample_size, simulation_runs, simulated_tgfm_results_dir, global_simulation_name_string, variant_comparison_file):
+	tgfm_pip_arr = []
+	susie_pip_arr = []
+	valid_index_arr = []
+
+	for simulation_run in simulation_runs:
+		susie_summary_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_variant_only_uniform_tgfm_pip_summary.txt'
+		f = open(susie_summary_file)
+		head_count = 0
+		for line in f:
+			line = line.rstrip()
+			data = line.split('\t')
+			if head_count == 0:
+				head_count = head_count + 1
+				continue
+			window_name = data[0]
+
+			susie_window_summary_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_variant_only_uniform_' + window_name + '_results.pkl'
+			tgfm_window_summary_file = simulated_tgfm_results_dir + 'simulation_' + str(simulation_run) + '_' + global_simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_' + window_name + '_results.pkl'
+
+			if os.path.isfile(susie_window_summary_file) == False or os.path.isfile(tgfm_window_summary_file) == False:
+				continue
+
+			window_susie_pips, window_tgfm_pips, valid_snps = extract_window_variant_pips_for_comparison(susie_window_summary_file, tgfm_window_summary_file)
+
+			tgfm_pip_arr.append(window_tgfm_pips)
+			susie_pip_arr.append(window_susie_pips)
+			valid_index_arr.append(valid_snps)
+
+		f.close()
+
+	tgfm_pip_arr = np.hstack(tgfm_pip_arr)
+	susie_pip_arr = np.hstack(susie_pip_arr)
+	valid_index_arr = np.hstack(valid_index_arr)
+	
+	print(np.corrcoef(tgfm_pip_arr, susie_pip_arr)[0,1])
+	print(np.corrcoef(tgfm_pip_arr[valid_index_arr], susie_pip_arr[valid_index_arr])[0,1])
+
+	print(np.sum(valid_index_arr))
+	print(len(valid_index_arr))
+
+	# Print to output file
+	t = open(variant_comparison_file,'w')
+	t.write('susie_pip\ttgfm_pip\tcorrelated_with_causal_gene\n')
+
+	# Distinguish low and high pip snps
+	low_pip_snps = (tgfm_pip_arr < .01) & (susie_pip_arr < .01)
+	high_pip_snps = low_pip_snps == False
+
+	# First print high pip snps
+	tgfm_pip_arr_high = tgfm_pip_arr[high_pip_snps]
+	susie_pip_arr_high = susie_pip_arr[high_pip_snps]
+	valid_index_arr_high = valid_index_arr[high_pip_snps]
+	for ii in range(len(tgfm_pip_arr_high)):
+		if valid_index_arr_high[ii] == True:
+			stringer = 'False'
+		else:
+			stringer = 'True'
+		t.write(str(susie_pip_arr_high[ii]) + '\t' + str(tgfm_pip_arr_high[ii]) + '\t' + str(stringer) + '\n')
+
+	# Now print subsampled low pip snps
+	tgfm_pip_arr_low = tgfm_pip_arr[low_pip_snps]
+	susie_pip_arr_low = susie_pip_arr[low_pip_snps]
+	valid_index_arr_low = valid_index_arr[low_pip_snps]
+	# Subsample
+	n_low_pip_snps = len(tgfm_pip_arr_low)
+	desired_n_low_pip_snps = 100000
+	subsamp_indices = np.random.choice(np.arange(n_low_pip_snps), size=desired_n_low_pip_snps, replace=False)
+	tgfm_pip_arr_low_sub = tgfm_pip_arr_low[subsamp_indices]
+	susie_pip_arr_low_sub = susie_pip_arr_low[subsamp_indices]
+	valid_index_arr_low_sub = valid_index_arr_low[subsamp_indices]
+
+	for ii in range(len(tgfm_pip_arr_low_sub)):
+		if valid_index_arr_low_sub[ii] == True:
+			stringer = 'False'
+		else:
+			stringer = 'True'
+		t.write(str(susie_pip_arr_low_sub[ii]) + '\t' + str(tgfm_pip_arr_low_sub[ii]) + '\t' + str(stringer) + '\n')
+
+	t.close()
+	return
+
+
 #######################
 # Command line args
 #######################
@@ -2811,8 +2915,10 @@ simulated_coloc_results_dir = sys.argv[16]
 
 
 processed_genotype_data_dir = processed_genotype_data_dir + 'gwas_sample_size_' + str(n_gwas_individuals) + '/'
-print(processed_genotype_data_dir)
 
+
+
+'''
 #############################################################
 # Genome-wide analysis
 #############################################################
@@ -2829,7 +2935,7 @@ print(len(simulation_runs))
 thresholds = [1e-1, 1e-2, 1e-3, 5e-4, 2.5e-4, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12, 1e-14, 1e-16, 1e-18]
 
 model_names = ['susie_pmces_uniform_iterative_variant_gene_prior_pip_level']
-'''
+
 for model_name in model_names:
 	##########################
 	# Power and Type 1 Error
@@ -2879,12 +2985,10 @@ for model_name in model_names:
 	organized_avg_fraction_causal_by_tissue_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + model_name + '_avg_fraction_causal_by_tissue.txt'
 	#create_file_containing_avg_med_h2_by_tissue_across_simulation_runs(fraction_causal_by_tissue_output_file, organized_avg_fraction_causal_by_tissue_output_file, eqtl_sample_sizes)
 	create_file_containing_avg_fraction_causal_by_tissue_across_simulation_runs(fraction_causal_by_tissue_output_file, organized_avg_fraction_causal_by_tissue_output_file, eqtl_sample_sizes)
-'''
 
 #############################################################
 # Fraction of TGFM elements mediated by gene expression
 #############################################################
-'''
 # Used eQTL sample sizes
 eqtl_sample_sizes = np.asarray([300,500,1000])
 
@@ -2910,7 +3014,6 @@ create_file_containing_fraction_of_high_pip_tgfm_elements_mediated_by_gene_expre
 # Create file containing expected fraction of elememnts mediated by gene expresssion
 expected_fraction_of_elements_mediated_by_gene_expression_summary_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_' + twas_method + '_' + ln_pi_method + '_expected_fraction_elements_mediated_by_gene_expresssion.txt'
 create_file_containing_expected_fraction_of_tgfm_elements_mediated_by_gene_expression(global_window_file, eqtl_sample_sizes, simulation_runs, twas_method, ln_pi_method, global_simulation_name_string, simulated_tgfm_results_dir, expected_fraction_of_elements_mediated_by_gene_expression_summary_file)
-'''
 
 #############################################################
 # Fine-mapping evaluation metrics
@@ -3152,11 +3255,19 @@ for pip_threshold in pip_thresholds:
 	coloc_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_gene_power.txt'
 	create_file_containing_averaged_focus_cs_power(coloc_cs_power_per_component_output_file, coloc_cs_power_output_file, eqtl_sample_sizes)
 
+'''
 
 
 
 
 
+#############################################################
+# Compare TGFM (variant) PIP with SuSiE variant PIPs
+#############################################################
+eqtl_sample_size = 500
+simulation_runs = np.arange(1,21)
+variant_comparison_file = simulated_organized_results_dir + 'organized_simulation_' + global_simulation_name_string + '_tgfm_variant_pip_susie_variant_pip_comparison.txt'
+create_file_summarizing_tgfm_variant_pip_and_susie_variant_pip_comparison(eqtl_sample_size, simulation_runs, simulated_tgfm_results_dir, global_simulation_name_string, variant_comparison_file)
 
 
 

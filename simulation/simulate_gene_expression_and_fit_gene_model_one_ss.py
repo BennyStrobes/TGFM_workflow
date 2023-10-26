@@ -508,7 +508,7 @@ ge_h2 = float('.' + ge_h2_str)
 np.random.seed(simulation_number)
 
 # Define vector of eQTL sample sizes
-eqtl_sample_sizes = np.asarray([300, 500, 1000])
+eqtl_sample_sizes = np.asarray([500])
 
 
 # Fraction of genes cis heritable for a given tissue

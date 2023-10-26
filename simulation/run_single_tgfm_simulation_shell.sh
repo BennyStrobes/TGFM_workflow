@@ -37,6 +37,9 @@ est_resid_var="False"
 # File summarizing TGFM input
 tgfm_input_summary_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_bootstrapped_tgfm_input_data_summary.txt"
 
+
+
+if false; then
 echo "Part 1: Uniform PMCES"
 # Uniform (PMCES)
 ln_pi_method="uniform"
@@ -60,8 +63,13 @@ echo "Part 4: prior - sampler"
 ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
+fi
 
 
+echo "Part 5: default susie"
+ln_pi_method="uniform"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_variant_only_"${ln_pi_method}
+python3 run_default_susie.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method
 
 
 

@@ -1647,6 +1647,22 @@ make_fraction_high_pip_elements_from_gene_expression_plot_with_standard_errors <
 }
 
 
+cmp_tgfm_variant_pip_susie_pip_scatter <- function(file_name) {
+	df <- read.table(file_name, header=TRUE)
+
+	df$correlated_with_causal_gene = factor(df$correlated_with_causal_gene, levels=c("True", "False"))
+
+	pp <- ggplot(df, aes(x=susie_pip, y=tgfm_pip, color=correlated_with_causal_gene)) +
+  		geom_point(size=.1) +
+  		figure_theme() +
+  		scale_color_manual(values=c("purple", "black")) +
+  		labs(x="SuSiE PIP", y="TGFM (Variant) PIP", color="Variant correlated with\nfine-mapped gene") +
+  		theme(legend.position="bottom")
+
+  	return(pp)
+
+}
+
 
 #######################
 # Command line args
@@ -1656,6 +1672,7 @@ simulated_organized_results_dir = args[2]
 visualize_simulated_results_dir = args[3]
 
 
+if (FALSE) {
 #####################################################################
 #####################################################################
 # Genome-wide PRIOR
@@ -2073,13 +2090,20 @@ figure1 <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.positio
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_level_version_of_figure1.pdf")
 ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
+}
 
 
 
 
-
-
-
+#####################################################################
+# Scatter plot comparing TGFM (Variant) PIP with SuSiE PIP
+#####################################################################
+if (FALSE) {
+tgfm_variant_susie_cmp_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_tgfm_variant_pip_susie_variant_pip_comparison.txt")
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_tgfm_variant_susie_variant_pip_cmp_scatter.pdf")
+scatter <- cmp_tgfm_variant_pip_susie_pip_scatter(tgfm_variant_susie_cmp_file)
+ggsave(scatter, file=output_file, width=7.2, height=4.6, units="in")
+}
 
 
 
