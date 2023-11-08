@@ -474,6 +474,15 @@ make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot <- fu
 		tmp_data <- read.table(summary_file, header=TRUE, sep="\t")
 		tmp_data <- tmp_data[as.character(tmp_data$element_class)=="gene",]
 
+
+		if (cell_type_name == "T4") {
+			cell_type_name = "CD4"
+		}
+		if (cell_type_name == "T8") {
+			cell_type_name = "CD8"
+		}
+
+
 		tmp_data = tmp_data[tmp_data$PIP_threshold >= .2,]
 			
 		number_elements_vec <- c(number_elements_vec, tmp_data$n_elements)
@@ -490,7 +499,6 @@ make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot <- fu
 	df <- data.frame(trait=tissue_names_vec, PIP=pip_threshold_vec, num_elements=number_elements_vec)
 
 	indices = order(-mid_point_vec, -total_hits_vec)
-
 
 
 	df$trait = factor(df$trait, levels=as.character(tissue_names_vec2)[indices])
@@ -2678,6 +2686,8 @@ make_trait_cell_type_heatmap <- function(trait_names, trait_names_readable, pip_
 
 	df = data.frame(trait=trait_names_vec, cell_type=ct_name_vec, hits=hits_vec)
 
+	df$cell_type = recode(df$cell_type, T4="CD4", T8="CD8")
+
 
 	df$value = df$hits
 	matrix <- dcast(df, cell_type ~ trait)
@@ -2821,8 +2831,9 @@ ggsave(ct_tissue_corr_heatmap, file=output_file, width=7.2, height=5.5, units="i
 ##################################################
 method_version="susie_pmces_uniform"
 trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, "trait_cell_type_tissue_prior_bonferronni_corrected_significance.txt")
+if (FALSE) {
 generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file)
-print(trait_tissue_prior_significance_file)
+}
 
 
 
@@ -2848,8 +2859,6 @@ output_file <- paste0(visualize_tgfm_dir, "trait_ct_heatmap_joint.pdf")
 joint_plot <- plot_grid(trait_ct_heatmap_2, trait_ct_heatmap_5, ncol=2, labels=c("a","b"))
 ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
 }
-
-
 
 
 
@@ -3018,7 +3027,6 @@ ggsave(fig_6, file=output_file, width=7.2, height=6.9, units="in")
 ##########################################################
 # Make Figure 6 alt
 ##########################################################
-if (FALSE) {
 # Make heatmap-barplot showing expected number of causal gene-tissue pairs
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 single_cell_cell_types <- c("B", "NK", "Prolif", "T4", "T8", "cDC", "cM", "ncM", "pDC")
@@ -3053,7 +3061,6 @@ fig_6 <- plot_grid(fig_6ab, fig_6cf, ncol=1, rel_heights=c(.7,.65))
 output_file <- paste0(visualize_tgfm_dir, "figure6_alt.pdf")
 
 ggsave(fig_6, file=output_file, width=7.2, height=5.5, units="in")
-}
 
 
 

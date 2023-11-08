@@ -121,6 +121,7 @@ get_tgfm_manhatten_plot_for_given_window_paper_data <- function(snp_df, gene_df,
 
 	#gene_df$tissue_name <- recode(gene_df$tissue_name, Thyroid="thyroid",Artery_Aorta="artery aorta", Brain_Cerebellum="brain cerebellum",Cells_EBV_transformed_lymphocytes="lymphocytes",Whole_Blood="whole blood", Adrenal_Gland="Adrenal Gland",Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="skin (sun exposed)",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
 
+	#gene_df$tissue_name = recode(gene_df$tissue_name, T4="CD4", T8="CD8")
 
 	position_vec <- c(gene_df$gene_tss, snp_df$snp_position)
 	name_vec <- c(as.character(gene_df$gene_name), as.character(snp_df$snp_name))
@@ -143,7 +144,7 @@ make_tgfm_manhatten_plot_for_given_window_paper_ready <- function(snp_df, gene_d
 
 	gene_df$tissue_name = str_replace_all(as.character(gene_df$tissue_name), "-", "_")
 
-	gene_df$tissue_name <- recode(gene_df$tissue_name, Thyroid="thyroid",Artery_Aorta="artery aorta", Brain_Cerebellum="brain cerebellum",Cells_EBV_transformed_lymphocytes="lymphocytes",Whole_Blood="whole blood", Adrenal_Gland="Adrenal Gland",Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="skin (sun exposed)",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord")
+	gene_df$tissue_name <- recode(gene_df$tissue_name, Thyroid="thyroid",Artery_Aorta="artery aorta", Brain_Cerebellum="brain cerebellum",Cells_EBV_transformed_lymphocytes="lymphocytes",Whole_Blood="whole blood", Adrenal_Gland="Adrenal Gland",Adipose_Subcutaneous="Adipose_Sub", Adipose_Visceral_Omentum="Adipose_Visceral", Breast_Mammary_Tissue="Breast_Mammary", Cells_Cultured_fibroblasts="Fibroblast",Heart_Atrial_Appendage="Heart_Atrial",Skin_Sun_Exposed_Lower_leg="skin (sun exposed)",Skin_Not_Sun_Exposed_Suprapubic="Skin_No_Sun", Small_Intestine_Terminal_Ileum="Small_Intestine", Brain_Anterior_cingulate_cortex_BA24="Brain_anterior_cortex", Brain_Nucleus_accumbens_basal_ganglia="Brain_basal_ganglia", Esophagus_Gastroesophageal_Junction="Esophagus_gastro_jxn", Cells_EBV_transformed_lymphocytes="lymphocytes", Brain_Spinal_cord_cervical_c_1="Brain_Spinal_cord", T4="CD4", T8="CD8")
 
 	# DIAGNOSTIC STUFF
 	print(trait_name)
@@ -351,8 +352,7 @@ for (example_iter in 1:n_examples) {
 }
 }
 
-print("HELLO")
-
+if (FALSE) {
 twas_thresh=4.1e-7
 ######################
 # Example 1
@@ -444,7 +444,7 @@ tgfm_manhatten_data4 <- get_tgfm_manhatten_plot_for_given_window_paper_data(snp_
 ####################
 # Joint plot
 legender = get_legend(tgfm_manhatten_plot1)
-joint_manhatten <- plot_grid(plot_grid(tgfm_manhatten_plot1 + theme(legend.position="none"), tgfm_manhatten_plot2+ theme(legend.position="none"),tgfm_manhatten_plot3+ theme(legend.position="none"), tgfm_manhatten_plot4+ theme(legend.position="none"), ncol=2, labels=c("a","b","c","d")), legender, ncol=1, rel_heights=c(1, .14))
+joint_manhatten <- plot_grid(plot_grid(tgfm_manhatten_plot4+ theme(legend.position="none"), tgfm_manhatten_plot1 + theme(legend.position="none"), tgfm_manhatten_plot2+ theme(legend.position="none"),tgfm_manhatten_plot3+ theme(legend.position="none"), ncol=2, labels=c("a","b","c","d")), legender, ncol=1, rel_heights=c(1, .14))
 output_file <- paste0(visualize_specific_tgfm_examples_dir, "figure7.pdf")
 ggsave(joint_manhatten, file=output_file, width=7.2, height=5.0, units="in")
 
@@ -454,27 +454,11 @@ merged_tgfm_manhatten_data = rbind(tgfm_manhatten_data1, tgfm_manhatten_data2, t
 supp_table_file = paste0(visualize_specific_tgfm_examples_dir, "suppTable_figure7_numerical.txt")
 write.table(merged_tgfm_manhatten_data, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
 print(supp_table_file)
-
-
+}
 
 
 if (FALSE) {
 twas_thresh=4.2e-7
-######################
-# Example 1
-# blood_RED_COUNT ENSG00000235169.7_Whole_Blood   SMIM1   ENSG00000235169.7       Whole_Blood     1:2010176:5010176
-trait_name <- "blood_RED_COUNT"
-trait_name_readable <- "Red blood cell count"
-window_name <- "1:2010176:5010176"
-# Input files
-snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
-gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
-# Load in input
-snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
-gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
-
-# Make manhatten plot for a given window/trait
-#tgfm_manhatten_plot1 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
 
 ########################
 # Example 1
@@ -597,7 +581,7 @@ tgfm_manhatten_data6 <- get_tgfm_manhatten_plot_for_given_window_paper_data(snp_
 ####################
 # Joint plot
 legender = get_legend(tgfm_manhatten_plot1)
-joint_manhatten <- plot_grid(plot_grid(tgfm_manhatten_plot1 + theme(legend.position="none"), tgfm_manhatten_plot2+ theme(legend.position="none"), tgfm_manhatten_plot3+ theme(legend.position="none"),tgfm_manhatten_plot4+ theme(legend.position="none"), tgfm_manhatten_plot5+ theme(legend.position="none"), tgfm_manhatten_plot6+ theme(legend.position="none"), ncol=2, labels=c("a","b","c","d", "e", "f")), legender, ncol=1, rel_heights=c(1, .09))
+joint_manhatten <- plot_grid(plot_grid(tgfm_manhatten_plot3+ theme(legend.position="none"), tgfm_manhatten_plot1 + theme(legend.position="none"), tgfm_manhatten_plot2+ theme(legend.position="none"),tgfm_manhatten_plot6+ theme(legend.position="none"), tgfm_manhatten_plot5+ theme(legend.position="none"), tgfm_manhatten_plot4+ theme(legend.position="none"), ncol=2, labels=c("a","b","c","d", "e", "f")), legender, ncol=1, rel_heights=c(1, .09))
 output_file <- paste0(visualize_specific_tgfm_examples_dir, "six_example_tgfm_manhattan.pdf")
 print(output_file)
 ggsave(joint_manhatten, file=output_file, width=7.2, height=6.5, units="in")
@@ -609,16 +593,126 @@ merged_tgfm_manhatten_data = rbind(tgfm_manhatten_data1, tgfm_manhatten_data2, t
 supp_table_file = paste0(visualize_specific_tgfm_examples_dir, "suppTable_figure5_numerical.txt")
 write.table(merged_tgfm_manhatten_data, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
 print(supp_table_file)
-
 }
 
 
 
 
+#################
+# Supp data
+twas_thresh=4.2e-7
+
+######################
+# Example 1
+# blood_RED_COUNT ENSG00000235169.7_Whole_Blood   SMIM1   ENSG00000235169.7       Whole_Blood     1:2010176:5010176
+trait_name <- "blood_RED_COUNT"
+trait_name_readable <- "Red blood cell count"
+window_name <- "1:2010176:5010176"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_plot1 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
+
+######################
+# Example 2
+# ENSG00000205978.5_Liver	ENSG00000205978	NYNRIN	Liver	0.7019168867675932	0.9772922945911715	14:23223582:26223582
+trait_name <- "biochemistry_Cholesterol"
+trait_name_readable <- "Cholesterol"
+window_name <- "14:23223582:26223582"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_plot2 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
+
+
+######################
+# Example 3
+# ENSG00000159640.15_Adrenal_Gland	ENSG00000159640	ACE	Adrenal_Gland	0.607149800587197	0.8157302610278647	17:62150508:65150508
+trait_name <- "disease_HYPERTENSION_DIAGNOSED"
+trait_name_readable <- "Hypertension"
+window_name <- "17:62150508:65150508"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_plot3 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
+
+
+######################
+# Example 4
+# ENSG00000118257.16_Lung	ENSG00000118257	NRP2	Lung	0.97931106037432	0.9947268843600326	2:204010553:207010553
+trait_name <- "lung_FEV1FVCzSMOKE"
+trait_name_readable <- "FEV1:FVC"
+window_name <- "2:204010553:207010553"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_plot4 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
 
 
 
+######################
+# Example 5
+# ENSG00000166228.8_Pancreas	ENSG00000166228	PCBD1	Pancreas	0.6100154395324857	0.7599280466673501	10:69014743:72014743
+# ENSG00000138083.4_Pancreas	ENSG00000138083	SIX3	Pancreas	0.6697373643679546	0.6697373643679546	2:43010553:46010553
+trait_name <- "biochemistry_HbA1c"
+trait_name_readable <- "HbA1c"
+window_name <- "2:43010553:46010553"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
 
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_plot5 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
+
+
+
+######################
+# Example 6
+# ENSG00000166035.10_Liver	ENSG00000166035	LIPC	Liver	0.829389528434834	0.8674744237210154	15:56795210:59795210
+trait_name <- "biochemistry_VitaminD"
+trait_name_readable <- "Vitamin D"
+window_name <- "15:56795210:59795210"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_plot6 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
+
+
+####################
+# Joint plot
+legender = get_legend(tgfm_manhatten_plot1)
+joint_manhatten <- plot_grid(plot_grid(tgfm_manhatten_plot1+ theme(legend.position="none"), tgfm_manhatten_plot2 + theme(legend.position="none"), tgfm_manhatten_plot3+ theme(legend.position="none"),tgfm_manhatten_plot6+ theme(legend.position="none"), tgfm_manhatten_plot4+ theme(legend.position="none"), tgfm_manhatten_plot5+ theme(legend.position="none"), ncol=2, labels=c("a","b","c","d", "e", "f")), legender, ncol=1, rel_heights=c(1, .09))
+output_file <- paste0(visualize_specific_tgfm_examples_dir, "supp_figure_six_example_tgfm_manhattan.pdf")
+print(output_file)
+ggsave(joint_manhatten, file=output_file, width=7.2, height=6.5, units="in")
 
 
 

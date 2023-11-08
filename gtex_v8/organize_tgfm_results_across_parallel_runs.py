@@ -1970,9 +1970,7 @@ arr2 = []
 
 
 
-# Open output file handle keeping track of all PIPs
-ttt = open(tgfm_organized_results_dir + 'cross_trait_TGFM_PIPs.txt','w')
-ttt.write('trait_name\tgenetic_element_class\tgenetic_element_name\tTGFM_PIP\n')
+
 
 
 
@@ -1994,20 +1992,29 @@ for trait_name in trait_names:
 		file_stem = tgfm_organized_results_dir + 'tgfm_results_' + trait_name + '_' + gene_type + '_' + model_version
 		suffix = 'tgfm_pip_summary.txt'
 		concatenated_pip_summary_file = file_stem + '_' + suffix
-		concatenate_results_across_parallel_jobs(data_file_stem, suffix, num_jobs, concatenated_pip_summary_file)
+		#concatenate_results_across_parallel_jobs(data_file_stem, suffix, num_jobs, concatenated_pip_summary_file)
 
 		###################################################
 		# Create full gene-Tissue pip summary file
 		###################################################
 		per_gene_tissue_full_pip_summary_file = file_stem + '_tgfm_per_gene_tissue_full_pip_summary.txt'
-		generate_per_gene_tissue_pip_full_summary_file(concatenated_pip_summary_file, per_gene_tissue_full_pip_summary_file, tissue_name_to_broad_category, data_file_stem, file_stem, model_version, processed_tgfm_input_stem, trait_name)
+		#generate_per_gene_tissue_pip_full_summary_file(concatenated_pip_summary_file, per_gene_tissue_full_pip_summary_file, tissue_name_to_broad_category, data_file_stem, file_stem, model_version, processed_tgfm_input_stem, trait_name)
 
 		###################################################
 		# Update all PIP file
 		###################################################
+		# Open output file handle keeping track of all PIPs
+		ttt = open(tgfm_organized_results_dir + 'GTEx_TGFM_PIPs_' + trait_name + '.txt','w')
+		ttt.write('trait_name\tgenetic_element_class\tgenetic_element_name\tTGFM_PIP\n')
 		ttt = print_trait_pips_to_all_pip_file(ttt, concatenated_pip_summary_file, data_file_stem, file_stem, model_version, processed_tgfm_input_stem, trait_name)
-		ttt.flush()
+		ttt.close()
+		# zip up file
+		os.system('gzip ' + tgfm_organized_results_dir + 'GTEx_TGFM_PIPs_' + trait_name + '.txt')
+		print(tgfm_organized_results_dir + 'GTEx_TGFM_PIPs_' + trait_name + '.txt')
 
+
+
+		'''
 		###################################################
 		# Create gene-Tissue pip summary file
 		###################################################
@@ -2090,9 +2097,7 @@ for trait_name in trait_names:
 			n_causal_sc_single_cell_type_gene_tissue_pairs_summary_cross_threshold_file = file_stem + '_tgfm_n_causal_tissue_gene_tissue_pairs_' + str(blood_cell_type) + '_cross_pip_threshold_sqrt_plot_input.txt'
 			tally_number_of_causal_sc_gene_tissue_pairs_cross_pip_thresholds_in_single_cell_type(concatenated_pip_summary_file, n_causal_sc_single_cell_type_gene_tissue_pairs_summary_cross_threshold_file, blood_cell_type)
 
-
-
-ttt.close()
+		'''
 
 
 

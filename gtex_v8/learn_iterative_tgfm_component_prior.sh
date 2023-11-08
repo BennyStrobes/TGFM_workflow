@@ -33,7 +33,7 @@ new_tgfm_stem=${tgfm_stem}"_susie_pmces_"${init_ln_pi_method}
 version="pmces"
 python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $trait_name $new_tgfm_stem $version $processed_tgfm_input_stem $gtex_pseudotissue_file $tgfm_input_summary_file $iterative_tgfm_prior_results_dir
 
-
+date
 
 # Variant-gene prior
 if false; then

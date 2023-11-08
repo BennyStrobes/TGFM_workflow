@@ -15,6 +15,8 @@ job_number="$7"
 
 
 
+date
+
 
 module load R/4.0.1
 
@@ -91,7 +93,7 @@ done
 
 
 
-
+date
 
 
 
