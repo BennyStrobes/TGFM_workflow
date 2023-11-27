@@ -54,7 +54,6 @@ plink2 --pfile ${processed_genotype_data_dir}"ukb_imp_chr"${chrom_num}"_tmper" -
 ###############################
 # extract lists of Individuals for each data set
 ###############################
-
 gwas_individual_file=${processed_genotype_data_dir}"gwas_individuals.txt"
 eqtl_individual_stem=${processed_genotype_data_dir}"eqtl_individuals_"
 python3 extract_lists_of_simulated_individuals.py ${processed_genotype_data_dir}"ukb_imp_chr_"${chrom_num} $n_gwas_individuals $gwas_individual_file $eqtl_individual_stem
