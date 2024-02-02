@@ -99,7 +99,13 @@ for line in f:
 	# Extract relevent fields
 	ensamble_id = data[0]
 	gene_snp_indices_file = data[5]
-	gene_snp_indices = np.load(gene_snp_indices_file)
+	total_n_genome_snps = int(data[6])
+
+	gene_snp_indices_raw = np.load(gene_snp_indices_file)
+	gene_snp_indices = np.asarray([False]*total_n_genome_snps)
+	gene_snp_indices[gene_snp_indices_raw] = True
+
+
 
 	# Quick error check
 	if len(gwas_beta) != len(gene_snp_indices):

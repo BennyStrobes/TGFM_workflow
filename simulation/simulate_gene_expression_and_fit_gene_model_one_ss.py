@@ -73,7 +73,7 @@ def simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, 
 	G_obj_snp_ids = 'chr' + G_obj_chrom + '_' + (G_obj_pos.astype(str)) + '_' + G_obj_a0 + '_' + G_obj_a1
 
 	t = open(simulated_causal_eqtl_effect_summary_file,'w')
-	t.write('gene_id\tchr\ttss\tcausal_eqtl_effect_file\tcis_snp_id_file\tcis_snp_index_file\n')
+	t.write('gene_id\tchr\ttss\tcausal_eqtl_effect_file\tcis_snp_id_file\tcis_snp_index_file\ttotal_n_snps\n')
 
 	# Loop through genes (run analysis for each gene seperately)
 	f = open(simulated_gene_position_file)
@@ -115,7 +115,7 @@ def simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, 
 		np.save(gene_cis_snp_indices_file, cis_snp_indices)		
 
 		# Write to output file
-		t.write(ensamble_id + '\t' + chrom_num + '\t' + str(tss) + '\t' + gene_causal_effect_file + '\t' + gene_cis_snpid_file + '\t' + gene_cis_snp_indices_file + '\n')
+		t.write(ensamble_id + '\t' + chrom_num + '\t' + str(tss) + '\t' + gene_causal_effect_file + '\t' + gene_cis_snpid_file + '\t' + gene_cis_snp_indices_file + '\t' + str(len(cis_snp_indices)) + '\n')
 
 	f.close()
 	t.close()

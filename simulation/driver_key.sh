@@ -67,17 +67,16 @@ processed_genotype_data_dir=$temp_output_root"processed_genotype/"
 simulated_gene_position_dir=$temp_output_root"simulated_gene_positions/"
 
 # Directory containing simulated gene expression (ie causal eQTL effect sizes in each tissue)
-simulated_gene_expression_dir=$temp_output_root"simulated_gene_expression/"
+simulated_gene_expression_dir=$perm_output_root"simulated_gene_expression/"
 
 # Directory containing simulated gene expression (ie causal eQTL effect sizes in each tissue)
-simulated_learned_gene_models_dir=$temp_output_root"simulated_learned_gene_models/"
+simulated_learned_gene_models_dir=$perm_output_root"simulated_learned_gene_models/"
 
 # Directory containing simulated trait values
 simulated_trait_dir=$temp_output_root"simulated_trait/"
 
 # Directory contaiing simulated gwas results
 simulated_gwas_dir=$temp_output_root"simulated_gwas/"
-
 
 # Directory containing simulated coloc results
 simulated_coloc_results_dir=$temp_output_root"simulated_coloc_results/"
@@ -191,6 +190,13 @@ for simulation_number in $(seq 1 100); do
 	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir
 done
 fi
+
+simulation_number="1"
+simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}
+if false; then
+sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir
+fi
+
 
 # Alt parameters
 if false; then

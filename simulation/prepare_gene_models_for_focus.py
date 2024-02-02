@@ -63,6 +63,8 @@ for line in f:
 	causal_eqtl_effect_file = data[3]
 	cis_snp_id_file = data[4]
 	cis_snp_index_file = data[5]
+	total_n_genome_snps = int(data[6])
+
 
 	# Quick error-checking
 	if line_chrom_num != chrom_num:
@@ -74,7 +76,11 @@ for line in f:
 	gene_model_mat = np.load(fitted_gene_file)
 
 	# Load in snp indices
-	snp_indices = np.load(cis_snp_index_file)
+	snp_indices_raw = np.load(cis_snp_index_file)
+	snp_indices = np.asarray([False]*total_n_genome_snps)
+	snp_indices[snp_indices_raw] = True
+
+
 	snp_ids = np.load(cis_snp_id_file, allow_pickle=True)
 	n_cis_snps = snp_ids.shape[0]
 

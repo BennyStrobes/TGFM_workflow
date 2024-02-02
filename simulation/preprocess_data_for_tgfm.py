@@ -244,7 +244,13 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 		ensamble_id = data[0]
 		gene_tss = int(data[2])
 		cis_snp_indices_file = data[5]
-		cis_snp_indices = np.load(cis_snp_indices_file)
+		total_n_genome_snps = int(data[6])
+
+		cis_snp_indices_raw = np.load(cis_snp_indices_file)
+		cis_snp_indices = np.asarray([False]*total_n_genome_snps)
+		cis_snp_indices[cis_snp_indices_raw] = True
+
+
 
 		# Quick error check
 		if len(cis_snp_indices) != len(window_indices):
@@ -659,7 +665,7 @@ rsid_to_genomic_annotation, variant_position_vec, rsids = create_dictionary_mapp
 tgfm_input_data_summary_file = simulated_tgfm_input_data_dir + simulation_name_string + '_eqtl_ss_' + str(eqtl_sample_size) + '_' + eqtl_type + '_bootstrapped_tgfm_input_data_summary.txt'
 t = open(tgfm_input_data_summary_file,'w')
 # Write header
-t.write('window_name\tLD_npy_file\tTGFM_input_pkl\tlog_prior_probability_file_stem\n')
+t.write('window_name\tLD_npy_file\tTGFM_input_pkl\n')
 
 
 # Now loop through windows
@@ -741,10 +747,10 @@ for line in f:
 	# Compute various ln(pi) and save to output # and save those results to output files
 	ln_pi_output_stem = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size)+ '_' + eqtl_type + '_ln_pi'
 	# Uniform prior
-	n_window_elements = len(window_rsids) + len(gene_tissue_pairs)
-	uniform_pi = np.ones(n_window_elements)*(1.0/n_window_elements)
-	uniform_ln_pi = np.log(uniform_pi)
-	save_ln_pi_output_file(uniform_ln_pi, ln_pi_output_stem + '_uniform.txt', window_rsids, gene_tissue_pairs)
+	#n_window_elements = len(window_rsids) + len(gene_tissue_pairs)
+	#uniform_pi = np.ones(n_window_elements)*(1.0/n_window_elements)
+	#uniform_ln_pi = np.log(uniform_pi)
+	#save_ln_pi_output_file(uniform_ln_pi, ln_pi_output_stem + '_uniform.txt', window_rsids, gene_tissue_pairs)
 
 	# Organize TGFM data into nice data structure
 	tgfm_data = {}
@@ -774,7 +780,7 @@ for line in f:
 	g.close()
 
 	# Write to output summary file
-	t.write(window_name + '\t' + ld_mat_file + '\t' + window_pickle_output_file + '\t' + ln_pi_output_stem + '\n')
+	t.write(window_name + '\t' + ld_mat_file + '\t' + window_pickle_output_file + '\n')
 
 t.close()
 f.close()

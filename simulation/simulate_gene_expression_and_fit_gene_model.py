@@ -73,7 +73,7 @@ def simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, 
 	G_obj_snp_ids = 'chr' + G_obj_chrom + '_' + (G_obj_pos.astype(str)) + '_' + G_obj_a0 + '_' + G_obj_a1
 
 	t = open(simulated_causal_eqtl_effect_summary_file,'w')
-	t.write('gene_id\tchr\ttss\tcausal_eqtl_effect_file\tcis_snp_id_file\tcis_snp_index_file\n')
+	t.write('gene_id\tchr\ttss\tcausal_eqtl_effect_file\tcis_snp_id_file\tcis_snp_index_file\ttotal_n_snps\n')
 
 	# Loop through genes (run analysis for each gene seperately)
 	f = open(simulated_gene_position_file)
@@ -102,7 +102,6 @@ def simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, 
 		# Simulate causal eqtl effects across tissues
 		causal_eqtl_effects = simulate_causal_eqtl_effect_sizes_across_tissues_shell(n_cis_snps, fraction_genes_cis_h2, ge_h2)
 
-
 		# Save results to output
 		# Causal eqtl effects
 		gene_causal_effect_file = simulated_gene_expression_dir + simulation_name_string + '_' + ensamble_id + '_causal_eqtl_effects.npy'
@@ -112,10 +111,10 @@ def simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, 
 		np.save(gene_cis_snpid_file, np.hstack((cis_snp_ids.reshape(n_cis_snps,1), cis_rsids.reshape(n_cis_snps,1))))
 		# SNP indices
 		gene_cis_snp_indices_file = simulated_gene_expression_dir + simulation_name_string + '_' + ensamble_id + '_cis_snp_indices.npy'
-		np.save(gene_cis_snp_indices_file, cis_snp_indices)		
+		np.save(gene_cis_snp_indices_file, np.where(cis_snp_indices==True)[0])
 
 		# Write to output file
-		t.write(ensamble_id + '\t' + chrom_num + '\t' + str(tss) + '\t' + gene_causal_effect_file + '\t' + gene_cis_snpid_file + '\t' + gene_cis_snp_indices_file + '\n')
+		t.write(ensamble_id + '\t' + chrom_num + '\t' + str(tss) + '\t' + gene_causal_effect_file + '\t' + gene_cis_snpid_file + '\t' + gene_cis_snp_indices_file + '\t' + str(len(cis_snp_indices)) + '\n')
 
 	f.close()
 	t.close()
@@ -154,6 +153,7 @@ def simulate_gene_expression(G, sim_beta):
 
 
 def compute_marginal_regression_coefficients(sim_stand_expr, gene_geno):
+	'''
 	n_snps = gene_geno.shape[1]
 	marginal_effects = np.zeros(n_snps)
 	marginal_effects_se = np.zeros(n_snps)
@@ -175,7 +175,13 @@ def compute_marginal_regression_coefficients(sim_stand_expr, gene_geno):
 		marginal_effects[snp_iter] = effect_size
 		marginal_effects_se[snp_iter] = effect_size_se
 		pvalue_arr[snp_iter] = pvalue
-	return marginal_effects, marginal_effects_se, pvalue_arr
+	'''
+
+	marginal_effects2 = np.dot(np.transpose(gene_geno), sim_stand_expr)/len(sim_stand_expr)
+	marginal_effects_se2 = np.sqrt(np.var(np.transpose((gene_geno*marginal_effects2)) - sim_stand_expr, ddof=1,axis=1)/len(sim_stand_expr))
+
+
+	return marginal_effects2, marginal_effects_se2
 
 def extract_h2_from_greml_hsq_file(hsq_file):
 	f = open(hsq_file)
@@ -354,12 +360,17 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 		gene_tss = int(data[2])
 		gene_causal_eqtl_effect_file = data[3]
 		gene_cis_snp_indices_file = data[5]
+		total_n_genome_snps = int(data[6])
 
 		# Extract simulated causal effect sizes for this gene (cis_snpsXn_tissues)
 		sim_causal_eqtl_effect_sizes = np.load(gene_causal_eqtl_effect_file)
 
 		# Extract indices of cis_snps
-		cis_snp_indices = np.load(gene_cis_snp_indices_file)
+		cis_snp_indices_raw = np.load(gene_cis_snp_indices_file)
+		cis_snp_indices = np.asarray([False]*total_n_genome_snps)
+		cis_snp_indices[cis_snp_indices_raw] = True
+
+
 		n_cis_snps = np.sum(cis_snp_indices)
 		cis_rsids = G_obj_rsids[cis_snp_indices]
 
@@ -392,7 +403,6 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 			sim_expr = simulate_gene_expression(gene_geno, sim_causal_eqtl_effect_sizes[:, tissue_iter])
 			# Standardize simulated gene expression
 			sim_stand_expr = (sim_expr - np.mean(sim_expr))/np.std(sim_expr)
-
 			# Run eQTL variant fine-mapping with SuSiE
 			susie_fitted = susieR_pkg.susie(gene_geno, sim_stand_expr,L=10)
 			# Test whether there exist any identified susie components for this gene
@@ -428,7 +438,7 @@ def simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effe
 			greml_h2_se_cross_tissues.append(str(hsq_se))
 			fusion_pmces_cross_tissues.append(fusion_causal_effects)
 			'''
-			marginal_effects, marginal_effects_se, marginal_pvalue = compute_marginal_regression_coefficients(sim_stand_expr, gene_geno)
+			marginal_effects, marginal_effects_se = compute_marginal_regression_coefficients(sim_stand_expr, gene_geno)
 			'''
 			boostrapped_marginal_effects = bootstrap_marginal_regression_coefficients(sim_stand_expr, gene_geno, n_bootstraps=1000)
 			marginal_bootstrapped_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_marginal_effects_bootstrapped.npy'

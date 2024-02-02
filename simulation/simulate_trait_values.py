@@ -318,6 +318,7 @@ def compute_expression_mediated_trait_values(simulated_expression_summary_file, 
 		causal_eqtl_effect_file = data[3]
 		eqtl_snp_id_file = data[4]
 		eqtl_snp_indices_file = data[5]
+		total_n_genome_snps = int(data[6])
 
 		# Quick error check
 		if gene_name != ordered_gene_names[gene_counter]:
@@ -335,7 +336,11 @@ def compute_expression_mediated_trait_values(simulated_expression_summary_file, 
 		# Load in causal eqtl effect sizes for this gene
 		causal_eqtl_effect_sizes = np.load(causal_eqtl_effect_file)
 		# Load in "global" indices of snps defining causal eqtl effect sizes
-		eqtl_snp_indices = np.load(eqtl_snp_indices_file)
+		eqtl_snp_indices_raw = np.load(eqtl_snp_indices_file)
+		eqtl_snp_indices = np.asarray([False]*total_n_genome_snps)
+		eqtl_snp_indices[eqtl_snp_indices_raw] = True
+
+
 
 		# Compute expression-mediated trait value coming from this single gene (across tissues)
 		expr_med_trait_for_current_gene = compute_expression_mediated_trait_values_for_single_gene(genotype_obj, gene_trait_effect_size_vec, causal_eqtl_effect_sizes, eqtl_snp_indices, computation_version='v1')
