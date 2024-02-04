@@ -462,7 +462,6 @@ fi
 # Visualize specific TGFM examples
 #################################
 specific_examples_input_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/specific_examples_all.txt"
-echo $specific_examples_input_file
 if false; then
 sh visualize_specific_tgfm_examples.sh $specific_examples_input_file $tgfm_input_summary_file $tgfm_results_dir $tgfm_organized_results_dir $gtex_susie_gene_models_dir $gene_annotation_file $visualize_specific_tgfm_examples_dir $ukbb_sumstats_hg38_dir
 fi

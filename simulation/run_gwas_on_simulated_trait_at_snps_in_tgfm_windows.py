@@ -79,6 +79,8 @@ def run_gwas_on_specified_rsids(hapmap3_rsids, trait_values_file, gwas_plink_ste
 			# Extract genotype data for this batch of snps
 			batch_variant_genotype = np.asarray(genotype_obj.sel(variant=batch_variant_names))
 
+			#effects_sizes = []
+			#marginal_effects_ses = []
 			# Loop through variants in batch
 			for batch_iter, batch_rsid in enumerate(np.asarray(batch_rsids)):
 				# Extract genotype data for this snp
@@ -100,9 +102,30 @@ def run_gwas_on_specified_rsids(hapmap3_rsids, trait_values_file, gwas_plink_ste
 				effect_size = res.params[0]
 				effect_size_se = res.bse[0]
 				effect_size_z = effect_size/effect_size_se
+				#effects_sizes.append(effect_size)
+				#marginal_effects_ses.append(effect_size_se)
 
 				# Print to output file
 				t.write(batch_rsid + '\t' + str(effect_size) + '\t' + str(effect_size_se) + '\t' + str(effect_size_z) + '\n')
+			#effects_sizes = np.asarray(effects_sizes)
+			#marginal_effects_ses = np.asarray(marginal_effects_ses)
+
+			'''
+			# Standardize genotype
+			batch_variant_genotype = (batch_variant_genotype - np.nanmean(batch_variant_genotype,axis=0))#/np.nanstd(batch_variant_genotype,axis=0)
+			# Set all nans to zero
+			batch_variant_genotype[np.isnan(batch_variant_genotype)] = 0.0
+			batch_variant_genotype = batch_variant_genotype/np.std(batch_variant_genotype,axis=0)
+
+			# Compute marginal gwas association stats
+			effect_sizes = np.dot(np.transpose(batch_variant_genotype), trait_vector)/len(trait_vector)
+			marginal_effects_ses = np.sqrt(np.var(np.transpose((batch_variant_genotype*effect_sizes)) - trait_vector, ddof=1,axis=1)/len(trait_vector))
+			marginal_zs = effect_sizes/marginal_effects_ses
+
+
+			for batch_iter, batch_rsid in enumerate(np.asarray(batch_rsids)):
+				t.write(batch_rsid + '\t' + str(effect_sizes[batch_iter]) + '\t' + str(marginal_effects_ses[batch_iter]) + '\t' + str(marginal_zs[batch_iter]) + '\n')
+			'''
 
 			# Reset batch_rsids and batch_variant_names
 			batch_rsids = []
@@ -137,6 +160,21 @@ def run_gwas_on_specified_rsids(hapmap3_rsids, trait_values_file, gwas_plink_ste
 
 			# Print to output file
 			t.write(batch_rsid + '\t' + str(effect_size) + '\t' + str(effect_size_se) + '\t' + str(effect_size_z) + '\n')
+		'''
+		# Standardize genotype
+		batch_variant_genotype = (batch_variant_genotype - np.nanmean(batch_variant_genotype,axis=0))#/np.nanstd(batch_variant_genotype,axis=0)
+		# Set all nans to zero
+		batch_variant_genotype[np.isnan(batch_variant_genotype)] = 0.0
+		batch_variant_genotype = batch_variant_genotype/np.std(batch_variant_genotype,axis=0)
+
+		# Compute marginal gwas association stats
+		effect_sizes = np.dot(np.transpose(batch_variant_genotype), trait_vector)/len(trait_vector)
+		marginal_effects_ses = np.sqrt(np.var(np.transpose((batch_variant_genotype*effect_sizes)) - trait_vector, ddof=1,axis=1)/len(trait_vector))
+		marginal_zs = effect_sizes/marginal_effects_ses
+
+		for batch_iter, batch_rsid in enumerate(np.asarray(batch_rsids)):
+			t.write(batch_rsid + '\t' + str(effect_sizes[batch_iter]) + '\t' + str(marginal_effects_ses[batch_iter]) + '\t' + str(marginal_zs[batch_iter]) + '\n')
+		'''
 
 
 	t.close()
@@ -201,6 +239,7 @@ simulated_gwas_dir = sys.argv[7]
 bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + chrom_num + '.bim'
 
 # Loop through simulation windows
+print(simulation_window_list_file)
 g = open(simulation_window_list_file)
 head_count = 0
 for line in g:
@@ -225,7 +264,6 @@ for line in g:
 	gwas_plink_stem = processed_genotype_data_dir + 'simulated_gwas_data_' + str(chrom_num)  # Genotype files
 	gwas_output_file = simulated_gwas_dir + simulation_name_string + '_simualated_gwas_results_window_' + window_name + '.txt'
 	run_gwas_on_specified_rsids(window_rsids, trait_values_file, gwas_plink_stem, gwas_output_file)
-
 	####################################################
 	# Compute window LD 
 	####################################################

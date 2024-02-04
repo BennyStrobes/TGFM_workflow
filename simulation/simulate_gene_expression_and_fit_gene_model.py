@@ -532,7 +532,6 @@ fraction_genes_cis_h2 = .5
 simulated_causal_eqtl_effect_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
 simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2, ge_h2)
 
-
 ############################
 # Simulate Gene expression and fit gene models for each data-set (eqtl sample-size), tissue
 ############################

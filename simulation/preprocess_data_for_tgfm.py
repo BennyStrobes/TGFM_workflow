@@ -246,18 +246,19 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 		cis_snp_indices_file = data[5]
 		total_n_genome_snps = int(data[6])
 
-		cis_snp_indices_raw = np.load(cis_snp_indices_file)
-		cis_snp_indices = np.asarray([False]*total_n_genome_snps)
-		cis_snp_indices[cis_snp_indices_raw] = True
-
-
-
-		# Quick error check
-		if len(cis_snp_indices) != len(window_indices):
-			print('assumption eroror')
-			pdb.set_trace()
 
 		if gene_tss >= (window_start + 100000) and gene_tss <= (window_end - 100000):
+			# Get indices corresponding to cis snps for this gene
+			cis_snp_indices_raw = np.load(cis_snp_indices_file)
+			cis_snp_indices = np.asarray([False]*total_n_genome_snps)
+			cis_snp_indices[cis_snp_indices_raw] = True
+
+			# Quick error check
+			if len(cis_snp_indices) != len(window_indices):
+				print('assumption eroror')
+				pdb.set_trace()
+
+
 			# Gene is in cis with respect to window
 
 			# Fitted gene file
@@ -297,7 +298,7 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 					window_level_eqtl_effect_sizes = np.zeros(np.sum(window_indices))
 					window_level_eqtl_effect_sizes[cis_snp_indices[window_indices]] = gene_model_mat[tiss_iter,:]/np.sqrt(gene_variance)
 
-					full_gene_variance = calculate_gene_variance_according_to_susie_distribution(gene_susie_mu, gene_susie_alpha, np.sqrt(gene_susie_mu_var), ld_mat[cis_snp_indices[window_indices],:][:,cis_snp_indices[window_indices]])
+					#full_gene_variance = calculate_gene_variance_according_to_susie_distribution(gene_susie_mu, gene_susie_alpha, np.sqrt(gene_susie_mu_var), ld_mat[cis_snp_indices[window_indices],:][:,cis_snp_indices[window_indices]])
 
 					n_snps = gene_susie_mu.shape[1]
 					bs_alpha_effects = np.zeros((n_snps, n_bs))
@@ -322,12 +323,12 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 				gene_tss_arr.append(gene_tss)
 				gene_tissue_pairs.append(ensamble_id + '_' + 'tissue' + str(tiss_iter))
 				gene_variances.append(gene_variance)
-				full_gene_variances.append(full_gene_variance)
+				#full_gene_variances.append(full_gene_variance)
 				pmces_weights.append(window_level_eqtl_effect_sizes)
 
 	f.close()
 
-	return np.asarray(gene_tissue_pairs), bs_arr, np.asarray(gene_tss_arr), np.asarray(pmces_weights), np.asarray(gene_variances), np.asarray(full_gene_variances), susie_mus, susie_vars, susie_alphas, susie_indices
+	return np.asarray(gene_tissue_pairs), bs_arr, np.asarray(gene_tss_arr), np.asarray(pmces_weights), np.asarray(gene_variances), susie_mus, susie_vars, susie_alphas, susie_indices
 
 
 def create_anno_matrix_for_set_of_rsids(rsid_to_genomic_annotation, window_rsids):
@@ -708,7 +709,7 @@ for line in f:
 	# Extract gene-tissue pairs and fitted models in this window
 	gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
 
-	gene_tissue_pairs, bs_eqtl_arr, gene_tissue_pairs_tss, pmces_weights, gene_variances, full_gene_variances, gene_susie_mus, gene_susie_mu_vars, gene_susie_alphas, gene_susie_indices = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,  eqtl_sample_size, window_indices, simulated_gene_expression_dir,ld_mat, eqtl_type, n_bs)
+	gene_tissue_pairs, bs_eqtl_arr, gene_tissue_pairs_tss, pmces_weights, gene_variances, gene_susie_mus, gene_susie_mu_vars, gene_susie_alphas, gene_susie_indices = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,  eqtl_sample_size, window_indices, simulated_gene_expression_dir,ld_mat, eqtl_type, n_bs)
 
 	# Option to save some memory
 	# Change to current version used in real data
@@ -764,7 +765,7 @@ for line in f:
 	tgfm_data['middle_variant_indices'] = middle_variant_indices
 	tgfm_data['gene_eqtl_pmces'] = pmces_weights
 	tgfm_data['gene_variances'] = gene_variances
-	tgfm_data['full_gene_variances'] = full_gene_variances
+	#tgfm_data['full_gene_variances'] = full_gene_variances
 	#tgfm_data['annotation'] = window_anno_mat
 	tgfm_data['tss'] = gene_tissue_pairs_tss
 	tgfm_data['variant_positions'] = window_variant_position_vec

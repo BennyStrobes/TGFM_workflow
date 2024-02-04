@@ -25,11 +25,13 @@ simulated_gwas_dir="${16}"
 simulated_tgfm_input_data_dir="${17}"
 simulated_tgfm_results_dir="${18}"
 simulated_coloc_results_dir="${19}"
+gene_trait_architecture="${20}"
 
 source ~/.bash_profile
 module load R/4.0.1
 echo "Simulation"$simulation_number
 date
+echo $simulation_name_string
 
 
 
@@ -48,7 +50,7 @@ python3 simulate_gene_expression_and_fit_gene_model.py $simulation_number $chrom
 # Step 2: Simulate trait values
 #######################################################
 echo "Simulation Step 2"
-python3 simulate_trait_values.py $simulation_number $chrom_num $cis_window $simulated_gene_expression_dir $simulation_name_string $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_trait_dir $n_gwas_individuals
+python3 simulate_trait_values.py $simulation_number $chrom_num $cis_window $simulated_gene_expression_dir $simulation_name_string $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_trait_dir $n_gwas_individuals $gene_trait_architecture
 
 
 
@@ -89,9 +91,6 @@ source ~/.bash_profile
 echo "Simulation Step 10"
 annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
 eqtl_type="susie"
-
-
-
 eqtl_sample_size_arr=( "300" "500" "1000")
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
@@ -100,8 +99,13 @@ do
 done
 
 
-# Can probabably delete eqtl susie outputs
-# Can delete per window summary stats (will be saved elsewhere)
+
+#######################################################
+# Step 11: Delete unnessary files
+#######################################################
+echo "Simulation Step 11"
+python3 delete_unnessary_learned_gene_model_files.py $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string
+python3 delete_unnessary_gwas_sum_stat_files.py $simulated_gwas_dir $simulation_name_string $global_window_file
 
 
 date
