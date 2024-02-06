@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-15:00                         # Runtime in D-HH:MM format
-#SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=50GB                         # Memory total in MiB (for all cores)
+#SBATCH -t 0-8:00                         # Runtime in D-HH:MM format
+#SBATCH -p short                           # Partition to run in
+#SBATCH --mem=10GB                         # Memory total in MiB (for all cores)
 
 
 #############################
@@ -89,6 +89,9 @@ simulated_tgfm_input_data_dir=$alkes_temp_output_root"simulated_tgfm_input/"
 
 # Directory containing simulated tgfm results
 simulated_tgfm_results_dir=$alkes_temp_output_root"simulated_tgfm_results/"
+
+# Directory containing simulated best tagging gene-tissue pairs
+simulated_best_tagging_gt_dir=$alkes_temp_output_root"simulated_best_tagging_gene_tissue_pairs/"
 
 # Directory containing simulated focus input data
 simulated_focus_input_dir=$temp_output_root"simulated_focus_input/"
@@ -195,23 +198,56 @@ done
 fi
 
 if false; then
-simulation_number="28"
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}
-sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture
-simulation_number="29"
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}
-sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture
 simulation_number="44"
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}
-sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture
-simulation_number="45"
-simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}
-sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture
-simulation_number="60"
 simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}
 sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture
 fi
 
+
+
+
+
+
+############################
+# Run single simulation of TGFM
+############################
+# cis window arround genes to define eQTLs
+cis_window="100000"
+
+if false; then
+tgfm_tissues="all_t"
+tgfm_tissues="no_t0"
+simulation_number="2"
+simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}
+eqtl_sample_size="300"
+sh run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $tgfm_tissues $simulated_best_tagging_gt_dir
+fi
+
+
+if false; then
+for simulation_number in $(seq 1 30); do 
+	# Simulation string used for output file
+	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}
+
+	eqtl_sample_size="300"
+	tgfm_tissues="all_t"
+	sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $tgfm_tissues $simulated_best_tagging_gt_dir
+	tgfm_tissues="no_t0"
+	sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $tgfm_tissues $simulated_best_tagging_gt_dir
+		
+	eqtl_sample_size="500"
+	tgfm_tissues="all_t"
+	sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $tgfm_tissues $simulated_best_tagging_gt_dir
+	tgfm_tissues="no_t0"
+	sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $tgfm_tissues $simulated_best_tagging_gt_dir
+
+	eqtl_sample_size="1000"
+	tgfm_tissues="all_t"
+	sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $tgfm_tissues $simulated_best_tagging_gt_dir
+	tgfm_tissues="no_t0"
+	sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $tgfm_tissues $simulated_best_tagging_gt_dir
+done
+fi
 
 
 

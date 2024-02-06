@@ -650,14 +650,14 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 
 		# Load in tgfm results data
 		# Load in tgfm results data
-		tgfm_input_data = data[2]
-		g = open(tgfm_input_data, "rb")
-		tgfm_data = pickle.load(g)
-		g.close()
+		#tgfm_input_data = data[2]
+		#g = open(tgfm_input_data, "rb")
+		#tgfm_data = pickle.load(g)
+		#g.close()
 
 		# Add middle gene indices to tgfm results
-		tgfm_results['middle_gene_indices'] = np.copy(tgfm_data['middle_gene_indices'])
-		tgfm_results['middle_variant_indices'] = np.copy(tgfm_data['middle_variant_indices'])
+		#tgfm_results['middle_gene_indices'] = np.copy(tgfm_data['middle_gene_indices'])
+		#tgfm_results['middle_variant_indices'] = np.copy(tgfm_data['middle_variant_indices'])
 
 		middle_gene_indices_dicti = {}
 		middle_variant_indices_dicti = {}
@@ -754,14 +754,24 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 tgfm_input_summary_file = sys.argv[1]
 new_tgfm_stem = sys.argv[2]
 tgfm_version = sys.argv[3]
+tgfm_tissues = sys.argv[4]
 
 
 
 #Extract tissue names
 tissue_names = []
-for tiss_iter in range(10):
-	tissue_names.append('tissue' + str(tiss_iter))
+if tgfm_tissues == 'all_t':
+	for tiss_iter in range(10):
+		tissue_names.append('tissue' + str(tiss_iter))
+elif tgfm_tissues == 'no_t0':
+	for tiss_iter in range(10):
+		if tiss_iter != 0:
+			tissue_names.append('tissue' + str(tiss_iter))
+else:
+	print('tgfm tissue method not yet implemented. fatal error')
+	pdb.set_trace()
 tissue_names = np.asarray(tissue_names)
+
 
 
 

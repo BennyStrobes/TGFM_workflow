@@ -517,6 +517,121 @@ def extract_log_prior_probabilities_from_mean_ln_pi_mapping(mapping, variants, g
 
 	return np.log(norm_var_probs), np.log(norm_gene_probs)	
 
+def extract_log_prior_probabilities(variant_names, gene_names, ln_pi_method_name):
+	n_snps = len(variant_names)
+	n_genes = len(gene_names)
+	n_ele = n_snps + n_genes
+
+	ele_prob = 1.0/n_ele
+
+	snp_prior = np.ones(n_snps)*ele_prob
+	gene_prior = np.ones(n_genes)*ele_prob
+
+	return np.log(snp_prior), np.log(gene_prior)
+
+def filter_genes_in_susie_object(susie_obj, valid_gt_indices):
+	new_susie_obj = []
+	for gt_index in valid_gt_indices:
+		new_susie_obj.append(susie_obj[gt_index])
+	return new_susie_obj
+
+def fill_in_causal_effect_size_matrix(null_mat, bs_eqtls_pmces_sparse):
+	null_mat[bs_eqtls_pmces_sparse[:,0].astype(int), bs_eqtls_pmces_sparse[:,1].astype(int)] = bs_eqtls_pmces_sparse[:,2]
+	return null_mat
+
+def filter_tgfm_data_structure_to_remove_tissue0_gene_tissue_pairs(tgfm_data):
+	################
+	# First get valid gt indices by removing gt-pairs corresponding to tissue 0
+	valid_gt_indices = []
+	gt_old_to_new = []
+	counter = 0
+	for ii, gt_pair in enumerate(tgfm_data['genes']):
+		if gt_pair.split('_')[1] == 'tissue0':
+			gt_old_to_new.append(-2.0)
+			continue
+		gt_old_to_new.append(float(counter))
+		valid_gt_indices.append(ii)
+		counter = counter + 1
+	if len(valid_gt_indices) == 0:
+		return tgfm_data, True
+	valid_gt_indices = np.asarray(valid_gt_indices)
+	gt_old_to_new = np.asarray(gt_old_to_new)
+
+	################
+	# Filter 'genes' key
+	tgfm_data['genes'] = tgfm_data['genes'][valid_gt_indices]
+
+	#################
+	# Filter 'sparse_sampled_gene_eqtl_pmces' key
+	n_bs = len(tgfm_data['sparse_sampled_gene_eqtl_pmces'])
+	new_sparse_sampled_gene_eqtl_pmces = []
+	for bs_iter in range(n_bs):
+		bs_eqtl_effects_sparse_old = tgfm_data['sparse_sampled_gene_eqtl_pmces'][bs_iter]
+		bs_eqtl_effects_sparse_new = []
+		for row_iter in range(bs_eqtl_effects_sparse_old.shape[0]):
+			if gt_old_to_new[int(bs_eqtl_effects_sparse_old[row_iter,0])] == -2.0:
+				continue
+			new = np.zeros(3)
+			new[0] = gt_old_to_new[int(bs_eqtl_effects_sparse_old[row_iter,0])]
+			new[1] = bs_eqtl_effects_sparse_old[row_iter,1]
+			new[2] = bs_eqtl_effects_sparse_old[row_iter,2]
+			bs_eqtl_effects_sparse_new.append(new)
+		bs_eqtl_effects_sparse_new = np.asarray(bs_eqtl_effects_sparse_new)
+		new_sparse_sampled_gene_eqtl_pmces.append(bs_eqtl_effects_sparse_new)
+	## error checking
+	#old_mat = fill_in_causal_effect_size_matrix(np.zeros((len(gt_old_to_new), len(tgfm_data['variants']))), tgfm_data['sparse_sampled_gene_eqtl_pmces'][10])
+	#new_mat = fill_in_causal_effect_size_matrix(np.zeros((len(valid_gt_indices), len(tgfm_data['variants']))), new_sparse_sampled_gene_eqtl_pmces[10])
+	#print(np.array_equal(old_mat[valid_gt_indices,:], new_mat))
+	#pdb.set_trace()
+	tgfm_data['sparse_sampled_gene_eqtl_pmces'] = new_sparse_sampled_gene_eqtl_pmces
+	
+	#################
+	# Filter 'middle_gene_indices' key
+	new_middle_genes_indices = []
+	for old_index in tgfm_data['middle_gene_indices']:
+		new_index = gt_old_to_new[old_index]
+		if new_index == -2.0:
+			continue
+		new_middle_genes_indices.append(int(new_index))
+	new_middle_genes_indices = np.asarray(new_middle_genes_indices)
+	tgfm_data['middle_gene_indices'] = new_middle_genes_indices.astype(int)
+	
+	#################
+	# Filter 'gene_eqtl_pmces' key
+	tgfm_data['gene_eqtl_pmces'] = tgfm_data['gene_eqtl_pmces'][valid_gt_indices,:]
+
+	#################
+	# Filter 'gene_variances' key
+	tgfm_data['gene_variances'] = tgfm_data['gene_variances'][valid_gt_indices]
+
+	#################
+	# Filter 'tss' key
+	tgfm_data['tss'] = tgfm_data['tss'][valid_gt_indices]
+
+	#################
+	# Filter 'gene_susie_mu' key
+	new_gene_susie_mu = filter_genes_in_susie_object(tgfm_data['gene_susie_mu'], valid_gt_indices)
+	tgfm_data['gene_susie_mu'] = new_gene_susie_mu
+
+	#################
+	# Filter 'gene_susie_alpha' key
+	new_gene_susie_alpha = filter_genes_in_susie_object(tgfm_data['gene_susie_alpha'], valid_gt_indices)
+	tgfm_data['gene_susie_alpha'] = new_gene_susie_alpha
+
+	#################
+	# Filter 'gene_susie_mu_var' key
+	new_gene_susie_mu_var = filter_genes_in_susie_object(tgfm_data['gene_susie_mu_var'], valid_gt_indices)
+	tgfm_data['gene_susie_mu_var'] = new_gene_susie_mu_var
+
+	#################
+	# Filter 'gene_susie_indices' key
+	new_gene_susie_indices = filter_genes_in_susie_object(tgfm_data['gene_susie_indices'], valid_gt_indices)
+	tgfm_data['gene_susie_indices'] = new_gene_susie_indices
+
+	return tgfm_data, False
+
+
+
 
 
 ######################
@@ -527,7 +642,7 @@ tgfm_output_stem = sys.argv[2]
 init_method = sys.argv[3]
 est_resid_var_str = sys.argv[4]
 ln_pi_method_name = sys.argv[5]
-
+tgfm_tissues = sys.argv[6]
 
 
 
@@ -593,7 +708,7 @@ for window_iter in range(n_windows):
 
 	ld_file = data[1]
 	tgfm_input_pkl = data[2]
-	ln_pi_file_stem = data[3]
+	#ln_pi_file_stem = data[3]
 
 	##############################
 	# Load in Data
@@ -603,6 +718,21 @@ for window_iter in range(n_windows):
 	g = open(tgfm_input_pkl, "rb")
 	tgfm_data = pickle.load(g)
 	g.close()
+
+	# Skip windows with no genes
+	if len(tgfm_data['genes']) == 0:
+		print('skipped because of no genes')
+		t_pip.write(window_name + '\tNA\tNA\n')
+		continue
+
+	if tgfm_tissues == 'no_t0':
+		tgfm_data, filter_error_bool = filter_tgfm_data_structure_to_remove_tissue0_gene_tissue_pairs(tgfm_data)
+		if filter_error_bool:
+			print('skipped because of no genes')
+			t_pip.write(window_name + '\tNA\tNA\n')
+			continue
+
+
 	# Extract gwas p
 	gwas_z = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
 	gwas_p = scipy.stats.norm.sf(abs(gwas_z))*2.0
@@ -612,11 +742,7 @@ for window_iter in range(n_windows):
 		print('skipped because of window pvalue threshold')
 		t_pip.write(window_name + '\tNA\tNA\n')
 		continue
-	# Skip windows with no genes
-	if len(tgfm_data['genes']) == 0:
-		print('skipped because of no genes')
-		t_pip.write(window_name + '\tNA\tNA\n')
-		continue
+
 
 	# Load in LD
 	ld_mat = np.load(ld_file)
@@ -629,6 +755,9 @@ for window_iter in range(n_windows):
 		bootstrap_prior = True
 	elif ln_pi_method_name == 'tglr_bootstrapped_nonnegative_pmces' or ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_pmces':
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_mean_ln_pi_mapping(ln_pi_ele_name_to_mean_probs_mapping, tgfm_data['variants'], tgfm_data['genes'])
+		bootstrap_prior = False
+	elif ln_pi_method_name == 'uniform':
+		var_log_prior, gene_log_prior = extract_log_prior_probabilities(tgfm_data['variants'], tgfm_data['genes'], ln_pi_method_name)
 		bootstrap_prior = False
 	else:
 		log_prior_file = ln_pi_file_stem + '_' + ln_pi_method_name + '.txt'
@@ -643,7 +772,7 @@ for window_iter in range(n_windows):
 	##############################
 	# Extract valid tgfm components
 	###############################
-	valid_tgfm_sampler_components = extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, ld_mat)
+	#valid_tgfm_sampler_components = extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, ld_mat)
 
 	##############################
 	# Organize TGFM data and print to results
@@ -692,7 +821,7 @@ for window_iter in range(n_windows):
 	#tgfm_results['beta_pips'] = tgfm_obj.beta_pips
 	tgfm_results['expected_alpha_pips'] = tgfm_obj.expected_alpha_pips
 	tgfm_results['expected_beta_pips'] = tgfm_obj.expected_beta_pips
-	tgfm_results['valid_components'] = valid_tgfm_sampler_components
+	#tgfm_results['valid_components'] = valid_tgfm_sampler_components
 	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
 	tgfm_results['middle_gene_indices'] = tgfm_data['middle_gene_indices']
 	tgfm_results['middle_variant_indices'] = tgfm_data['middle_variant_indices']
