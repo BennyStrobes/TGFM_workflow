@@ -13,6 +13,7 @@ gtex_pseudotissue_file="$3"
 processed_tgfm_input_stem="$4"
 tgfm_input_summary_file="$5"
 iterative_tgfm_prior_results_dir="$6"
+ignore_tissues="$7"
 
 
 
@@ -20,6 +21,7 @@ source ~/.bash_profile
 module load R/4.0.1
 
 echo $trait_name
+echo $ignore_tissues
 date
 
 
@@ -31,7 +33,7 @@ date
 init_ln_pi_method="uniform"
 new_tgfm_stem=${tgfm_stem}"_susie_pmces_"${init_ln_pi_method}
 version="pmces"
-python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $trait_name $new_tgfm_stem $version $processed_tgfm_input_stem $gtex_pseudotissue_file $tgfm_input_summary_file $iterative_tgfm_prior_results_dir
+python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $trait_name $new_tgfm_stem $version $processed_tgfm_input_stem $gtex_pseudotissue_file $tgfm_input_summary_file $iterative_tgfm_prior_results_dir $ignore_tissues
 
 date
 

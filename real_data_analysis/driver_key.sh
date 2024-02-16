@@ -57,6 +57,11 @@ non_disease_specific_gene_sets_file="/n/groups/price/martin/LDSPEC_data/sam_gene
 # Epigenetic modifier gene sets
 em_gene_set_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/EM_genes.csv"
 
+# TCSC results
+# Downloaded from https://github.com/TiffanyAmariuta/TCSC/tree/main/results on 2/9/24
+tcsc_results_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/SingleTraitTCSC_March2023_Primaryanalysis.txt"
+
+
 # Genotype data from 1KG
 ref_1kg_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/plink_files/"
 
@@ -215,9 +220,14 @@ visualize_specific_tgfm_examples_dir=$perm_output_root"visualize_specific_exampl
 
 non_disease_specific_gene_set_enrichment_dir=$perm_output_root"non_disease_specific_gene_set_enrichment/"
 
+tcsc_comparison_dir=$perm_output_root"tcsc_comparison/"
+
+
 visualize_sc_tgfm_dir=$perm_output_root"visualize_sc_tgfm/"
 
 visualize_specific_sc_tgfm_examples_dir=$perm_output_root"visualize_specific_sc_examples/"
+
+visualize_held_out_tissue_comparison_dir=$perm_output_root"visualize_held_out_tissue_comparison/"
 
 
 supp_data_dir=$perm_output_root"supp_data_dir/"
@@ -288,7 +298,6 @@ pseudotissue_name="Heart_Left_Ventricle"
 composit_tissue_string="Heart_Left_Ventricle"
 if false; then
 sbatch create_pseudotissue_gene_model_input_summary_file.sh $pseudotissue_name $composit_tissue_string $gtex_processed_expression_dir $gtex_pseudotissue_gene_model_input_dir $num_jobs
-
 fi
 
 
@@ -357,25 +366,17 @@ fi
 #120 for 4, 6
 gene_type="component_gene"
 num_jobs="8"
+ignore_tissues="None"
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
 	for job_number in $(seq 0 $(($num_jobs-1))); do
 		tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 		tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-		sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
+		sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs $ignore_tissues
 	done
 done
 fi
 
-
-if false; then
-trait_name="biochemistry_Cholesterol"
-	for job_number in $(seq 0 $(($num_jobs-1))); do
-		tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-		tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_tmp_"
-		sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs
-	done
-fi
 
 
 
@@ -383,18 +384,12 @@ fi
 # Compute iterative prior
 ########################################
 tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+ignore_tissues="None"
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
 	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir
+	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir $ignore_tissues
 done
-fi
-
-if false; then
-trait_name="biochemistry_Cholesterol"
-
-	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_tmp_"
-	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir"tmp_"
 fi
 
 #################################
@@ -439,14 +434,136 @@ fi
 
 
 
-
-
 #################################
 # Organize TGFM Results across parallel runs
 #################################
 if false; then
 sbatch organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file
 fi
+
+
+#################################
+# Run TGFM-pmces when holding out some of the presumed causal tissues
+#################################
+gene_type="component_gene"
+num_jobs="8"
+ignore_tissues="Liver"
+trait_name="biochemistry_Cholesterol"
+
+if false; then
+for job_number in $(seq 0 $(($num_jobs-1))); do
+
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+	sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs $ignore_tissues
+done	
+fi
+
+
+trait_missing_tissue_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue_ignore_cholesterol.txt"
+if false; then
+sed 1d $trait_missing_tissue_file | while read trait_name study_file sample_size h2 ignore_tissues; do
+	for job_number in $(seq 0 $(($num_jobs-1))); do
+		tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+		tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+		sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs $ignore_tissues
+	done	
+done
+fi
+
+
+########################################
+# Compute iterative prior
+########################################
+tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+
+ignore_tissues="Liver"
+trait_name="biochemistry_Cholesterol"
+tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+if false; then
+sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir $ignore_tissues
+fi
+
+trait_missing_tissue_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue_ignore_cholesterol.txt"
+if false; then
+sed 1d $trait_missing_tissue_file | while read trait_name study_file sample_size h2 ignore_tissues; do
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir $ignore_tissues
+done
+fi
+
+#################################
+# Run TGFM-sampler when holding out some of the presumed causal tissues
+#################################
+if false; then
+gene_type="component_gene"
+num_jobs="8"
+ignore_tissues="Liver"
+trait_name="biochemistry_Cholesterol"
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+done
+
+gene_type="component_gene"
+num_jobs="8"
+ignore_tissues="Whole_Blood"
+trait_name="blood_MONOCYTE_COUNT"
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+done
+fi
+
+gene_type="component_gene"
+num_jobs="8"
+if false; then
+trait_missing_tissue_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue_ignore_cholesterol_and_monocyte.txt"
+sed 1d $trait_missing_tissue_file | while read trait_name study_file sample_size h2 ignore_tissues; do
+	for job_number in $(seq 0 $(($num_jobs-1))); do
+		tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+		tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+		sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+	done
+done
+fi
+
+
+if false; then
+trait_name="blood_MEAN_PLATELET_VOL"
+job_number="6"
+ignore_tissues="Whole_Blood"
+tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+
+trait_name="body_HEIGHTz"
+job_number="6"
+ignore_tissues="Cells_Cultured_fibroblasts"
+tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+
+trait_name="bp_DIASTOLICadjMEDz"
+job_number="6"
+ignore_tissues="Artery_Aorta"
+tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+fi
+
+#################################
+# Organize TGFM-held-out tissue results across parallel runs
+#################################
+if false; then
+sh organize_tgfm_held_out_tissue_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file
+fi
+
+Rscript visualize_held_out_tissue_comparision.R $tgfm_organized_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $visualize_held_out_tissue_comparison_dir
+
+
 
 
 #################################
@@ -494,6 +611,14 @@ fi
 if false; then
 sh run_non_disease_specific_gene_set_enrichment_analysis.sh $tgfm_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $tgfm_organized_results_dir $non_disease_specific_gene_sets_file $em_gene_set_file $non_disease_specific_gene_set_enrichment_dir
 fi
+
+#################################
+# Run comparison of TGFM tissue-trait associations with TCSC tissue-trait associations
+#################################
+if false; then
+sh comparison_of_TGFM_and_TCSC_tissue_trait_associations.sh $iterative_tgfm_prior_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tcsc_results_file $tcsc_comparison_dir
+fi
+
 
 #################################
 # Visualize TGFM results
@@ -675,7 +800,7 @@ fi
 # Organize TGFM Results across parallel runs
 #################################
 if false; then
-sbatch organize_sc_tgfm_results_across_parallel_runs.sh $sc_tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $merged_tissue_cell_type_file $gtex_pseudotissue_category_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir $sc_tgfm_organized_results_dir $gene_annotation_file
+sh organize_sc_tgfm_results_across_parallel_runs.sh $sc_tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $merged_tissue_cell_type_file $gtex_pseudotissue_category_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir $sc_tgfm_organized_results_dir $gene_annotation_file $tgfm_organized_results_dir
 fi
 
 #################################

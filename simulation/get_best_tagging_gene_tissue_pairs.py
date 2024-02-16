@@ -245,13 +245,18 @@ best_tagging_gt_output_stem = sys.argv[3]
 sim_gene_expression_summary = sys.argv[4]
 processed_genotype_data_dir = sys.argv[5]
 sim_gene_trait_effect_size_file = sys.argv[6]
+eqtl_sample_size = sys.argv[7]
+
 
 
 gwas_plink_stem = processed_genotype_data_dir + 'simulated_gwas_data_' + str(1)  # Genotype directory
+eqtl_plink_stem = processed_genotype_data_dir + 'simulated_eqtl_' + str(eqtl_sample_size) + '_data_' + str(1)  # Genotype directory
 
 
 if tgfm_tissues == 'no_t0':
 	get_best_tagging_gt_pairs_for_missing_tissue0(tgfm_input_summary_file, best_tagging_gt_output_stem + '.txt')
 	get_best_simulated_causal_effect_tagging_gt_pairs_for_missing_tissue0(sim_gene_expression_summary, best_tagging_gt_output_stem + '_from_sim_causal_effect.txt', gwas_plink_stem, sim_gene_trait_effect_size_file)
+	get_best_simulated_causal_effect_tagging_gt_pairs_for_missing_tissue0(sim_gene_expression_summary, best_tagging_gt_output_stem + '_from_sim_causal_eqtl_effect.txt', eqtl_plink_stem, sim_gene_trait_effect_size_file)
 
+print(best_tagging_gt_output_stem + '_from_sim_causal_eqtl_effect.txt')
 

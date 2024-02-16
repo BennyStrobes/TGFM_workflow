@@ -101,6 +101,7 @@ simulated_focus_results_dir=$temp_output_root"simulated_focus_results/"
 
 # Directory containing visualizations of simulated results
 visualize_simulated_results_dir=$perm_output_root"visualize_simulated_results/"
+visualize_simulated_results_debug_dir=$perm_output_root"visualize_simulated_results_debug/"
 
 
 
@@ -225,7 +226,7 @@ fi
 
 
 if false; then
-for simulation_number in $(seq 1 30); do 
+for simulation_number in $(seq 31 100); do 
 	# Simulation string used for output file
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}
 
@@ -250,6 +251,14 @@ done
 fi
 
 
+
+if false; then
+simulation_number="25"
+eqtl_sample_size="1000"
+simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}
+tgfm_tissues="no_t0"
+sh run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $tgfm_tissues $simulated_best_tagging_gt_dir
+fi
 
 
 
@@ -351,6 +360,8 @@ done
 fi
 
 
+
+
 if false; then
 for simulation_number in $(seq 1 20); do 
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}
@@ -421,13 +432,13 @@ fi
 
 
 
-
 # Organize simulation results across parallel simulations
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}
 if false; then
-sbatch organize_simulation_results_across_parallel_simulations.sh $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $simulated_gene_position_file $processed_genotype_data_dir $simulated_focus_results_dir $simulated_coloc_results_dir
+sh organize_simulation_results_across_parallel_simulations.sh $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $simulated_gene_position_file $processed_genotype_data_dir $simulated_focus_results_dir $simulated_coloc_results_dir $simulated_best_tagging_gt_dir
 fi
+
 
 ############################
 # Visualize single simulation
@@ -442,5 +453,6 @@ global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}
 Rscript visualize_single_simulation.R $global_simulation_name_string $simulated_organized_results_dir $visualize_simulated_results_dir
 fi
-
+global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}
+Rscript visualize_single_simulation_debug.R $global_simulation_name_string $simulated_organized_results_dir $visualize_simulated_results_debug_dir
 

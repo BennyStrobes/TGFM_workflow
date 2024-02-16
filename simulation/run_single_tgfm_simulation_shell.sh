@@ -51,15 +51,16 @@ echo $simulation_name_string
 
 echo "Part 0: Get best tagging gene tissue pairs"
 best_tagging_gt_output_stem=${simulated_best_tagging_gt_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_best_tagging_gt_pairs"
-python3 get_best_tagging_gene_tissue_pairs.py $tgfm_input_summary_file $tgfm_tissues $best_tagging_gt_output_stem $sim_gene_expression_summary $processed_genotype_data_dir $sim_gene_trait_effect_size_file
+python3 get_best_tagging_gene_tissue_pairs.py $tgfm_input_summary_file $tgfm_tissues $best_tagging_gt_output_stem $sim_gene_expression_summary $processed_genotype_data_dir $sim_gene_trait_effect_size_file ${eqtl_sample_size}
 
 
 echo "Part 1: Uniform PMCES"
 # Uniform (PMCES)
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
+if false; then
 python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues
-
+fi
 
 if false; then
 echo "Part 2: Uniform Sampler"
@@ -74,15 +75,18 @@ echo "Part 3: iterative prior"
 version="pmces"
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
+if false; then
 python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $tgfm_input_summary_file $tgfm_output_stem $version $tgfm_tissues
-
+fi
 
 echo "Part 4: prior - sampler"
 version="pmces"
+if false; then
 ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}"_tmp"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues
-
+fi
 
 
 if false; then
