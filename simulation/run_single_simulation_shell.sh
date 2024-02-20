@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-30:00                         # Runtime in D-HH:MM format
-#SBATCH -p medium                           # Partition to run in
+#SBATCH -t 0-8:00                         # Runtime in D-HH:MM format
+#SBATCH -p short                           # Partition to run in
 #SBATCH --mem=11GB                         # Memory total in MiB (for all cores)
 
 
@@ -26,12 +26,14 @@ simulated_tgfm_input_data_dir="${17}"
 simulated_tgfm_results_dir="${18}"
 simulated_coloc_results_dir="${19}"
 gene_trait_architecture="${20}"
+eqtl_architecture="${21}"
 
 source ~/.bash_profile
 module load R/4.0.1
 echo "Simulation"$simulation_number
 date
 echo $simulation_name_string
+echo $eqtl_architecture
 
 
 
@@ -42,17 +44,16 @@ simulated_learned_gene_models_dir=${simulated_learned_gene_models_base_dir}"simu
 # Step 1: Simulate gene expression and fit gene models
 #######################################################
 echo "Simulation Step 1"
-python3 simulate_gene_expression_and_fit_gene_model.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir $ge_h2
+python3 simulate_gene_expression_and_fit_gene_model.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture
 
 
-
+if false; then
 #######################################################
 # Step 2: Simulate trait values
 #######################################################
 echo "Simulation Step 2"
-python3 simulate_trait_values.py $simulation_number $chrom_num $cis_window $simulated_gene_expression_dir $simulation_name_string $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_trait_dir $n_gwas_individuals $gene_trait_architecture
-
-
+python3 simulate_trait_values.py $simulation_number $chrom_num $cis_window $simulated_gene_expression_dir $simulation_name_string $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_trait_dir $n_gwas_individuals $gene_trait_architecture $eqtl_architecture
+fi
 
 source ~/.bash_profile
 #######################################################
@@ -62,7 +63,7 @@ echo "Simulation Step 8"
 global_window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_3_mb.txt"
 python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $global_window_file $simulated_gwas_dir
 
-
+if false; then
 # Merge gwas data across windows
 source ~/.bash_profile
 merged_gwas_summary_stat_file=${simulated_gwas_dir}${simulation_name_string}"_merged_gwas_summary_stats.txt"
@@ -109,6 +110,6 @@ python3 delete_unnessary_gwas_sum_stat_files.py $simulated_gwas_dir $simulation_
 
 
 date
-
+fi
 
 

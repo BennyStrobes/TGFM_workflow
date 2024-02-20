@@ -705,8 +705,7 @@ for window_iter in range(n_windows):
 	###############################
 	window_name = data[0]
 	print(window_name)
-	if window_name != 'chr1_208734349_211734349':
-		continue
+
 
 	ld_file = data[1]
 	tgfm_input_pkl = data[2]

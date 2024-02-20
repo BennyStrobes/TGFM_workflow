@@ -397,6 +397,7 @@ fi
 ################################
 gene_type="component_gene"
 num_jobs="8"
+ignore_tissues="None"
 if false; then
 echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt"
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_a.txt" | while read trait_name study_file sample_size h2; do
@@ -404,31 +405,48 @@ echo $trait_name
 for job_number in $(seq 0 $(($num_jobs-1))); do
 	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
+	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
 done
 done
 fi
 
 gene_type="component_gene"
 num_jobs="8"
+ignore_tissues="None"
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
 echo $trait_name
 for job_number in $(seq 0 $(($num_jobs-1))); do
 	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_rev"
+	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
 done
 done
 fi
 
 
 trait_name="biochemistry_Cholesterol"
+ignore_tissues="None"
+gene_type="component_gene"
+num_jobs="8"
 if false; then
 for job_number in $(seq 0 $(($num_jobs-1))); do
 	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_rev"
+	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+done
+fi
+
+
+
+trait_missing_tissue_file=$ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue_ignore_cholesterol.txt"
+if false; then
+sed 1d $trait_missing_tissue_file | while read trait_name study_file sample_size h2 tmp; do
+	for job_number in $(seq 0 $(($num_jobs-1))); do
+		tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+		tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_rev"
+		sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+	done
 done
 fi
 
@@ -557,12 +575,13 @@ fi
 #################################
 # Organize TGFM-held-out tissue results across parallel runs
 #################################
-if false; then
 sh organize_tgfm_held_out_tissue_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file
-fi
 
+
+
+if false; then
 Rscript visualize_held_out_tissue_comparision.R $tgfm_organized_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $visualize_held_out_tissue_comparison_dir
-
+fi
 
 
 

@@ -12,8 +12,6 @@ import rpy2
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as ro
 import scipy.stats
-import pylzma
-import lzma
 ro.conversion.py2ri = numpy2ri
 numpy2ri.activate()
 from rpy2.robjects.packages import importr
@@ -703,6 +701,17 @@ def filter_tgfm_data_structure_to_remove_specified_tissue_gene_tissue_pairs(tgfm
 
 	return tgfm_data, False
 
+def get_agg_non_med_probs(beta_phis):
+	n_comp = len(beta_phis)
+	n_bs = beta_phis[0].shape[0]
+
+	agg_nm_probs = np.zeros((n_comp, n_bs))
+
+	for comp_iter in range(n_comp):
+		agg_nm_probs[comp_iter, :] = np.sum(beta_phis[comp_iter],axis=1)
+	return agg_nm_probs
+
+
 
 
 
@@ -736,7 +745,6 @@ else:
 
 
 
-
 # Extract ordered tissue information
 # Extract ordered tissue information
 ordered_tissue_names = extract_tissue_names(gtex_pseudotissue_file, ignore_tissues, remove_testis=True)
@@ -748,7 +756,7 @@ for i, val in enumerate(ordered_tissue_names):
 
 # Append job number and num jobs to TGFM ouptut stem
 new_tgfm_output_stem = tgfm_output_stem + '_' + str(job_number) + '_' + str(num_jobs)
-
+print(new_tgfm_output_stem)
 # Open PIP file handle
 pip_output_file = new_tgfm_output_stem + '_tgfm_pip_summary.txt'
 t_pip = open(pip_output_file,'w')
@@ -870,7 +878,7 @@ for window_iter in range(n_windows):
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_tglr_bs_nn_sampler(prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
 	elif ln_pi_method_name == 'uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler':
-		log_prior_file = tgfm_output_stem.split('_susie_sampler')[0] + '_susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
+		log_prior_file = tgfm_output_stem.split('_component_gene')[0] + '_component_gene_susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
 		log_prior_file = prior_dir + log_prior_file.split('/')[-1]
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_iterative_prior_sampler_sampler(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
@@ -879,7 +887,7 @@ for window_iter in range(n_windows):
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_iterative_prior_pmces(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
 	else:
 		print('assumption erororo: ' + str(ln_pi_method_name) + ' is not yet implemented')
-		pdb.set_trace()		
+		pdb.set_trace()
 
 
 	# Standardize gwas summary statistics
@@ -966,6 +974,8 @@ for window_iter in range(n_windows):
 	tgfm_results['valid_components'] = valid_tgfm_sampler_components
 	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
 	'''
+	agg_nm_probs = get_agg_non_med_probs(tgfm_obj.beta_phis)
+
 	tgfm_results = {}
 	tgfm_results['variants'] = tgfm_data['variants']
 	tgfm_results['genes'] = tgfm_data['genes']
@@ -984,6 +994,7 @@ for window_iter in range(n_windows):
 	tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
 	tgfm_results['middle_variant_indices'] = tgfm_data['middle_variant_indices']
 	tgfm_results['middle_gene_indices'] = tgfm_data['middle_gene_indices']
+	tgfm_results['aggregated_nm_probs'] = agg_nm_probs
 	
 
 	# Write pickle file

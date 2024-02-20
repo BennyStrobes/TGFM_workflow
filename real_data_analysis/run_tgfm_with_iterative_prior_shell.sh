@@ -20,7 +20,7 @@ ignore_tissues="$8"
 init_method="best"
 est_resid_var="False"
 
-source ~/.bash_profile
+source /home/bes710/.bash_profile
 module load R/4.0.1
 
 echo $trait_name

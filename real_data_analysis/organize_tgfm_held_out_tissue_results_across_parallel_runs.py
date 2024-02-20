@@ -1995,6 +1995,46 @@ def check_if_any_other_gt_pairs_from_other_genes_are_correlated_with_the_gt_pair
 	return
 
 
+def get_valid_gene_indices_from_original_analysis(genes, held_out_tissue):
+	indices = []
+	for ii, gene in enumerate(genes):
+		if gene.endswith(held_out_tissue) == False:
+			indices.append(ii)
+	indices = np.asarray(indices)
+	return indices
+
+def get_current_gene_indices(genes, ensamble_id):
+	indices = []
+	for ii, gene in enumerate(genes):
+		if gene.startswith(ensamble_id) == True:
+			indices.append(ii)
+	indices = np.asarray(indices)
+	return indices
+
+def get_current_gene_tagging_and_non_tagging_indices(genes, ensamble_id, held_out_tissue, tagging_tissues):
+	if held_out_tissue in tagging_tissues:
+		tagging_tissue = tagging_tissues[held_out_tissue]
+		non_tagging_indices = []
+		tagging_indices = []
+		for ii, gene in enumerate(genes):
+			if gene.startswith(ensamble_id) == True:
+				if gene.endswith(tagging_tissue):
+					tagging_indices.append(ii)
+				else:
+					non_tagging_indices.append(ii)
+		non_tagging_indices = np.asarray(non_tagging_indices)
+		tagging_indices = np.asarray(tagging_indices)
+	else:
+		non_tagging_indices = []
+		for ii, gene in enumerate(genes):
+			if gene.startswith(ensamble_id) == True:
+				non_tagging_indices.append(ii)
+		non_tagging_indices = np.asarray(non_tagging_indices)
+		tagging_indices = np.asarray([])
+	return non_tagging_indices, tagging_indices
+
+
+
 
 
 def comparison_with_non_held_out_tissue_analysis(per_gene_pip_summary_file, per_gene_tissue_full_pip_summary_file, trait_name, held_out_tissue, old_summary_file, non_held_out_tissue_comparison_file, processed_tgfm_input_stem, ld_dir, data_file_stem):
@@ -2023,6 +2063,19 @@ def comparison_with_non_held_out_tissue_analysis(per_gene_pip_summary_file, per_
 			if pip > old_tupler[1]:
 				region_to_max_gene_pip[region] = (ensamble_id, pip)
 	f.close()
+
+
+	tagging_tissues = {}
+	tagging_tissues['Whole_Blood'] = 'Spleen'
+	tagging_tissues['Spleen'] = 'Whole_Blood'
+	tagging_tissues['Liver'] = 'Pancreas'
+	tagging_tissues['Pancreas'] = 'Liver'
+	tagging_tissues['Artery_Tibial'] = 'Artery_Aorta'
+	tagging_tissues['Artery_Aorta'] = 'Artery_Tibial'
+	tagging_tissues['Artery_Tibial'] = 'Artery_Aorta'
+	tagging_tissues['Skin_Sun_Exposed_Lower_leg'] = 'Skin_Not_Sun_Exposed_Suprapubic'
+	tagging_tissues['Skin_Not_Sun_Exposed_Suprapubic'] = 'Skin_Sun_Exposed_Lower_leg'
+
 
 	# Second create mapping from gene name to max gene-tissue pip
 	gene_to_max_gt_pip = {}
@@ -2061,8 +2114,11 @@ def comparison_with_non_held_out_tissue_analysis(per_gene_pip_summary_file, per_
 	# Now stream old summary file and print results for gt pairs where tissue is held out tisseu
 	f = open(old_summary_file)
 	t = open(non_held_out_tissue_comparison_file,'w')
-	t.write('Ensamble_id\toriginal_gt_pair\toriginal_gt_pair_pip\toriginal_gene_pip\tnew_best_gt_for_gene\tnew_gt_pair_pip\tnew_gene_pip\tnew_best_region_gt_pair\tnew_best_region_gt_pair_pip\n')
+	t.write('Ensamble_id\toriginal_gt_pair\toriginal_gt_pair_pip\toriginal_gene_pip\tnew_best_gt_for_gene\tnew_gt_pair_pip\tnew_gene_pip\tnew_best_region_gt_pair\tnew_best_region_gt_pair_pip\tdelta_nm_var_pip\tdelta_gene_pip\tdelta_nontagging_gene_pip\tdelta_tagging_gene_pip\n')
 	head_count =0
+	aa = []
+	bb = []
+	cc=[]
 	for line in f:
 		line = line.rstrip()
 		data = line.split('\t')
@@ -2078,29 +2134,44 @@ def comparison_with_non_held_out_tissue_analysis(per_gene_pip_summary_file, per_
 		if old_tissue != held_out_tissue:
 			continue
 
-		'''
-		###############################
-		# Load in tgfm results data
-		g = open(processed_tgfm_input_stem + '_' + region + '_tgfm_trait_agnostic_input_data_obj.pkl', "rb")
-		tgfm_data = pickle.load(g)
-		g.close()
-
-		# Load in LD data
-		ld_file = ld_dir + region + '_ukbb_in_sample_ld_af_corrected.npy'
-		ld = np.load(ld_file)
-
-
 		# Load in TGFM results pkl file for this window
 		window_pkl_file = data_file_stem + '_' + region + '_results.pkl'
 		# Load in tgfm results data
 		g = open(window_pkl_file, "rb")
 		tgfm_results_tiss_removed = pickle.load(g)
 		g.close()
-		'''
 
-		# Check if any high PIP snps are correlated with gene-tissue pair
-		#snp_boolean = check_if_any_high_pip_snps_are_correlated_with_the_gt_pair(old_gt, tgfm_data, ld, tgfm_results_tiss_removed)
-		#snp_boolean = check_if_any_other_gt_pairs_from_other_genes_are_correlated_with_the_gt_pair(old_gt, tgfm_data, ld, tgfm_results_tiss_removed)
+		# Load in original TGFM results pkl file for this window
+		orig_window_pkl_file = data_file_stem.split('_ignore')[0] + '_rev_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_' + region + '_results.pkl'
+		if os.path.isfile(orig_window_pkl_file) == False:
+			print('skip')
+			continue
+		# Load in original tgfm results data
+		g = open(orig_window_pkl_file, "rb")
+		tgfm_results_orig = pickle.load(g)
+		g.close()
+		# Get indices of genes in old analysis corresponding to indices of genes in new anlysis
+		valid_orig_gene_indices = get_valid_gene_indices_from_original_analysis(tgfm_results_orig['genes'], held_out_tissue)
+
+
+		# Compute change in non-mediate variant contribution
+		cur_gene_indices = get_current_gene_indices(tgfm_results_tiss_removed['genes'], ensamble_id)
+		cur_gene_non_tagging_indices, cur_gene_tagging_indices = get_current_gene_tagging_and_non_tagging_indices(tgfm_results_tiss_removed['genes'], ensamble_id, held_out_tissue, tagging_tissues)
+
+		delta_nm_var_pip = np.sum(tgfm_results_tiss_removed['expected_beta_pips']) - np.sum(tgfm_results_orig['expected_beta_pips'])
+		delta_gt_pip = np.sum(tgfm_results_tiss_removed['expected_alpha_pips']) - np.sum(tgfm_results_orig['expected_alpha_pips'][valid_orig_gene_indices])
+		if len(cur_gene_indices) == 0:
+			delta_gene_pip = 0.0
+		else:
+			delta_gene_pip = np.sum(tgfm_results_tiss_removed['expected_alpha_pips'][cur_gene_indices]) - np.sum(tgfm_results_orig['expected_alpha_pips'][valid_orig_gene_indices][cur_gene_indices])
+		if len(cur_gene_non_tagging_indices) == 0:
+			delta_nontagging_gene_pip = 0.0
+		else:
+			delta_nontagging_gene_pip = np.sum(tgfm_results_tiss_removed['expected_alpha_pips'][cur_gene_non_tagging_indices]) - np.sum(tgfm_results_orig['expected_alpha_pips'][valid_orig_gene_indices][cur_gene_non_tagging_indices])
+		if len(cur_gene_tagging_indices) == 0:
+			delta_tagging_gene_pip = 0.0
+		else:
+			delta_tagging_gene_pip = np.sum(tgfm_results_tiss_removed['expected_alpha_pips'][cur_gene_tagging_indices]) - np.sum(tgfm_results_orig['expected_alpha_pips'][valid_orig_gene_indices][cur_gene_tagging_indices])
 
 		if region in region_to_max_gt_pip:
 			best_gt_in_region = region_to_max_gt_pip[region][0]
@@ -2116,14 +2187,14 @@ def comparison_with_non_held_out_tissue_analysis(per_gene_pip_summary_file, per_
 			best_gene_pip_in_region = '0.0'
 
 		if ensamble_id not in gene_to_max_gt_pip:
-			t.write(ensamble_id + '\t' + old_gt + '\t' + old_gt_pip + '\t' + old_gene_pip + '\t' + 'None' + '\t' + str(0.0) + '\t' + str(0.0) + '\t' + best_gt_in_region + '\t' + best_gt_pip_in_region + '\t' + best_gene_in_region + '\t' + best_gene_pip_in_region + '\n')
+			t.write(ensamble_id + '\t' + old_gt + '\t' + old_gt_pip + '\t' + old_gene_pip + '\t' + 'None' + '\t' + str(0.0) + '\t' + str(0.0) + '\t' + best_gt_in_region + '\t' + best_gt_pip_in_region + '\t' + best_gene_in_region + '\t' + best_gene_pip_in_region + '\t' + str(delta_nm_var_pip) + '\t' + str(delta_gene_pip) + '\t' + str(delta_nontagging_gene_pip)+'\t' + str(delta_tagging_gene_pip) + '\n')
 		else:
 			tupler = gene_to_max_gt_pip[ensamble_id]
 			if ensamble_id not in gene_to_pip:
 				new_gene_pip = 0.0
 			else:
 				new_gene_pip = gene_to_pip[ensamble_id]
-			t.write(ensamble_id + '\t' + old_gt + '\t' + old_gt_pip + '\t' + old_gene_pip + '\t' + tupler[0] + '\t' + str(tupler[1]) + '\t' + str(new_gene_pip) + '\t' + best_gt_in_region + '\t' + best_gt_pip_in_region+ '\t' + best_gene_in_region + '\t' + best_gene_pip_in_region + '\n')
+			t.write(ensamble_id + '\t' + old_gt + '\t' + old_gt_pip + '\t' + old_gene_pip + '\t' + tupler[0] + '\t' + str(tupler[1]) + '\t' + str(new_gene_pip) + '\t' + best_gt_in_region + '\t' + best_gt_pip_in_region+ '\t' + best_gene_in_region + '\t' + best_gene_pip_in_region+ '\t' + str(delta_nm_var_pip) + '\t' + str(delta_gene_pip) + '\t' + str(delta_nontagging_gene_pip)+'\t' + str(delta_tagging_gene_pip) + '\n')
 	f.close()
 	t.close()
 	return
@@ -2340,7 +2411,7 @@ def generate_ablated_hit_summary_file(trait_names, trait_summary_files, trait_na
 
 
 	t = open(non_ablated_hit_summary_file,'w')
-	t.write('trait_name\tablated_tissue\ttrait_has_proxy_tissue\toriginal_gt_pair\toriginal_gt_pair_pip\tablated_gt_pair\tablated_gt_pair_pip\tgt_pair_from_proxy_tissue\n')
+	t.write('trait_name\tablated_tissue\ttrait_has_proxy_tissue\toriginal_gt_pair\toriginal_gt_pair_pip\tablated_gt_pair\tablated_gt_pair_pip\tgt_pair_from_proxy_tissue\tdelta_nm_var_pip\tdelta_gene_pip\tdelta_nontagging_gene_pip\tdelta_tagging_gene_pip\n')
 	for ii, trait_name in enumerate(trait_names):
 		held_out_tissue = trait_name_to_held_out_tissue[trait_name]
 		trait_summary_file = trait_summary_files[ii]
@@ -2364,14 +2435,17 @@ def generate_ablated_hit_summary_file(trait_names, trait_summary_files, trait_na
 			new_best_gt_pair = data[4]
 			new_best_gt_pair_pip = data[5]
 
+			delta_nm_var_pip = data[11]
+			delta_gene_pip = data[12]
+			delta_nontagging_gene_pip = data[13]
+			delta_tagging_gene_pip = data[14]
+
 			new_best_gt_pair_tissue = '_'.join(new_best_gt_pair.split('_')[1:])
 
 			best_proxy_tissue = 'other tissue'
 			if held_out_tissue in tagging_tissues and tagging_tissues[held_out_tissue] == new_best_gt_pair_tissue:
 				best_proxy_tissue = 'proxy tissue'
-
-			t.write(trait_name + '\t' + held_out_tissue + '\t' + trait_has_tagging_tissue + '\t' + orig_gt_pair + '\t' + orig_gt_pip + '\t' + new_best_gt_pair + '\t' + new_best_gt_pair_pip + '\t' + best_proxy_tissue + '\n')
-
+			t.write(trait_name + '\t' + held_out_tissue + '\t' + trait_has_tagging_tissue + '\t' + orig_gt_pair + '\t' + orig_gt_pip + '\t' + new_best_gt_pair + '\t' + new_best_gt_pair_pip + '\t' + best_proxy_tissue + '\t' + delta_nm_var_pip + '\t' + delta_gene_pip + '\t' + delta_nontagging_gene_pip+ '\t' + delta_tagging_gene_pip + '\n')
 		f.close()
 	t.close()
 	return
@@ -2457,7 +2531,6 @@ for trait_name in trait_names:
 		old_summary_file = tgfm_organized_results_dir + 'tgfm_results_' + trait_name + '_' + gene_type + '_' + model_version + '_tgfm_gene_tissue_hit_summary.txt'
 		#comparison_with_non_held_out_tissue_analysis(per_gene_pip_summary_file, per_gene_tissue_full_pip_summary_file, trait_name, held_out_tissue, old_summary_file, non_held_out_tissue_comparison_file, processed_tgfm_input_stem, ukbb_preprocessed_for_genome_wide_susie_dir, data_file_stem)
 		trait_summary_files.append(non_held_out_tissue_comparison_file)
-		#print(non_held_out_tissue_comparison_file)
 
 
 		###################################################
@@ -2469,16 +2542,17 @@ for trait_name in trait_names:
 		#print(gene_hit_summary_file)
 
 
+
+'''
 # Tally up results across tissues
 pip_thresholds = [.1, .2, .3, .4, .5]
 for pip_thresh in pip_thresholds:
 	held_out_tissue_summary_file = tgfm_organized_results_dir + 'tgfm_results_hold_out_tissue_summary_' + str(pip_thresh) + '.txt'
 	generate_held_out_tissue_summary_file_across_traits(trait_names, pip_thresh, held_out_tissue_summary_file,trait_summary_files,trait_name_to_held_out_tissue)
-
+'''
 
 # Cross trait summary file of all unabalated hits
 ablated_hit_summary_file = tgfm_organized_results_dir + 'tgfm_results_hold_out_tissue_ablated_hit_summary.txt'
 generate_ablated_hit_summary_file(trait_names, trait_summary_files, trait_name_to_held_out_tissue, ablated_hit_summary_file)
-
-
+print(ablated_hit_summary_file)
 

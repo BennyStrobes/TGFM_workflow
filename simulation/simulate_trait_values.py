@@ -117,6 +117,15 @@ def simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_s
 		pdb.set_trace()
 	return
 
+def simulate_expression_mediated_gene_causal_effect_sizes_with_selection(simulated_expression_summary_file, per_element_heritability, total_heritability, fraction_expression_mediated_heritability, expression_mediated_causal_effects_output, gene_trait_architecture, simulated_gt_selection_summary_file):
+	if gene_trait_architecture == '2_caus_t':
+		simulate_expression_mediated_gene_causal_effect_sizes_two_causal_tissues_with_selection(simulated_expression_summary_file, per_element_heritability, total_heritability, fraction_expression_mediated_heritability, expression_mediated_causal_effects_output, simulated_gt_selection_summary_file)
+	else:
+		print('assumption eroororr: gene trait archicture not currently implemented')
+		pdb.set_trace()
+	return
+
+
 
 # Simulate mediated gene-expression causal effect sizes
 def simulate_expression_mediated_gene_causal_effect_sizes_one_causal_tissues(simulated_expression_summary_file, per_element_heritability, total_heritability, fraction_expression_mediated_heritability, expression_mediated_causal_effects_output):
@@ -166,6 +175,72 @@ def simulate_expression_mediated_gene_causal_effect_sizes_one_causal_tissues(sim
 
 	return
 
+
+
+# Simulate mediated gene-expression causal effect sizes
+def simulate_expression_mediated_gene_causal_effect_sizes_two_causal_tissues_with_selection(simulated_expression_summary_file, per_element_heritability, total_heritability, fraction_expression_mediated_heritability, expression_mediated_causal_effects_output, simulated_gt_selection_summary_file):
+	# Extract list of ordered gene names
+	ordered_gene_names = extract_ordered_gene_names_from_gene_summary_file(simulated_expression_summary_file)
+	total_genes = len(ordered_gene_names)
+
+	# Extract boolean matrix of total_genesXtissues that is a 1 if gene, tissue is cis_h2
+	# Causal eqtl effects can only be selected in gene, tissue pairs that are cis heritable
+	cis_h2_gene_boolean_matrix = extract_boolean_matrix_of_cis_heritable_genes(simulated_expression_summary_file)
+
+	selection_summary_mat = np.loadtxt(simulated_gt_selection_summary_file)
+
+	# QUick error checking
+	if np.array_equal(cis_h2_gene_boolean_matrix==1.0,selection_summary_mat>=0.0) == False:
+		print('assumption erororo')
+		pdb.set_trace()
+
+	# Quick error checking
+	if cis_h2_gene_boolean_matrix.shape[0] != total_genes:
+		print('assumption eroror')
+		pdb.set_trace()
+
+	# Calculate number of causal genes
+	total_mediated_h2 = (fraction_expression_mediated_heritability*total_heritability)
+	total_n_causal_genes = int(np.round(total_mediated_h2/per_element_heritability))
+
+	# We are going to assume 50% of gene-mediated h2 is coming from one tissue and 50% of gene-mediated h2 is coming from another tissue
+	# And as a reminder there are 10 tissues
+	n_causal_genes_per_causal_tissue = int(np.round(.5*total_mediated_h2/per_element_heritability))
+
+	# Causal tissues
+	causal_tissues = [0,3]
+
+	# Initialize matrix of gene causal effect sizes
+	gene_causal_effect_sizes = np.zeros((total_genes, 10))
+
+	for causal_tissue in causal_tissues:
+		# Extract indices of mediated causal genes for this causal tissue
+		cis_h2_genes = np.where(cis_h2_gene_boolean_matrix[:, causal_tissue] == 1.0)[0]
+		#tissue_med_causal_gene_indices = np.random.choice(cis_h2_genes, size=n_causal_genes_per_causal_tissue, replace=False)
+		tissue_med_causal_gene_indices = np.where(selection_summary_mat[:, causal_tissue] == 1.0)[0]
+
+		# Quick error check
+		if len(tissue_med_causal_gene_indices) != n_causal_genes_per_causal_tissue:
+			print('assumption eroro')
+			pdb.set_trace()
+		if np.sum(cis_h2_gene_boolean_matrix[tissue_med_causal_gene_indices,causal_tissue] != 1.0) > 0.0:
+			print('assumption erororo')
+			pdb.set_trace()
+
+		# Randomly sample gene causal effect sizes at causal indices
+		gene_causal_effect_sizes[tissue_med_causal_gene_indices, causal_tissue] = np.random.normal(loc=0.0, scale=np.sqrt(per_element_heritability),size=n_causal_genes_per_causal_tissue)
+
+		# Quick error check
+		if np.array_equal(cis_h2_gene_boolean_matrix[tissue_med_causal_gene_indices,causal_tissue], np.ones(n_causal_genes_per_causal_tissue)) == False:
+			print('assumption eroror')
+
+	# Print to output file
+	t = open(expression_mediated_causal_effects_output,'w')
+	for gene_iter in range(total_genes):
+		t.write(ordered_gene_names[gene_iter] + '\t' + '\t'.join(gene_causal_effect_sizes[gene_iter,:].astype(str)) + '\n')
+	t.close()
+
+	return
 
 
 # Simulate mediated gene-expression causal effect sizes
@@ -463,6 +538,7 @@ fraction_expression_mediated_heritability = float(sys.argv[10])
 simulated_trait_dir = sys.argv[11]  # Output dir
 n_gwas_individuals = int(sys.argv[12])
 gene_trait_architecture = sys.argv[13]
+eqtl_architecture = sys.argv[14]
 
 
 # Set seed
@@ -474,7 +550,11 @@ np.random.seed(simulation_number)
 ####################################################
 simulated_expression_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'  # This file contains a line for each gene, and we will use it to select which genes in which tissue are used
 expression_mediated_causal_effects_output = simulated_trait_dir + simulation_name_string + '_expression_mediated_gene_causal_effect_sizes.txt'
-simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_summary_file, per_element_heritability, total_heritability, fraction_expression_mediated_heritability, expression_mediated_causal_effects_output, gene_trait_architecture)
+if eqtl_architecture.startswith('selection') == False:
+	simulate_expression_mediated_gene_causal_effect_sizes(simulated_expression_summary_file, per_element_heritability, total_heritability, fraction_expression_mediated_heritability, expression_mediated_causal_effects_output, gene_trait_architecture)
+else:
+	simulated_gt_selection_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_gt_pairs_for_selection.txt'  # This file contains a line for each gene, and we will use it to select which genes in which tissue are used
+	simulate_expression_mediated_gene_causal_effect_sizes_with_selection(simulated_expression_summary_file, per_element_heritability, total_heritability, fraction_expression_mediated_heritability, expression_mediated_causal_effects_output, gene_trait_architecture, simulated_gt_selection_summary_file)
 
 ####################################################
 # Simulate non-mediated variant causal effect sizes
