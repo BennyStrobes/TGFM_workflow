@@ -575,14 +575,13 @@ fi
 #################################
 # Organize TGFM-held-out tissue results across parallel runs
 #################################
+if false; then
 sh organize_tgfm_held_out_tissue_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file
-
-
+fi
 
 if false; then
 Rscript visualize_held_out_tissue_comparision.R $tgfm_organized_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $visualize_held_out_tissue_comparison_dir
 fi
-
 
 
 #################################

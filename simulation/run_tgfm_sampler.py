@@ -664,7 +664,7 @@ if ln_pi_method_name == 'iterative_variant_gene_tissue_bootstrapped_sampler':
 	ln_pi_input_file = tgfm_output_stem.split('iterative_variant')[0] + 'uniform_iterative_variant_gene_prior_bootstrapped.txt'
 	ln_pi_ele_name_to_bs_probs_mapping = create_mapping_from_element_name_to_bs_probs(ln_pi_input_file)
 elif ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped' or ln_pi_method_name == 'sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped':
-	ln_pi_input_file = tgfm_output_stem.split('_sampler')[0] + '_' + ln_pi_method_name + '.txt'
+	ln_pi_input_file = tgfm_output_stem.split('_sampler')[0] + '_pmces_uniform_all_genes_iterative_variant_gene_prior_pip_level_bootstrapped.txt'
 	ln_pi_ele_name_to_bs_probs_mapping = create_mapping_from_element_name_to_bs_probs(ln_pi_input_file)
 elif ln_pi_method_name == 'tglr_bootstrapped_nonnegative_sampler':
 	ln_pi_input_file = tgfm_output_stem.split('susie')[0] + 'tglr_bootstrapped_nonnegative_per_element_h2s.txt'
@@ -833,6 +833,8 @@ for window_iter in range(n_windows):
 	g = open(window_tgfm_output_file, "wb")
 	pickle.dump(tgfm_results, g)
 	g.close()
+
+	t_pip.flush()
 
 
 # Close file handles

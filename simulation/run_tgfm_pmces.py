@@ -575,9 +575,11 @@ tgfm_input_data = tgfm_input_data[1:,:]
 
 # Get n_windows on this run
 n_windows = tgfm_input_data.shape[0]
+tmp_counter = 0
 
 for window_iter in range(n_windows):
 	data = tgfm_input_data[window_iter, :]
+
 
 	##############################
 	# Extract relevent fields

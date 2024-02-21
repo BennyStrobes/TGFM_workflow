@@ -206,6 +206,129 @@ gene_tissue_level_se_barplot_at_various_pip_thresholds <- function(tgfm_organize
   	return(p)
 }
 
+make_ablated_hit_summary_delta_pip_stack_barplot_cross_trait <- function(df_raw) {
+	new_vec <- paste0(df_raw$trait_name, ":", df_raw$original_gt_pair)
+
+	df_raw$delta_nm_var_pip[df_raw$delta_nm_var_pip <= 0] = 0.0
+	df_raw$delta_gene_pip[df_raw$delta_gene_pip <= 0] = 0.0
+	
+	delta_pip_vec <- c(df_raw$delta_nm_var_pip, df_raw$delta_gene_pip)
+	gt_pair_vec <- c(new_vec, new_vec)
+	pip_type_vec <- c(rep("NM-Variant", length(df_raw$delta_nm_var_pip)), rep("Gene-Tissue", length(df_raw$delta_gene_pip)))
+
+	df <- data.frame(delta_pip=delta_pip_vec, gt_pair=gt_pair_vec, pip_type=pip_type_vec)
+
+	totes = df_raw$delta_nm_var_pip + df_raw$delta_gene_pip
+
+	indexes <- order(totes)
+
+	df$gt_pair = factor(df$gt_pair,levels=as.character(new_vec)[indexes])
+
+
+	pp <- ggplot(df, aes(fill=pip_type_vec, y=delta_pip, x=gt_pair)) + 
+    	geom_bar(position="stack", stat="identity") +
+    	figure_theme() +
+    	theme(axis.text.x=element_blank()) +
+    	labs(x="",y="Delta PIP", fill="") +
+    	scale_fill_manual(values=c("#999999", "#56B4E9")) + 
+    	theme(legend.position="bottom")
+    return(pp)
+
+
+}
+
+
+make_ablated_hit_summary_delta_pip_stack_barplot_cross_trait_v2 <- function(df_v2) {
+	## V2 proxy gene-tissue
+	new_vec2 <- paste0(df_v2$trait_name, ":", df_v2$original_gt_pair)
+	df_v2$delta_nm_var_pip[df_v2$delta_nm_var_pip <= 0] = 0.0
+	df_v2$delta_nontagging_gene_pip[df_v2$delta_nontagging_gene_pip <= 0] = 0.0
+	df_v2$delta_tagging_gene_pip[df_v2$delta_tagging_gene_pip <= 0] = 0.0
+	
+	delta_pip_vec2 <- c(df_v2$delta_nm_var_pip, df_v2$delta_nontagging_gene_pip, df_v2$delta_tagging_gene_pip)
+	gt_pair_vec2 <- c(new_vec2, new_vec2, new_vec2)
+	pip_type_vec2 <- c(rep("NM-Variant", length(df_v2$delta_nm_var_pip)), rep("Non-Proxy Gene-Tissue", length(df_v2$delta_nontagging_gene_pip)), rep("Proxy Gene-Tissue", length(df_v2$delta_tagging_gene_pip)))
+
+	df2 <- data.frame(delta_pip=delta_pip_vec2, gt_pair=gt_pair_vec2, pip_type=pip_type_vec2)
+
+	totes2 = df_v2$delta_nm_var_pip + df_v2$delta_nontagging_gene_pip + df_v2$delta_tagging_gene_pip
+	indexes2 <- order(totes2)
+	df2$gt_pair = factor(df2$gt_pair,levels=as.character(new_vec2)[indexes2])
+	ppp2 <- ggplot(df2, aes(fill=pip_type, y=delta_pip, x=gt_pair)) + 
+    	geom_bar(position="stack", stat="identity") +
+    	figure_theme() +
+    	theme(axis.text.x=element_blank()) +
+    	labs(x="",y="Delta PIP", fill="") +
+    	scale_fill_manual(values=c("#999999", "#56B4E9", "#E69F00")) +
+    	theme(legend.position="bottom")
+
+}
+
+
+make_ablated_hit_summary_delta_pip_stack_barplot_cross_trait_tagging_tissue_strat <- function(df_raw) {
+
+	## V1 no proxy gene-tissue
+	df_v1 = df_raw[df_raw$delta_tagging_gene_pip==0,]
+
+	new_vec <- paste0(df_v1$trait_name, ":", df_v1$original_gt_pair)
+	df_v1$delta_nm_var_pip[df_v1$delta_nm_var_pip <= 0] = 0.0
+	df_v1$delta_nontagging_gene_pip[df_v1$delta_nontagging_gene_pip <= 0] = 0.0
+	
+	delta_pip_vec <- c(df_v1$delta_nm_var_pip, df_v1$delta_nontagging_gene_pip)
+	gt_pair_vec <- c(new_vec, new_vec)
+	pip_type_vec <- c(rep("NM-Variant", length(df_v1$delta_nm_var_pip)), rep("Non-Proxy Gene-Tissue", length(df_v1$delta_nontagging_gene_pip)))
+
+	df <- data.frame(delta_pip=delta_pip_vec, gt_pair=gt_pair_vec, pip_type=pip_type_vec)
+
+	totes = df_v1$delta_nm_var_pip + df_v1$delta_nontagging_gene_pip
+	indexes <- order(totes)
+	df$gt_pair = factor(df$gt_pair,levels=as.character(new_vec)[indexes])
+	ppp1 <- ggplot(df, aes(fill=pip_type, y=delta_pip, x=gt_pair)) + 
+    	geom_bar(position="stack", stat="identity") +
+    	figure_theme() +
+    	theme(axis.text.x=element_blank()) +
+    	labs(x="",y="Delta PIP", fill="", title="Ablated gene-tissue hax no proxy gene-tissue") +
+    	scale_fill_manual(values=c("#999999", "#56B4E9")) +
+    	theme(legend.position="bottom")
+
+
+
+
+	## V2 proxy gene-tissue
+	df_v2 = df_raw[df_raw$delta_tagging_gene_pip!=0,]
+
+	new_vec2 <- paste0(df_v2$trait_name, ":", df_v2$original_gt_pair)
+	df_v2$delta_nm_var_pip[df_v2$delta_nm_var_pip <= 0] = 0.0
+	df_v2$delta_nontagging_gene_pip[df_v2$delta_nontagging_gene_pip <= 0] = 0.0
+	df_v2$delta_tagging_gene_pip[df_v2$delta_tagging_gene_pip <= 0] = 0.0
+	
+	delta_pip_vec2 <- c(df_v2$delta_nm_var_pip, df_v2$delta_nontagging_gene_pip, df_v2$delta_tagging_gene_pip)
+	gt_pair_vec2 <- c(new_vec2, new_vec2, new_vec2)
+	pip_type_vec2 <- c(rep("NM-Variant", length(df_v2$delta_nm_var_pip)), rep("Non-Proxy Gene-Tissue", length(df_v2$delta_nontagging_gene_pip)), rep("Proxy Gene-Tissue", length(df_v2$delta_tagging_gene_pip)))
+
+	df2 <- data.frame(delta_pip=delta_pip_vec2, gt_pair=gt_pair_vec2, pip_type=pip_type_vec2)
+
+	totes2 = df_v2$delta_nm_var_pip + df_v2$delta_nontagging_gene_pip + df_v2$delta_tagging_gene_pip
+	indexes2 <- order(totes2)
+	df2$gt_pair = factor(df2$gt_pair,levels=as.character(new_vec2)[indexes2])
+	ppp2 <- ggplot(df2, aes(fill=pip_type, y=delta_pip, x=gt_pair)) + 
+    	geom_bar(position="stack", stat="identity") +
+    	figure_theme() +
+    	theme(axis.text.x=element_blank()) +
+    	labs(x="",y="Delta PIP", fill="", title="Ablated gene-tissue has proxy gene-tissue") +
+    	scale_fill_manual(values=c("#999999", "#56B4E9", "#E69F00")) +
+    	theme(legend.position="bottom")
+
+    legender <- get_legend(ppp2)
+    joint <- plot_grid(ppp1+ theme(legend.position="None"),ppp2 + theme(legend.position="None"),ncol=2)
+
+    pp <- plot_grid(joint,legender,ncol=1, rel_heights=c(1,.15))
+
+    return(pp)
+
+
+}
+
 
 
 tgfm_organized_results_dir <- args[1]
@@ -216,6 +339,27 @@ output_dir <- args[3]
 trait_df <- read.table(trait_names_file, header=TRUE,sep="\t")
 trait_names <- as.character(trait_df$study_name)
 hold_out_tissues <- as.character(trait_df$tissue_remove)
+
+
+
+ablated_hit_summary_file = paste0(tgfm_organized_results_dir, "tgfm_results_hold_out_tissue_ablated_hit_summary.txt")
+ablated_hit_df <- read.table(ablated_hit_summary_file,header=TRUE,sep="\t")
+
+
+#####################
+#Make stacked bar plot showing delta nm variant and delta gene after ablation
+####################
+pp <- make_ablated_hit_summary_delta_pip_stack_barplot_cross_trait(ablated_hit_df)
+output_file <- paste0(output_dir, "ablated_hit_delta_pip_stacked_barplot_cross_trait.pdf")
+ggsave(pp, file=output_file, width=7.2, height=4.6, units="in")
+
+pp <- make_ablated_hit_summary_delta_pip_stack_barplot_cross_trait_v2(ablated_hit_df)
+output_file <- paste0(output_dir, "ablated_hit_delta_pip_stacked_barplot_cross_trait_v2.pdf")
+ggsave(pp, file=output_file, width=7.2, height=4.6, units="in")
+
+pp <- make_ablated_hit_summary_delta_pip_stack_barplot_cross_trait_tagging_tissue_strat(ablated_hit_df)
+output_file <- paste0(output_dir, "ablated_hit_delta_pip_stacked_barplot_cross_trait_tagging_tiss_strat.pdf")
+ggsave(pp, file=output_file, width=7.2, height=4.6, units="in")
 
 
 if (FALSE) {
@@ -250,10 +394,11 @@ ggsave(joint_pp2, file=output_file, width=7.2, height=4.1, units="in")
 # Make se barplot showing number of gene-tissue pairs discovered in the ablated analyisis (for loci where PIP > 0.5 in the original analysis)
 # for various pip thresholds
 #######################
+if (FALSE) {
 pp <- gene_tissue_level_se_barplot_at_various_pip_thresholds(tgfm_organized_results_dir)
 output_file <- paste0(output_dir, "held_out_tissue_gene_tissue_level_summary_barplot_various_pip.pdf")
 ggsave(pp, file=output_file, width=7.2, height=4.6, units="in")
-
+}
 
 
 

@@ -641,6 +641,7 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 
 		# Load in TGFM results pkl file for this window
 		window_pkl_file = file_stem + '_' + window_name + '_results.pkl'
+
 		if os.path.isfile(window_pkl_file) == False:
 			continue
 		# Load in tgfm results data
