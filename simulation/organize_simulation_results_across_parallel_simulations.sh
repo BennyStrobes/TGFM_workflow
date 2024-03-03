@@ -29,7 +29,7 @@ simulated_best_tagging_gt_dir="${17}"
 
 
 
-source ~/.bash_profile
+source /home/bes710/.bash_profile
 
 
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-27:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-30:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=30GB                         # Memory total in MiB (for all cores)
 
@@ -22,8 +22,6 @@ simulated_tgfm_results_dir="${13}"
 eqtl_sample_size="${14}"
 tgfm_tissues="${15}"
 simulated_best_tagging_gt_dir="${16}"
-gene_type="${17}"
-
 
 
 
@@ -46,24 +44,21 @@ sim_gene_expression_summary=${simulated_gene_expression_dir}${simulation_name_st
 sim_gene_trait_effect_size_file=${simulated_trait_dir}${simulation_name_string}"_expression_mediated_gene_causal_effect_sizes.txt"
 
 # Add tissue prefix to simulation_name_string
-simulation_name_string=${simulation_name_string}"_"${tgfm_tissues}"_"${gene_type}
-
-
+simulation_name_string=${simulation_name_string}"_"${tgfm_tissues}
 
 echo $simulation_name_string
 
 
 echo "Part 0: Get best tagging gene tissue pairs"
 best_tagging_gt_output_stem=${simulated_best_tagging_gt_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_best_tagging_gt_pairs"
-if false; then
 python3 get_best_tagging_gene_tissue_pairs.py $tgfm_input_summary_file $tgfm_tissues $best_tagging_gt_output_stem $sim_gene_expression_summary $processed_genotype_data_dir $sim_gene_trait_effect_size_file ${eqtl_sample_size}
-fi
+
 
 echo "Part 1: Uniform PMCES"
 # Uniform (PMCES)
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
-python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues $gene_type
+python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues
 
 
 if false; then
@@ -71,9 +66,10 @@ echo "Part 2: Uniform Sampler"
 # Uniform (sampler)
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
-python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues $gene_type
+python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues
 fi
 
+if false; then
 echo "Part 3: iterative prior"
 # Iterative prior (PMCES)
 version="pmces"
@@ -82,25 +78,14 @@ tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss
 python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $tgfm_input_summary_file $tgfm_output_stem $version $tgfm_tissues
 
 
+
 echo "Part 4: prior - sampler"
 version="pmces"
 ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}"_tmp"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
-python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues $gene_type
-
-
-
-
-
-
-if false; then
-echo "Part 4: prior - sampler"
-version="pmces"
-ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_cg"
-tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
-python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues $gene_type
+python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues
 fi
-
 
 if false; then
 echo "Part 5: default susie"

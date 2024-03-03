@@ -78,9 +78,9 @@ def run_gwas_on_specified_rsids(hapmap3_rsids, trait_values_file, gwas_plink_ste
 		if np.mod(len(batch_rsids), batch_size) == 0:
 			# Extract genotype data for this batch of snps
 			batch_variant_genotype = np.asarray(genotype_obj.sel(variant=batch_variant_names))
-
 			#effects_sizes = []
 			#marginal_effects_ses = []
+
 			# Loop through variants in batch
 			for batch_iter, batch_rsid in enumerate(np.asarray(batch_rsids)):
 				# Extract genotype data for this snp
@@ -115,7 +115,10 @@ def run_gwas_on_specified_rsids(hapmap3_rsids, trait_values_file, gwas_plink_ste
 			batch_variant_genotype = (batch_variant_genotype - np.nanmean(batch_variant_genotype,axis=0))#/np.nanstd(batch_variant_genotype,axis=0)
 			# Set all nans to zero
 			batch_variant_genotype[np.isnan(batch_variant_genotype)] = 0.0
-			batch_variant_genotype = batch_variant_genotype/np.std(batch_variant_genotype,axis=0)
+
+			#batch_variant_genotype = batch_variant_genotype/np.std(batch_variant_genotype,axis=0)
+			for col_iter in range(batch_variant_genotype.shape[1]):
+				batch_variant_genotype[:,col_iter] = batch_variant_genotype[:,col_iter]/np.std(batch_variant_genotype[:,col_iter])
 
 			# Compute marginal gwas association stats
 			effect_sizes = np.dot(np.transpose(batch_variant_genotype), trait_vector)/len(trait_vector)
@@ -126,7 +129,6 @@ def run_gwas_on_specified_rsids(hapmap3_rsids, trait_values_file, gwas_plink_ste
 			for batch_iter, batch_rsid in enumerate(np.asarray(batch_rsids)):
 				t.write(batch_rsid + '\t' + str(effect_sizes[batch_iter]) + '\t' + str(marginal_effects_ses[batch_iter]) + '\t' + str(marginal_zs[batch_iter]) + '\n')
 			'''
-
 			# Reset batch_rsids and batch_variant_names
 			batch_rsids = []
 			batch_variant_names = []
@@ -135,8 +137,8 @@ def run_gwas_on_specified_rsids(hapmap3_rsids, trait_values_file, gwas_plink_ste
 	if len(batch_rsids) > 0:
 		# Extract genotype data for this batch of snps
 		batch_variant_genotype = np.asarray(genotype_obj.sel(variant=batch_variant_names))
-
 		# Loop through variants in batch
+
 		for batch_iter, batch_rsid in enumerate(np.asarray(batch_rsids)):
 			# Extract genotype data for this snp
 			variant_genotype = batch_variant_genotype[:,batch_iter]
@@ -165,7 +167,9 @@ def run_gwas_on_specified_rsids(hapmap3_rsids, trait_values_file, gwas_plink_ste
 		batch_variant_genotype = (batch_variant_genotype - np.nanmean(batch_variant_genotype,axis=0))#/np.nanstd(batch_variant_genotype,axis=0)
 		# Set all nans to zero
 		batch_variant_genotype[np.isnan(batch_variant_genotype)] = 0.0
-		batch_variant_genotype = batch_variant_genotype/np.std(batch_variant_genotype,axis=0)
+		#batch_variant_genotype = batch_variant_genotype/np.std(batch_variant_genotype,axis=0)
+		for col_iter in range(batch_variant_genotype.shape[1]):
+			batch_variant_genotype[:,col_iter] = batch_variant_genotype[:,col_iter]/np.std(batch_variant_genotype[:,col_iter])
 
 		# Compute marginal gwas association stats
 		effect_sizes = np.dot(np.transpose(batch_variant_genotype), trait_vector)/len(trait_vector)
@@ -175,8 +179,6 @@ def run_gwas_on_specified_rsids(hapmap3_rsids, trait_values_file, gwas_plink_ste
 		for batch_iter, batch_rsid in enumerate(np.asarray(batch_rsids)):
 			t.write(batch_rsid + '\t' + str(effect_sizes[batch_iter]) + '\t' + str(marginal_effects_ses[batch_iter]) + '\t' + str(marginal_zs[batch_iter]) + '\n')
 		'''
-
-
 	t.close()
 
 	return

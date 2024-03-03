@@ -19,7 +19,8 @@ simulation_name_string = sys.argv[3]
 
 gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
 
-eqtl_sss = ['300', '500', '1000']
+eqtl_sss = ['100', '300', '500', '1000']
+
 n_tiss = 10
 
 # Loop through genes (note: not gene tissue pairs)
@@ -54,10 +55,6 @@ for line in f:
 
 		# Loop through tissues
 		for tiss_iter in range(n_tiss):
-			# Skip gene, tissue pairs with no gene models
-			if np.array_equal(gene_model_mat[tiss_iter,:], np.zeros(n_cis_snps)):
-				continue
-
 			susie_stem = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_ss) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_'
 			susie_alpha_file = susie_stem + 'alpha.npy'
 			susie_mu_file = susie_stem + 'mu.npy'

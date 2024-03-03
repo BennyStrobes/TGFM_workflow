@@ -6,7 +6,8 @@ import os
 import pdb
 import scipy.special
 import pickle
-import tgfm
+#import tgfm
+import tgfm_init
 import rpy2
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as ro
@@ -214,8 +215,16 @@ def update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_obj):
 
 def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_full_ld, init_method, est_resid_var_bool):
 	# Hacky: Initialize old TGFM object using only one iter of optimization
-	tgfm_obj = tgfm.TGFM(L=10, estimate_prior_variance=False, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
-	tgfm_obj.fit(twas_data_obj=tgfm_data)
+	#tgfm_obj = tgfm.TGFM(L=10, estimate_prior_variance=False, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
+	#tgfm_obj.fit(twas_data_obj=tgfm_data)
+	tgfm_data_obj_light = {}
+	tgfm_data_obj_light['genes'] = np.copy(tgfm_data['genes'])
+	tgfm_data_obj_light['variants'] = np.copy(tgfm_data['variants'])
+	tgfm_data_obj_light['gwas_sample_size'] = np.copy(tgfm_data['gwas_sample_size'])
+
+	tgfm_obj = tgfm_init.TGFM(L=10, estimate_prior_variance=False, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=1)
+	tgfm_obj.fit(twas_data_obj=tgfm_data_obj_light)
+
 	# More hack: need to redo twas z
 	variant_z = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']
 	new_gene_z = np.dot(tgfm_data['gene_eqtl_pmces'], variant_z)
@@ -231,7 +240,6 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 
 	if init_method == 'best':
 		rpy2.robjects.r['options'](warn=1)
-
 
 		# Run susie with null initialization
 		susie_null_init = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=gene_variant_full_ld, n=tgfm_data['gwas_sample_size'], L=10, prior_weights=prior_probs.reshape((len(prior_probs),1)), estimate_residual_variance=est_resid_var_bool)
@@ -261,7 +269,7 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, gene_variant_
 			if susie_variant_init_elbo > susie_null_init_elbo:
 				# Variant init wins
 				tgfm_obj = update_tgfm_obj_with_susie_res_obj(tgfm_obj, susie_variant_init)
-				del susie_variant_init
+			del susie_variant_init
 	elif init_method == 'refine_best':
 		rpy2.robjects.r['options'](warn=1)
 		# Run susie with only variants
@@ -671,7 +679,7 @@ for window_iter in range(n_windows):
 
 
 	# Add ld to tgfm_data obj
-	tgfm_data['reference_ld'] = ld_mat
+	#tgfm_data['reference_ld'] = ld_mat
 
 
 	# Skip windows with no genes
@@ -705,7 +713,8 @@ for window_iter in range(n_windows):
 	gwas_beta_scaled, gwas_beta_se_scaled = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, float(gwas_sample_size), ld_mat)
 
 	# Extract full ld between genes, variants, and gene-variants
-	gene_variant_full_ld = extract_full_gene_variant_ld(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])
+	gene_variant_full_ld = extract_full_gene_variant_ld(tgfm_data['gene_eqtl_pmces'], ld_mat)
+	del ld_mat
 
 	# Add extra info to tgfm_data
 	tgfm_data['gwas_beta'] = gwas_beta_scaled
@@ -801,6 +810,7 @@ for window_iter in range(n_windows):
 		t_gene.flush()
 	# Save all TGFM results to pkl
 	tgfm_results = {}
+
 	tgfm_results['variants'] = tgfm_data['variants']
 	tgfm_results['genes'] = tgfm_data['genes']
 	tgfm_results['alpha_phi'] = tgfm_obj.alpha_phi

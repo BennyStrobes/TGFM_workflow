@@ -336,7 +336,7 @@ def merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj2, variant_z_ve
 
 
 
-def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method, bootstrap_prior):
+def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, init_method, bootstrap_prior):
 	if init_method == 'null':
 		tgfm_obj = bootstrapped_tgfm.TGFM(L=7, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5)
 		tgfm_obj.fit(twas_data_obj=tgfm_data)
@@ -352,7 +352,7 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_
 		if np.max(np.max(tgfm_obj.expected_alpha_pips)) > .2:
 			print('extra')
 			# Create initialization alpha, mu, and mu_var
-			susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=ld_mat, n=tgfm_data['gwas_sample_size'], L=10, estimate_residual_variance=False)
+			susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=tgfm_data['reference_ld'], n=tgfm_data['gwas_sample_size'], L=10, estimate_residual_variance=False)
 
 			num_snps = len(z_vec)
 			num_genes = len(tgfm_data['genes'])
@@ -368,9 +368,8 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_
 			# Run tgfm sampler with variant init
 			tgfm_obj_variant_init = bootstrapped_tgfm.TGFM(L=10, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5, bootstrap_prior=bootstrap_prior)
 			tgfm_obj_variant_init.fit(twas_data_obj=tgfm_data, phi_init=alpha_init, mu_init=mu_init, mu_var_init=mu_var_init)
-			#elbo_variant_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj_variant_init, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
 
-			tgfm_obj = merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj_variant_init, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
+			tgfm_obj = merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj_variant_init, z_vec, tgfm_data['reference_ld'], tgfm_data['gwas_sample_size'])
 		
 	return tgfm_obj
 
@@ -847,9 +846,9 @@ for window_iter in range(n_windows):
 			continue
 
 	# Load in LD
-	ld_mat = np.load(ld_file)
+	tgfm_data['reference_ld'] = np.load(ld_file)
 	# Add ld to tgfm_data obj
-	tgfm_data['reference_ld'] = ld_mat
+	#tgfm_data['reference_ld'] = ld_mat
 
 	# Skip windows with no genes
 	if len(tgfm_data['genes']) == 0:
@@ -878,8 +877,9 @@ for window_iter in range(n_windows):
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_tglr_bs_nn_sampler(prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
 	elif ln_pi_method_name == 'uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler':
-		log_prior_file = tgfm_output_stem.split('_component_gene')[0] + '_component_gene_susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
+		log_prior_file = tgfm_output_stem.split('_all_non_zero_gene')[0] + '_all_non_zero_gene_susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
 		log_prior_file = prior_dir + log_prior_file.split('/')[-1]
+		#log_prior_file = prior_dir + 'tgfm_results_' + trait_name + '_'
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_iterative_prior_sampler_sampler(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
 	elif ln_pi_method_name == 'uniform_pmces_iterative_variant_gene_tissue_pip_level_pmces':
@@ -891,7 +891,7 @@ for window_iter in range(n_windows):
 
 
 	# Standardize gwas summary statistics
-	gwas_beta_scaled, gwas_beta_se_scaled = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, float(gwas_sample_size), ld_mat)
+	gwas_beta_scaled, gwas_beta_se_scaled = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, float(gwas_sample_size), tgfm_data['reference_ld'])
 
 	# Extract full ld between genes, variants, and gene-variants
 	#gene_variant_full_ld = extract_full_gene_variant_ld(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])
@@ -904,7 +904,7 @@ for window_iter in range(n_windows):
 	##############################
 	# Run TGFM
 	###############################
-	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method, bootstrap_prior)
+	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, init_method, bootstrap_prior)
 
 	'''
 	##############################

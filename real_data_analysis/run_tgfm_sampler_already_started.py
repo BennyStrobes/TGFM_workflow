@@ -339,7 +339,7 @@ def merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj2, variant_z_ve
 
 
 
-def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method, bootstrap_prior):
+def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, init_method, bootstrap_prior):
 	if init_method == 'null':
 		tgfm_obj = bootstrapped_tgfm.TGFM(L=7, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5)
 		tgfm_obj.fit(twas_data_obj=tgfm_data)
@@ -355,7 +355,7 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_
 		if np.max(np.max(tgfm_obj.expected_alpha_pips)) > .2:
 			print('extra')
 			# Create initialization alpha, mu, and mu_var
-			susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=ld_mat, n=tgfm_data['gwas_sample_size'], L=10, estimate_residual_variance=False)
+			susie_variant_only = susieR_pkg.susie_rss(z=z_vec.reshape((len(z_vec),1)), R=tgfm_data['reference_ld'], n=tgfm_data['gwas_sample_size'], L=10, estimate_residual_variance=False)
 
 			num_snps = len(z_vec)
 			num_genes = len(tgfm_data['genes'])
@@ -373,7 +373,7 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_
 			tgfm_obj_variant_init.fit(twas_data_obj=tgfm_data, phi_init=alpha_init, mu_init=mu_init, mu_var_init=mu_var_init)
 			#elbo_variant_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj_variant_init, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
 
-			tgfm_obj = merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj_variant_init, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
+			tgfm_obj = merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj_variant_init, z_vec, tgfm_data['reference_ld'], tgfm_data['gwas_sample_size'])
 		
 	return tgfm_obj
 
@@ -707,6 +707,16 @@ def filter_tgfm_data_structure_to_remove_specified_tissue_gene_tissue_pairs(tgfm
 	return tgfm_data, False
 
 
+def get_agg_non_med_probs(beta_phis):
+	n_comp = len(beta_phis)
+	n_bs = beta_phis[0].shape[0]
+
+	agg_nm_probs = np.zeros((n_comp, n_bs))
+
+	for comp_iter in range(n_comp):
+		agg_nm_probs[comp_iter, :] = np.sum(beta_phis[comp_iter],axis=1)
+	return agg_nm_probs
+
 
 ######################
 # Command line args
@@ -819,6 +829,14 @@ for window_iter in range(n_windows):
 		print('skipped because of window pvalue threshold')
 		continue
 	# Hacky fix
+	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:43014743:46014743':
+		continue
+	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:44014743:47014743':
+		continue
+	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:45014743:48014743':
+		continue
+	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:46014743:49014743':
+		continue
 	if trait_name == 'blood_RED_COUNT' and window_name == '10:44014743:47014743':
 		continue
 	if trait_name == 'blood_RED_COUNT' and window_name == '10:45014743:48014743':
@@ -866,7 +884,7 @@ for window_iter in range(n_windows):
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_tglr_bs_nn_sampler(prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
 	elif ln_pi_method_name == 'uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler':
-		log_prior_file = tgfm_output_stem.split('_susie_sampler')[0] + '_susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
+		log_prior_file = tgfm_output_stem.split('_all_non_zero_gene')[0] + '_all_non_zero_gene_susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
 		log_prior_file = prior_dir + log_prior_file.split('/')[-1]
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_iterative_prior_sampler_sampler(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
@@ -884,12 +902,13 @@ for window_iter in range(n_windows):
 	window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
 	if os.path.isfile(window_tgfm_output_file) == False:
 		# Load in LD
-		ld_mat = np.load(ld_file)
+		#ld_mat = np.load(ld_file)
 		# Add ld to tgfm_data obj
-		tgfm_data['reference_ld'] = ld_mat
+		#tgfm_data['reference_ld'] = ld_mat
+		tgfm_data['reference_ld'] = np.load(ld_file)
 		
 		# Standardize gwas summary statistics
-		gwas_beta_scaled, gwas_beta_se_scaled = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, float(gwas_sample_size), ld_mat)
+		gwas_beta_scaled, gwas_beta_se_scaled = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, float(gwas_sample_size), tgfm_data['reference_ld'])
 
 		# Extract full ld between genes, variants, and gene-variants
 		#gene_variant_full_ld = extract_full_gene_variant_ld(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])
@@ -901,7 +920,7 @@ for window_iter in range(n_windows):
 
 
 
-		tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, ld_mat, init_method, bootstrap_prior)
+		tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, init_method, bootstrap_prior)
 
 		print('organizing')
 
@@ -933,6 +952,8 @@ for window_iter in range(n_windows):
 		ordered_middle_pips = middle_pips[indices]
 		ordered_middle_names = middle_names[indices]
 
+		agg_nm_probs = get_agg_non_med_probs(tgfm_obj.beta_phis)
+
 		# Note could compute expected mediated probability
 
 		# Write to credible set output
@@ -956,6 +977,7 @@ for window_iter in range(n_windows):
 		tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
 		tgfm_results['middle_variant_indices'] = tgfm_data['middle_variant_indices']
 		tgfm_results['middle_gene_indices'] = tgfm_data['middle_gene_indices']
+		tgfm_results['aggregated_nm_probs'] = agg_nm_probs
 
 
 		# Write pickle file

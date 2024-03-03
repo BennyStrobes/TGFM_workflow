@@ -10,11 +10,12 @@ from pandas_plink import read_plink1_bin
 import rpy2
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as ro
-import statsmodels.api as sm
 ro.conversion.py2ri = numpy2ri
 numpy2ri.activate()
 from rpy2.robjects.packages import importr
 susieR_pkg = importr('susieR')
+from cafeh.cafeh_genotype import fit_cafeh_genotype
+
 
 def generate_tissue_covariance_structure_across_causal_effects(ge_h2):
 	ge_per_snp_h2 = ge_h2/5
@@ -514,6 +515,19 @@ def unbiased_r_squared(marginal_effects, bootstrapped_marginal_effects, pruned_s
 
 	return unbiased_standardized_r_squared
 
+def get_max_best_to_worst_pi_ratio_across_components(alpha_mat):
+	best_to_worst_ratio = 1.0
+	n_comp = alpha_mat.shape[0]
+
+	for kk in range(n_comp):
+		best_pi = np.max(alpha_mat[kk,:])
+		worst_pi = np.min(alpha_mat[kk,:])
+		kk_ratio = best_pi/worst_pi
+
+		if kk_ratio > best_to_worst_ratio:
+			best_to_worst_ratio = kk_ratio
+	return best_to_worst_ratio
+
 
 def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num):
 	# Load in genotype data across chromosome for eQTL data set
@@ -579,6 +593,10 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 		pmces_cross_tissues = []
 		marginal_beta_cross_tissues = []
 		marginal_beta_var_cross_tissues = []
+		valid_components = []
+		best_to_worst_pi_ratios = []
+		xt_expression = []
+		sim_non_zero_pmces = []
 		for tissue_iter in range(n_tiss):
 			# Simulate gene expression in this gene, tissue pair
 			sim_expr = simulate_gene_expression(gene_geno, sim_causal_eqtl_effect_sizes[:, tissue_iter])
@@ -586,39 +604,51 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 			sim_stand_expr = (sim_expr - np.mean(sim_expr))/np.std(sim_expr)
 			# Run eQTL variant fine-mapping with SuSiE
 			susie_fitted = susieR_pkg.susie(gene_geno, sim_stand_expr,L=10)
+
+			# New stuff for cafeh 
+			xt_expression.append(sim_stand_expr)
+			sim_non_zero_pmces.append(np.array_equal(sim_causal_eqtl_effect_sizes[:, tissue_iter], np.zeros(len(sim_causal_eqtl_effect_sizes[:, tissue_iter])))==False)
+
 			# Test whether there exist any identified susie components for this gene
 			if type(susie_fitted.rx2('sets').rx2('cs_index')) == rpy2.rinterface_lib.sexp.NULLType:
 				# no susie components identified
 				susie_components = np.asarray([]).astype(int)
 				# Get Posterior mean causal effect sizes
 				pmces = np.sum(susie_fitted.rx2('alpha')*susie_fitted.rx2('mu'),axis=0)
+				# Get max (across components) of ratio of best PI relative to worst PI
+				best_to_worst_pi_ratio = get_max_best_to_worst_pi_ratio_across_components(susie_fitted.rx2('alpha'))
 				# Also need to save individual data objects
 				# alpha
-				alpha_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_all_genes_gene_model_susie_alpha.npy'
+				alpha_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_alpha.npy'
 				np.save(alpha_model_output_file, susie_fitted.rx2('alpha'))
 				# mu
-				mu_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_all_genes_gene_model_susie_mu.npy'
+				mu_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu.npy'
 				np.save(mu_model_output_file, susie_fitted.rx2('mu'))
 				# mu_var
 				mu_var = susie_fitted.rx2('mu2') - np.square(susie_fitted.rx2('mu'))
-				mu_var_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_all_genes_gene_model_susie_mu_var.npy'
+				mu_var_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu_var.npy'
 				np.save(mu_var_model_output_file, mu_var)
 
-
+				valid_components.append('False')
+				best_to_worst_pi_ratios.append(best_to_worst_pi_ratio)
 			else:
 				susie_components = np.asarray(susie_fitted.rx2('sets').rx2('cs_index')) - 1
 				pmces = np.sum(susie_fitted.rx2('alpha')*susie_fitted.rx2('mu'),axis=0)
+				# Get max (across components) of ratio of best PI relative to worst PI
+				best_to_worst_pi_ratio = get_max_best_to_worst_pi_ratio_across_components(susie_fitted.rx2('alpha'))
 				# Also need to save individual data objects
 				# alpha
-				alpha_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_all_genes_gene_model_susie_alpha.npy'
+				alpha_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_alpha.npy'
 				np.save(alpha_model_output_file, susie_fitted.rx2('alpha'))
 				# mu
-				mu_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_all_genes_gene_model_susie_mu.npy'
+				mu_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu.npy'
 				np.save(mu_model_output_file, susie_fitted.rx2('mu'))
 				# mu_var
 				mu_var = susie_fitted.rx2('mu2') - np.square(susie_fitted.rx2('mu'))
-				mu_var_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_all_genes_gene_model_susie_mu_var.npy'
+				mu_var_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu_var.npy'
 				np.save(mu_var_model_output_file, mu_var)
+				valid_components.append('True')
+				best_to_worst_pi_ratios.append(best_to_worst_pi_ratio)
 
 			marginal_effects, marginal_effects_se = compute_marginal_regression_coefficients(sim_stand_expr, gene_geno)
 
@@ -626,22 +656,48 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 			marginal_beta_cross_tissues.append(marginal_effects)
 			marginal_beta_var_cross_tissues.append(np.square(marginal_effects_se))
 
+		# Fit cafeh
+		fit_args = dict(update_variance=False)
+		cafehg = fit_cafeh_genotype(np.transpose(gene_geno), np.asarray(xt_expression), K=20, fit_args=fit_args)
+
 		# Convert pmces to numpy array
 		pmces_cross_tissues = np.asarray(pmces_cross_tissues)
 		marginal_beta_cross_tissues = np.asarray(marginal_beta_cross_tissues)
 		marginal_beta_var_cross_tissues = np.asarray(marginal_beta_var_cross_tissues)
+		valid_components = np.asarray(valid_components)
+		best_to_worst_pi_ratios = np.asarray(best_to_worst_pi_ratios)
 
+		# Save gene-model valid components across tissues to output
+		valid_components_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_valid_susie_comp.npy'
+		np.save(valid_components_output_file, valid_components)
+
+		# Save gene-model best-to-worst pi ratios across tissues to output
+		best_to_worst_pi_ratios_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_best_to_worst_susie_pi_ratios.npy'
+		np.save(best_to_worst_pi_ratios_output_file, best_to_worst_pi_ratios)
 
 		# Save gene-model PMCES across tissues to output
-		gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_all_genes_gene_model_pmces.npy'
+		gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
 		np.save(gene_model_output_file, pmces_cross_tissues)
 
 		# Save marginal pvalue across tissues to output
-		marginal_beta_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_all_genes_marginal_beta.npy'
+		marginal_beta_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_marginal_beta.npy'
 		np.save(marginal_beta_output_file, marginal_beta_cross_tissues)
-		marginal_beta_var_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_all_genes_marginal_beta_var.npy'
+		marginal_beta_var_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_marginal_beta_var.npy'
 		np.save(marginal_beta_var_output_file, marginal_beta_var_cross_tissues)
 
+		# Save Cafeh pi output
+		cafeh_pi_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_pi.npy'
+		np.save(cafeh_pi_file, cafehg.pi)
+
+		# Save Cafeh p_active output
+		cafeh_p_active_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_p_active.npy'
+		np.save(cafeh_p_active_file, cafehg.active)
+
+		cafeh_mu_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_mu.npy'
+		np.save(cafeh_mu_file, cafehg.weight_means)
+
+		cafeh_mu_var_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_mu_var.npy'
+		np.save(cafeh_mu_var_file, cafehg.weight_vars)
 
 	f.close()
 	return
@@ -851,8 +907,8 @@ ge_h2 = float('.' + ge_h2_str)
 np.random.seed(simulation_number)
 
 # Define vector of eQTL sample sizes
-eqtl_sample_sizes = np.asarray([300, 500, 1000])
-eqtl_sample_sizes = np.asarray([500])
+eqtl_sample_sizes = np.asarray([100, 300, 500, 1000])
+eqtl_sample_sizes = np.asarray([100])
 
 
 # Fraction of genes cis heritable for a given tissue
@@ -876,15 +932,11 @@ else:
 	selected_variant_eqtl_var = float('.0' + eqtl_architecture.split('_')[1])
 	#simulate_causal_eqtl_effect_sizes_with_selection(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, simulated_causal_gene_tissue_pairs_summary_file, fraction_genes_cis_h2, ge_h2, eqtl_architecture, selected_variant_eqtl_var, per_element_trait_heritability, total_trait_heritability, fraction_expression_mediated_heritability, gene_trait_architecture)
 
-
 ############################
 # Simulate Gene expression and fit gene models for each data-set (eqtl sample-size), tissue
 ############################
 # Do seperately in each data set (eqtl sample size) because genotypes are different
 for eqtl_sample_size in eqtl_sample_sizes:
 	print(eqtl_sample_size)
-	#simulate_gene_expression_and_fit_gene_model_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num)
-
 	simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num)
-
 

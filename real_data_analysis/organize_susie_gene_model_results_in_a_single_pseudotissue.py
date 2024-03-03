@@ -119,9 +119,6 @@ def generate_all_nonzero_gene_pos_file(gene_summary_file, cis_heritable_pos_file
 		hsq = np.asarray(result['combined_heritabilities'])
 		hsq_p = np.asarray(result['combined_heritabilities_p'])
 
-		#if fail_multi_tissue_heritability_filter(hsq, hsq_p, .01):
-			#continue
-
 		if 'component_bool' not in result:
 			print('skipped')
 			continue
@@ -136,6 +133,7 @@ def generate_all_nonzero_gene_pos_file(gene_summary_file, cis_heritable_pos_file
 			component_boolean_string = 'False'
 
 		output_line = gene_weight_file + '\t' + gene_id + '\t' + chrom_num + '\t' + tss + '\t' + tss + '\t' + str(np.mean(hsq)) + '\t' + str(np.mean(hsq_p)) + '\t' + component_boolean_string + '\t' + cs_index_string + '\n'
+		
 		t.write(output_line)
 	f.close()
 	t.close()
@@ -287,7 +285,7 @@ generate_cis_heritable_gene_pos_file(gene_summary_file, cis_heritable_pos_file, 
 
 # Generate pos file with only all genes
 all_nonzero_pos_file = pseudotissue_gene_model_dir + pseudotissue_name + '_all_non_zero_gene_pos_file.txt'
-#generate_all_nonzero_gene_pos_file(gene_summary_file, all_nonzero_pos_file, pseudotissue_gene_model_dir, pseudotissue_name)
+generate_all_nonzero_gene_pos_file(gene_summary_file, all_nonzero_pos_file, pseudotissue_gene_model_dir, pseudotissue_name)
 
 all_pos_file = pseudotissue_gene_model_dir + pseudotissue_name + '_all_gene_pos_file.txt'
 #generate_all_gene_pos_file(gene_summary_file, all_pos_file, pseudotissue_gene_model_dir, pseudotissue_name)

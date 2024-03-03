@@ -774,8 +774,6 @@ else:
 tissue_names = np.asarray(tissue_names)
 
 
-
-
 ###################################################
 # Create component level summary data
 ###################################################

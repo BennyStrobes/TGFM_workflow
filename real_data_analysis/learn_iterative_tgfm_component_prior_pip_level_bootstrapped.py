@@ -1235,7 +1235,6 @@ perm_iterative_prior_results = iterative_tgfm_prior_results_dir + new_tgfm_stem.
 tissue_names = extract_pseudotissue_names(gtex_pseudotissue_file, ignore_tissues, ignore_testis=True)
 
 
-
 ###################################################
 # Concatenate PIP summary file across parallel runs (one line for each window)
 ###################################################

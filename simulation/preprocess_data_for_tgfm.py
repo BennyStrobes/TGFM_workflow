@@ -227,6 +227,8 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 	susie_vars = []
 	susie_alphas = []
 	susie_indices = []
+	valid_susie_comps = []
+	best_to_worst_pi_ratios = []
 
 	bs_arr = []
 
@@ -265,7 +267,13 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 			if eqtl_type == 'susie':
 				fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
 				gene_model_mat = np.load(fitted_gene_file)
-				
+
+				gene_comp_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_valid_susie_comp.npy'
+				gene_comp_arr = np.load(gene_comp_file)
+
+				gene_best_to_worst_pi_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_best_to_worst_susie_pi_ratios.npy'
+				gene_best_to_worst_pi_arr = np.load(gene_best_to_worst_pi_file)
+
 				#sim_gene_file = simulated_gene_expression_dir + simulation_name_string + '_' + ensamble_id + '_causal_eqtl_effects.npy'
 				#sim_gene_model_mat = np.transpose(np.load(sim_gene_file))
 
@@ -314,6 +322,8 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 					susie_vars.append(gene_susie_mu_var)
 					susie_alphas.append(gene_susie_alpha)
 					susie_indices.append(cis_snp_indices[window_indices])
+					valid_susie_comps.append(gene_comp_arr[tiss_iter])
+					best_to_worst_pi_ratios.append(gene_best_to_worst_pi_arr[tiss_iter])
 
 				else:
 					print('assumption erooror')
@@ -328,7 +338,7 @@ def extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start,
 
 	f.close()
 
-	return np.asarray(gene_tissue_pairs), bs_arr, np.asarray(gene_tss_arr), np.asarray(pmces_weights), np.asarray(gene_variances), susie_mus, susie_vars, susie_alphas, susie_indices
+	return np.asarray(gene_tissue_pairs), bs_arr, np.asarray(gene_tss_arr), np.asarray(pmces_weights), np.asarray(gene_variances), susie_mus, susie_vars, susie_alphas, susie_indices, np.asarray(valid_susie_comps), np.asarray(best_to_worst_pi_ratios)
 
 
 def create_anno_matrix_for_set_of_rsids(rsid_to_genomic_annotation, window_rsids):
@@ -709,7 +719,7 @@ for line in f:
 	# Extract gene-tissue pairs and fitted models in this window
 	gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
 
-	gene_tissue_pairs, bs_eqtl_arr, gene_tissue_pairs_tss, pmces_weights, gene_variances, gene_susie_mus, gene_susie_mu_vars, gene_susie_alphas, gene_susie_indices = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,  eqtl_sample_size, window_indices, simulated_gene_expression_dir,ld_mat, eqtl_type, n_bs)
+	gene_tissue_pairs, bs_eqtl_arr, gene_tissue_pairs_tss, pmces_weights, gene_variances, gene_susie_mus, gene_susie_mu_vars, gene_susie_alphas, gene_susie_indices, gene_valid_susie_comps, gene_best_to_worst_pi_ratios = extract_gene_tissue_pairs_and_associated_gene_models_in_window(window_start, window_end, gene_summary_file, simulated_learned_gene_models_dir, simulation_name_string,  eqtl_sample_size, window_indices, simulated_gene_expression_dir,ld_mat, eqtl_type, n_bs)
 
 	# Option to save some memory
 	# Change to current version used in real data
@@ -773,6 +783,8 @@ for line in f:
 	tgfm_data['gene_susie_mu_var'] = gene_susie_mu_vars
 	tgfm_data['gene_susie_alpha'] = gene_susie_alphas
 	tgfm_data['gene_susie_indices'] = gene_susie_indices
+	tgfm_data['gene_valid_susie_comps'] = gene_valid_susie_comps
+	tgfm_data['gene_best_to_worst_pi_ratios'] = gene_best_to_worst_pi_ratios
 
 	# Save TGFM output data to pickle
 	window_pickle_output_file = simulated_tgfm_input_data_dir + simulation_name_string + '_' + window_name + '_eqtl_ss_' + str(eqtl_sample_size)+ '_' + eqtl_type + '_tgfm_input_data.pkl'
