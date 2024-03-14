@@ -52,7 +52,7 @@ drug_target_gene_list_file="/n/groups/price/ben/gene_annotation_files/scdrs_gold
 biological_pathway_gene_set_file="/n/groups/price/ben/gene_annotation_files/biological_pathway_gene_sets.txt"
 
 # Non-disease specific gene sets
-non_disease_specific_gene_sets_file="/n/groups/price/martin/LDSPEC_data/sam_gene_annotation/geneset_list_curated.csv"
+non_disease_specific_gene_sets_file="/n/groups/price/martin/LDSPEC_data/gene_annotation/sam_gene_annotation/geneset_list_curated.csv"
 
 # Epigenetic modifier gene sets
 em_gene_set_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/EM_genes.csv"
@@ -206,6 +206,9 @@ sc_pbmc_susie_gene_models_dir=$perm_output_root"sc_pbmc_susie_gene_models/"
 # Directory containing preprocessed sc TGFM data
 preprocessed_sc_tgfm_data_dir=$output_root"preprocessed_sc_tgfm_data/"
 
+# Directory containing preprocessed sc TGFM data
+preprocessed_sc_pb_tgfm_data_dir=$output_root"preprocessed_sc_pb_tgfm_data/"
+
 # Directory containing TGFM results
 sc_tgfm_results_dir=$output_root"sc_tgfm_results/"
 
@@ -275,9 +278,12 @@ sed 1d $gtex_tissue_file | while read tissue_name sample_size pseudotissue_name;
 	sbatch preprocess_gtex_expression_for_gene_model_analysis_in_single_tissue.sh $tissue_name $xt_pc_gene_list_file $gtex_expression_dir $gtex_covariate_dir $gtex_genotype_dir $gtex_processed_expression_dir $gtex_processed_genotype_dir $ukbb_preprocessed_for_genome_wide_susie_dir
 done
 fi
-
-
-
+if false; then
+original_tissue_name="Whole_Blood"
+tissue_name="Whole_Blood_subsampled"
+subsample_size="113"
+sh preprocess_subsampled_gtex_expression_for_gene_model_analysis_in_single_tissue.sh $original_tissue_name $tissue_name $xt_pc_gene_list_file $gtex_expression_dir $gtex_covariate_dir $gtex_genotype_dir $gtex_processed_expression_dir $gtex_processed_genotype_dir $ukbb_preprocessed_for_genome_wide_susie_dir $subsample_size
+fi
 
 
 
@@ -293,8 +299,11 @@ sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample
 	sh create_pseudotissue_gene_model_input_summary_file.sh $pseudotissue_name $composit_tissue_string $gtex_processed_expression_dir $gtex_pseudotissue_gene_model_input_dir $num_jobs
 done
 fi
-
-
+pseudotissue_name="Whole_Blood_subsampled"
+composit_tissue_string="Whole_Blood_subsampled"
+if false; then
+sh create_pseudotissue_gene_model_input_summary_file.sh $pseudotissue_name $composit_tissue_string $gtex_processed_expression_dir $gtex_pseudotissue_gene_model_input_dir $num_jobs
+fi
 
 ########################################
 # Run GTEx gene model analysis (in each pseudo-tissue seperately)
@@ -307,12 +316,11 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 	done
 done
 fi
-
-pseudotissue_name="Heart_Left_Ventricle"
-composit_tissue_string="Heart_Left_Ventricle"
+pseudotissue_name="Whole_Blood_subsampled"
+composit_tissue_string="Whole_Blood_subsampled"
 if false; then
 for job_number in $(seq 0 $(($num_jobs-1))); do 
-	sbatch create_susie_gene_model_in_a_single_pseudotissue.sh $pseudotissue_name $composit_tissue_string $gtex_pseudotissue_gene_model_input_dir $gtex_processed_expression_dir $gtex_processed_genotype_dir $gtex_susie_gene_models_dir"temp/" $job_number
+	sbatch create_susie_gene_model_in_a_single_pseudotissue.sh $pseudotissue_name $composit_tissue_string $gtex_pseudotissue_gene_model_input_dir $gtex_processed_expression_dir $gtex_processed_genotype_dir $gtex_susie_gene_models_dir $job_number
 done
 fi
 
@@ -431,6 +439,19 @@ sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_rea
 done
 fi
 
+if false; then
+trait_name="body_HEIGHTz"
+tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir $ignore_tissues
+
+trait_name="bmd_HEEL_TSCOREz"
+tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir $ignore_tissues
+
+trait_name="blood_MEAN_CORPUSCULAR_HEMOGLOBIN"
+tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir $ignore_tissues
+fi
 
 #################################
 # Run TGFM with iterative prior
@@ -639,6 +660,7 @@ fi
 # Run drug target gene set enrichment analysis
 #################################
 if false; then
+gene_type="all_non_zero_gene"
 sh run_drug_target_gene_set_enrichment_analysis.sh $tgfm_results_dir $gene_type $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gene_annotation_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $drug_target_gene_list_file $drug_target_gene_set_enrichment_dir $tgfm_organized_results_dir
 fi
 
@@ -657,8 +679,9 @@ fi
 #################################
 # Run run non-disease specific gene set enrichment analysis
 #################################
+gene_type="all_non_zero_gene"
 if false; then
-sh run_non_disease_specific_gene_set_enrichment_analysis.sh $tgfm_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $tgfm_organized_results_dir $non_disease_specific_gene_sets_file $em_gene_set_file $non_disease_specific_gene_set_enrichment_dir
+sh run_non_disease_specific_gene_set_enrichment_analysis.sh $tgfm_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $tgfm_organized_results_dir $non_disease_specific_gene_sets_file $em_gene_set_file $non_disease_specific_gene_set_enrichment_dir $gene_type
 fi
 
 #################################
@@ -676,9 +699,10 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
+if false; then
 echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt"
 Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_results_dir $tgfm_organized_results_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir $tissue_tissue_correlation_file $gtex_pseudotissue_file
-
+fi
 
 
 
@@ -728,25 +752,30 @@ fi
 # Generate pseudobulk expression
 #################################
 if false; then
-sbatch generate_pseudobulk_expression.sh $processed_sc_expression_dir $input_sc_h5py_file $processed_sc_genotype_dir $sc_pseudobulk_expression_dir $hg19_gene_annotation_file $gene_annotation_file $xt_gene_list_file
+sh generate_pseudobulk_expression.sh $processed_sc_expression_dir $input_sc_h5py_file $processed_sc_genotype_dir $sc_pseudobulk_expression_dir $hg19_gene_annotation_file $gene_annotation_file $xt_gene_list_file
 fi
 
 #################################
 # Prepare sc expression data for fusion weights analysiss
 #################################
 pb_cell_type_file=${sc_pseudobulk_expression_dir}"pseudobulk_data_set_summary_filtered.txt"
+bulk_pbmc_file=${sc_pseudobulk_expression_dir}"bulk_PBMC_data_set_summary.txt"
 num_parallel_jobs="10"
 if false; then
 sed 1d $pb_cell_type_file | while read data_set_name cluster_method pb_cell_type_name expr_file cov_file num_donors num_genes num_cells_per_indi_file; do
 	sh preprocess_sc_data_for_fusion_weights_analysis_in_single_pseudobulk_cell_type.sh $pb_cell_type_name $sc_pseudobulk_expression_dir $sc_fusion_input_dir $num_parallel_jobs $processed_sc_genotype_dir
 done
 fi
+if false; then
+pb_cell_type_name="PBMC"
+sh preprocess_sc_data_for_fusion_weights_analysis_in_single_pseudobulk_cell_type.sh $pb_cell_type_name $sc_pseudobulk_expression_dir $sc_fusion_input_dir $num_parallel_jobs $processed_sc_genotype_dir
+fi
+
 
 
 ########################################
 # Run sc pseudobulk gene model analysis (in each pseudobulk cell type seperately)
 ########################################
-pb_cell_type_name="B"
 job_number="0"
 if false; then
 sed 1d $pb_cell_type_file | while read data_set_name cluster_method pb_cell_type_name expr_file cov_file num_donors num_genes num_cells_per_indi_file; do
@@ -755,10 +784,12 @@ sed 1d $pb_cell_type_file | while read data_set_name cluster_method pb_cell_type
 	done
 done
 fi
-
-
-
-
+pb_cell_type_name="PBMC"
+if false; then
+for job_number in $(seq 0 $(($num_parallel_jobs-1))); do
+	sbatch create_susie_gene_model_in_a_single_pseudobulk_cell_type.sh $pb_cell_type_name $pb_cell_type_name $sc_fusion_input_dir $sc_pbmc_susie_gene_models_dir $job_number
+done
+fi
 ########################################
 # Organize sc pseudobulk gene model results (create pos file)
 ########################################
@@ -768,12 +799,17 @@ sed 1d $pb_cell_type_file | while read data_set_name cluster_method pb_cell_type
 done
 fi
 
-
+pb_cell_type_name="PBMC"
+if false; then
+sbatch organize_susie_gene_model_results_in_a_single_pseudotissue.sh $pb_cell_type_name $sc_fusion_input_dir${pb_cell_type_name}"/" $sc_pbmc_susie_gene_models_dir
+fi
 
 
 ########################################
 # Preprocess data for SC TGFM
 ########################################
+###########
+# SC CELL TYPES
 # Number of parallel jobs
 num_jobs="40"
 #gene_type="cis_heritable_gene"
@@ -785,7 +821,19 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 	sbatch preprocess_data_for_sc_tgfm.sh $ukkbb_window_summary_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_sc_tgfm_data_dir $job_number $num_jobs $gene_type $pb_cell_type_file $sc_pbmc_susie_gene_models_dir
 done
 fi
-
+###########
+#PBMC
+# Number of parallel jobs
+num_jobs="40"
+#gene_type="cis_heritable_gene"
+gene_type="component_gene"
+# FIle summarizing ukkbb windows
+ukkbb_window_summary_file=$ukbb_preprocessed_for_genome_wide_susie_dir"genome_wide_susie_windows_and_processed_data.txt"
+if false; then
+for job_number in $(seq 0 $(($num_jobs-1))); do 
+	sbatch preprocess_data_for_sc_tgfm.sh $ukkbb_window_summary_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_sc_pb_tgfm_data_dir $job_number $num_jobs $gene_type $bulk_pbmc_file $sc_pbmc_susie_gene_models_dir
+done
+fi
 
 # Organize preprocessed TGFM results across parallel jobs
 if false; then

@@ -1407,7 +1407,7 @@ bh_fdr_correction <- function(p_values, alpha=0.05) {
 
 
 
-generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior <- function(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file) {
+generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior <- function(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file, gene_type) {
 	trait_vec <- c()
 	tissue_vec <- c()
 	sig_vec <- c()
@@ -1416,7 +1416,7 @@ generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_it
 
 	for (trait_iter in 1:length(trait_names)) {
 		trait_name = trait_names[trait_iter]
-		iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
+		iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_name, "_", gene_type, "_", method_version, "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
 	
 		df <- read.table(iterative_prior_file, header=TRUE)
 		# Skip variants
@@ -2005,7 +2005,7 @@ make_tissue_tissue_correlation_heatmap <- function(tissue_tissue_correlation_fil
 
 
 
-make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_traits <- function(trait_names, trait_names_readable, method_version, tgfm_results_dir, ordered_tissues, pip_thresh, trait_tissue_prior_significance_file) {
+make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_traits <- function(trait_names, trait_names_readable, method_version, tgfm_results_dir, ordered_tissues, pip_thresh, trait_tissue_prior_significance_file, gene_type) {
 	df_prior = read.table(trait_tissue_prior_significance_file, header=TRUE)
 	df_prior$fdr_significance = as.character(df_prior$fdr_significance)
 	tissue_vec <- c()
@@ -2019,7 +2019,7 @@ make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_traits <-
 	for (trait_iter in 1:length(trait_names)) {
 		trait_name <- trait_names[trait_iter]
 		trait_name_readable <- trait_names_readable[trait_iter]
-		trait_gene_pip_summary_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_tgfm_per_gene_tissue_full_pip_summary.txt")
+		trait_gene_pip_summary_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_", gene_type, "_", method_version, "_tgfm_per_gene_tissue_full_pip_summary.txt")
 		trait_df <- read.table(trait_gene_pip_summary_file, header=TRUE,sep="\t")
 
 		df_prior_trait_sub = df_prior[as.character(df_prior$trait)==trait_name,]
@@ -2269,7 +2269,7 @@ make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_tra
 }
 
 
-make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait <- function(trait_name, trait_name_readable, method_version, tgfm_results_dir, ordered_tissues) {
+make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait <- function(trait_name, trait_name_readable, method_version, tgfm_results_dir, ordered_tissues, gene_type) {
 	tissue_vec <- c()
 	count_vec <- c()
 	pip_thresh_vec <- c()
@@ -2288,7 +2288,7 @@ make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_tra
 	pip_threshs <- c(.5)
 	#pip_threshs <- c(.3, .5, .7)
 
-	trait_gene_pip_summary_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_tgfm_per_gene_tissue_pip_summary.txt")
+	trait_gene_pip_summary_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_", gene_type, "_", method_version, "_tgfm_per_gene_tissue_pip_summary.txt")
 	trait_df <- read.table(trait_gene_pip_summary_file, header=TRUE,sep="\t")
 
 	#ordered_tissues <- sort(unique(as.character(trait_df$tissue_name)))
@@ -2331,7 +2331,7 @@ make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_tra
 }
 
 
-make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait <- function(trait_names, trait_names_readable, method_version, tgfm_results_dir) {
+make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait <- function(trait_names, trait_names_readable, method_version, tgfm_results_dir, gene_type) {
 	# First extract data from each trait
 	trait_vec <- c()
 	tissue_vec <- c()
@@ -2342,7 +2342,8 @@ make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait 
 		trait_name <- trait_names[trait_iter]
 		trait_name_readable <- trait_names_readable[trait_iter]
 
-		trait_gene_pip_summary_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_tgfm_per_gene_tissue_pip_summary.txt")
+		trait_gene_pip_summary_file <- paste0(tgfm_results_dir, "tgfm_results_", trait_name, "_", gene_type, "_", method_version, "_tgfm_per_gene_tissue_pip_summary.txt")
+		print(trait_gene_pip_summary_file)
 		trait_df <- read.table(trait_gene_pip_summary_file, header=TRUE,sep="\t")
 		trait_df <- trait_df[trait_df$PIP > .5, ]
 
@@ -2496,6 +2497,61 @@ make_n_genes_vs_avg_n_cells_per_indi_scatterplot <- function(merged_tissue_cell_
 }
 
 
+make_number_of_high_pip_gene_tissue_pairs_method_comparison_barplot <- function(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, pip_threshold, independent_traits) {
+
+	trait_names_vec <- c()
+	number_elements_vec <- c()
+	element_type_vec <- c()
+
+
+
+	for (trait_iter in 1:length(trait_names)) {
+		trait_name <- trait_names[trait_iter]
+		trait_name_readable <- trait_names_readable[trait_iter]
+		if (trait_name %in% independent_traits) {
+
+
+		gene_type <- "component_gene"
+		summary_file <- paste0(tgfm_organized_results_dir, "tgfm_results_", trait_name, "_", gene_type, "_", method_version, "_tgfm_n_causal_genetic_elements_pip_", pip_threshold, ".txt")
+		tmp <- read.table(summary_file, header=TRUE)
+		gene_tissue_count = tmp$count[2]
+		
+		gene_type <- "all_non_zero_gene"
+		summary_file <- paste0(tgfm_organized_results_dir, "tgfm_results_", trait_name, "_", gene_type, "_", method_version, "_tgfm_n_causal_genetic_elements_pip_", pip_threshold, ".txt")
+		tmp <- read.table(summary_file, header=TRUE)
+		gene_count = tmp$count[2]
+
+		trait_names_vec <- c(trait_names_vec, trait_name_readable)
+		trait_names_vec <- c(trait_names_vec, trait_name_readable)
+		number_elements_vec <- c(number_elements_vec, gene_tissue_count)
+		number_elements_vec <- c(number_elements_vec, gene_count)
+		element_type_vec <- c(element_type_vec, "component_gene")
+		element_type_vec <- c(element_type_vec, "all_non_zero_gene")
+		}
+	}
+
+	df <- data.frame(trait=trait_names_vec, number_of_elements=number_elements_vec, element_type=factor(element_type_vec, levels=c("component_gene", "all_non_zero_gene")))
+	df$trait <- recode(df$trait, biochemistry_Cholesterol="Cholesterol", biochemistry_LDLdirect="LDLdirect", biochemistry_VitaminD="VitaminD", blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT="Reticulocyte count", blood_MEAN_CORPUSCULAR_HEMOGLOBIN="Hemoglobin", blood_MEAN_PLATELET_VOL="Platelet volume", blood_MONOCYTE_COUNT="Monocyte count", body_BMIz="BMI", body_HEIGHTz="Height", body_WHRadjBMIz="WHR-adj BMI", bp_DIASTOLICadjMEDz="Diastolic BP", cov_EDU_COLLEGE="College Education", disease_ALLERGY_ECZEMA_DIAGNOSED="Eczema", disease_CARDIOVASCULAR="Cardiovascular", lung_FEV1FVCzSMOKE="FEV1FVCz", repro_MENARCHE_AGE="Menarche Age")
+
+	tmp_df = df[as.character(df$element_type) == "component_gene",]
+
+	indices = order(-tmp_df$number_of_elements)
+	df$trait = factor(df$trait, levels=as.character(tmp_df$trait)[indices])
+
+	#red_color=brewer.pal(n = 9, name = "Reds")[7]
+
+
+	p <- ggplot(df, aes(x=trait, y=number_of_elements, fill=element_type)) +
+    		geom_bar(stat="identity", position=position_dodge()) +
+    		theme(axis.text.x = element_text(angle = 90,hjust=1, vjust=.5, size=11)) +
+    		labs(y="No. fine-mapped\ngenetic elements", x="", fill="", title=paste0("PIP >= ", pip_threshold)) +
+    		figure_theme() +
+    		theme(legend.position=c(0.8, 0.86))
+    return(p)
+
+
+}
+
 make_number_of_high_pip_genes_vs_gene_tissues_barplot <- function(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, pip_threshold, independent_traits) {
 
 	trait_names_vec <- c()
@@ -2606,6 +2662,145 @@ make_pip_density_histogram_across_element_classes <- function(trait_names, trait
 		scale_colour_manual(values=c(red_color, green_color, blue_color))
 	return(pp)
 }
+
+
+mean_se_barplot_of_pops_score_comparison_binned_by_tgfm_pip <- function(df_full_1, df_full_2, method_1_name, method_2_name, independent_traits) {
+
+	indices = df_full_1$trait_name %in% independent_traits
+	df_1 = df_full_1[indices,]
+	indices = df_full_2$trait_name %in% independent_traits
+	df_2 = df_full_2[indices,]
+
+	pops_mean_vec <- c()
+	pops_mean_se_vec <- c()
+	bin_names_vec <- c()
+	method_vec <- c()
+
+	# METHOD 1
+	threshold_lb <- 0.0
+	threshold_ub <- .01
+	indices = (df_1$tgfm_gene_pip >= threshold_lb) & (df_1$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_1$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_1$pops_score[indices])/sqrt(length(df_1$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+	method_vec <- c(method_vec, method_1_name)
+
+	threshold_lb <- .01
+	threshold_ub <- .25
+	indices = (df_1$tgfm_gene_pip >= threshold_lb) & (df_1$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_1$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_1$pops_score[indices])/sqrt(length(df_1$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+	method_vec <- c(method_vec, method_1_name)
+
+
+	threshold_lb <- .25
+	threshold_ub <- .5
+	indices = (df_1$tgfm_gene_pip >= threshold_lb) & (df_1$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_1$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_1$pops_score[indices])/sqrt(length(df_1$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+	method_vec <- c(method_vec, method_1_name)
+
+	threshold_lb <- .5
+	threshold_ub <- .7
+	indices = (df_1$tgfm_gene_pip >= threshold_lb) & (df_1$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_1$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_1$pops_score[indices])/sqrt(length(df_1$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+	method_vec <- c(method_vec, method_1_name)
+
+	threshold_lb <- .7
+	threshold_ub <- .9
+	indices = (df_1$tgfm_gene_pip >= threshold_lb) & (df_1$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_1$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_1$pops_score[indices])/sqrt(length(df_1$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+	method_vec <- c(method_vec, method_1_name)
+
+
+	threshold_lb <- .9
+	threshold_ub <- 1.0
+	indices = (df_1$tgfm_gene_pip >= threshold_lb) & (df_1$tgfm_gene_pip <= threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_1$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_1$pops_score[indices])/sqrt(length(df_1$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP <= ", threshold_ub))
+	method_vec <- c(method_vec, method_1_name)
+
+
+	# METHOD 2
+	threshold_lb <- 0.0
+	threshold_ub <- .01
+	indices = (df_2$tgfm_gene_pip >= threshold_lb) & (df_2$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_2$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_2$pops_score[indices])/sqrt(length(df_2$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+	method_vec <- c(method_vec, method_2_name)
+
+	threshold_lb <- .01
+	threshold_ub <- .25
+	indices = (df_2$tgfm_gene_pip >= threshold_lb) & (df_2$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_2$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_2$pops_score[indices])/sqrt(length(df_2$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+	method_vec <- c(method_vec, method_2_name)
+
+
+	threshold_lb <- .25
+	threshold_ub <- .5
+	indices = (df_2$tgfm_gene_pip >= threshold_lb) & (df_2$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_2$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_2$pops_score[indices])/sqrt(length(df_2$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+	method_vec <- c(method_vec, method_2_name)
+
+	threshold_lb <- .5
+	threshold_ub <- .7
+	indices = (df_2$tgfm_gene_pip >= threshold_lb) & (df_2$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_2$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_2$pops_score[indices])/sqrt(length(df_2$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+	method_vec <- c(method_vec, method_2_name)
+
+	threshold_lb <- .7
+	threshold_ub <- .9
+	indices = (df_2$tgfm_gene_pip >= threshold_lb) & (df_2$tgfm_gene_pip < threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_2$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_2$pops_score[indices])/sqrt(length(df_2$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP < ", threshold_ub))
+	method_vec <- c(method_vec, method_2_name)
+
+
+	threshold_lb <- .9
+	threshold_ub <- 1.0
+	indices = (df_2$tgfm_gene_pip >= threshold_lb) & (df_2$tgfm_gene_pip <= threshold_ub)
+	pops_mean_vec <- c(pops_mean_vec, mean(df_2$pops_score[indices]))
+	pops_mean_se_vec <- c(pops_mean_se_vec, sd(df_2$pops_score[indices])/sqrt(length(df_2$pops_score[indices])))
+	bin_names_vec <- c(bin_names_vec, paste0(threshold_lb," <= PIP <= ", threshold_ub))
+	method_vec <- c(method_vec, method_2_name)
+
+
+
+	df2 <- data.frame(pops=pops_mean_vec, pops_se=pops_mean_se_vec, tgfm_bin=factor(bin_names_vec), method=factor(method_vec, levels=c("component_gene", "all_non_zero_gene")))
+	print(df2)
+
+	green_color=brewer.pal(n = 9, name = "Greens")[6]
+
+	p <- ggplot(df2) +
+    		geom_bar( aes(x=tgfm_bin, y=pops, fill=method), stat="identity", position="dodge") +
+    		labs(y="PoPS score", x="") +
+    		geom_errorbar( aes(x=tgfm_bin,fill=method, ymin=pops-(1.96*pops_se), ymax=pops+(1.96*pops_se)), width=0.4, colour="grey45", alpha=0.9, size=1.0,position=position_dodge(.9)) +
+    		theme(axis.text.x = element_text(angle = 45, hjust=1)) + 
+    		theme(legend.position="bottom")+
+    		figure_theme()
+
+
+
+    return(p)
+
+
+}
+
 
 mean_se_barplot_of_pops_score_binned_by_tgfm_pip <- function(df_full, independent_traits) {
 
@@ -2848,6 +3043,52 @@ make_non_disease_specific_gene_set_enrichment_barplot_at_single_pip_thresh <- fu
     return(p)
 }
 
+make_non_disease_specific_gene_set_enrichment_method_comparison_barplot_at_single_pip_thresh <- function(non_disease_specific_gene_set_enrichment_dir, pip_thresh) {
+
+	# Enrichment summary file
+	enrichment_summary_file = paste0(non_disease_specific_gene_set_enrichment_dir, "global_enrichment_summary.txt")
+	df1 <- read.table(enrichment_summary_file, header=TRUE, sep="\t")
+	df1 = df1[df1$PIP==pip_thresh,]
+
+	enrichment_summary_file = paste0(non_disease_specific_gene_set_enrichment_dir, "all_non_zero_gene_global_enrichment_summary.txt")
+	df2 <- read.table(enrichment_summary_file, header=TRUE, sep="\t")
+	df2 = df2[df2$PIP==pip_thresh,]
+
+
+
+	gene_set_name = c(as.character(df1$gene_set_name), as.character(df2$gene_set_name))
+	odds_ratio <- c(df1$odds_ratio, df2$odds_ratio)
+	odds_ratio_lb <- c(df1$odds_ratio_lb, df2$odds_ratio_lb)
+	odds_ratio_ub <- c(df1$odds_ratio_ub, df2$odds_ratio_ub)
+	method <- c(rep("component_gene", length(df1$gene_set_name)), rep("all_non_zero_gene", length(df2$gene_set_name)))
+
+	df <- data.frame(gene_set_name=gene_set_name, odds_ratio=odds_ratio, odds_ratio_ub=odds_ratio_ub, odds_ratio_lb=odds_ratio_lb, method=factor(method,levels=c("component_gene", "all_non_zero_gene")))
+
+
+    ordering = order(-df1$odds_ratio)
+    df$gene_set_name = factor(as.character(df$gene_set_name), levels=as.character(df$gene_set_name)[ordering])
+
+	p2 <- ggplot(df) +
+    		geom_bar( aes(x=gene_set_name, y=odds_ratio, fill=method), stat="identity", position="dodge") +
+    		#theme(axis.text.x = element_text(angle = 90,hjust=1, vjust=.5)) +
+    		labs(y="Odds ratio", x="",title=paste0("PIP=", pip_thresh)) +
+    		geom_errorbar( aes(x=gene_set_name, fill=method, ymin=odds_ratio_lb, ymax=odds_ratio_ub), width=0.4, colour="grey45", alpha=0.9, size=1.0,position=position_dodge(.9)) +
+    		theme(axis.text.x = element_text(angle = 64, hjust=1)) + 
+    		geom_hline(yintercept=1) + 
+    		figure_theme()
+
+
+
+
+
+
+    return(p2)
+}
+
+
+
+
+
 make_tissue_tissue_correlation_sample_size_scatterplot <- function(tissue_tissue_correlation_file, tissue_names, tissue_ss) {
 	df <- read.table(tissue_tissue_correlation_file, header=TRUE)
 	nrow = dim(df)[1]
@@ -3066,6 +3307,20 @@ print(supp_table_file)
 }
 
 
+##################################################
+# error barplot comparison showing non-disease-specific gene set enrichments for two different methods
+##################################################
+if (FALSE) {
+pip_thresh=0.5
+enrichment_barplot <- make_non_disease_specific_gene_set_enrichment_method_comparison_barplot_at_single_pip_thresh(non_disease_specific_gene_set_enrichment_dir,pip_thresh)
+output_file <- paste0(visualize_tgfm_dir, "non_disease_specific_gene_set_enrichments_method_comparison_", pip_thresh,"_standard_error_barplot.pdf")
+ggsave(enrichment_barplot, file=output_file, width=7.2, height=4.4, units="in")
+pip_thresh=0.25
+enrichment_barplot <- make_non_disease_specific_gene_set_enrichment_method_comparison_barplot_at_single_pip_thresh(non_disease_specific_gene_set_enrichment_dir,pip_thresh)
+output_file <- paste0(visualize_tgfm_dir, "non_disease_specific_gene_set_enrichments_method_comparison_", pip_thresh,"_standard_error_barplot.pdf")
+ggsave(enrichment_barplot, file=output_file, width=7.2, height=4.4, units="in")
+}
+
 
 
 ##################################################
@@ -3077,24 +3332,28 @@ for (trait_iter in 1:length(trait_names)) {
 	trait_name_readable <- trait_names_readable[trait_iter]
 
 	# Sampler approach
+	gene_type="all_non_zero_gene"
 	method_version="susie_pmces_uniform"
-	iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
+	iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_name, "_", gene_type, "_", method_version, "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
 	iterative_sampler_violin_plot <- make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
 
 	# Iterative version
-	output_file <- paste0(visualize_tgfm_dir, "tissue_violinplot_of_distribution_prior_probabilities_", trait_name_readable,".pdf")
+	output_file <- paste0(visualize_tgfm_dir, "tissue_violinplot_of_distribution_prior_probabilities_", gene_type, "_", trait_name_readable,".pdf")
 	ggsave(iterative_sampler_violin_plot, file=output_file, width=10.2, height=4.6, units="in")
 }
 }
+
 
 ##################################################
 # Make file summarizing prior significance of each trait-tissue pair
 ##################################################
 method_version="susie_pmces_uniform"
-trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, "trait_tissue_prior_bonferronni_corrected_significance.txt")
-if (FALSE) {
-generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file)
-}
+gene_type <- "all_non_zero_gene"
+trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, gene_type, "_trait_tissue_prior_bonferronni_corrected_significance.txt")
+generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file, gene_type)
+
+
+
 ##########################################################
 # Make TGFM PIP density across genetic element classes
 ##########################################################
@@ -3108,10 +3367,11 @@ ggsave(density_hist, file=output_file_pdf, width=7.2, height=3.7, units="in", dp
 ##########################################################
 # Swarm-plot showing gene-tissue PIPs colored by tissue group for each trait
 ##########################################################
-if (FALSE) {
+gene_type <- "all_non_zero_gene"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
-beeswarm_plot <- make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir)
-output_file <- paste0(visualize_tgfm_dir, "beeswarm_gene_tissue_pip_colored_by_tissue_group_", method_version,".pdf")
+if (FALSE) {
+beeswarm_plot <- make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, gene_type)
+output_file <- paste0(visualize_tgfm_dir, "beeswarm_gene_tissue_pip_colored_by_tissue_group_", method_version, "_", gene_type, ".pdf")
 ggsave(beeswarm_plot, file=output_file, width=15.2, height=4.5, units="in")
 }
 
@@ -3148,13 +3408,16 @@ for (trait_iter in 1:length(trait_names)) {
 	trait_name <- trait_names[trait_iter]
 	trait_name_readable <- trait_names_readable[trait_iter]
 
+	gene_type <- "all_non_zero_gene"
 	# Sampler approach
 	method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
-	tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_organized_results_dir, tissue_names)
-	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_expected_number_of_gene_tissue_pairs_", trait_name_readable, "_", method_version,".pdf")
+	tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_organized_results_dir, tissue_names, gene_type)
+	output_file <- paste0(visualize_tgfm_dir, "tissue_barplot_of_expected_number_of_gene_tissue_pairs_", trait_name_readable, "_", gene_type, "_", method_version,".pdf")
 	ggsave(tissue_bar_plot, file=output_file, width=7.2, height=3.0, units="in")
 }
 }
+
+
 
 if (FALSE) {
 trait_name="biochemistry_LDLdirect"
@@ -3175,6 +3438,22 @@ output_file <- paste0(visualize_tgfm_dir, "tissue_heatmap_barplot_of_expected_nu
 ggsave(joint_plot, file=output_file, width=7.2, height=4.0, units="in")
 }
 
+##########################################################
+# Barplot showing number high pip gene-tissue pairs between methods
+##########################################################
+method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
+pip_threshold <- "0.5"
+method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
+n_genes_barplot_5 <- make_number_of_high_pip_gene_tissue_pairs_method_comparison_barplot(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, pip_threshold, independent_traits)
+pip_threshold <- "0.9"
+method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
+n_genes_barplot_9 <- make_number_of_high_pip_gene_tissue_pairs_method_comparison_barplot(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, pip_threshold, independent_traits)
+
+n_genes_joint_plot <- plot_grid(n_genes_barplot_5, n_genes_barplot_9,ncol=1)
+if (FALSE) {
+output_file <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_number_of_high_pip_gene_tissue_pairs_method_comparison_barplot.pdf")
+ggsave(n_genes_joint_plot, file=output_file, width=7.2, height=5.7, units="in")
+}
 
 ##########################################################
 # Barplot showing number high pip genes vs gene-tissue pairs
@@ -3196,16 +3475,15 @@ ggsave(n_genes_joint_plot, file=output_file, width=7.2, height=5.7, units="in")
 ##########################################################
 # Heatmap showing expected number of causal genes in each tissue-trait pair
 ##########################################################
-if (FALSE) {
-pip_threshs <- c(.01, .1, .3, .5, .7)
+pip_threshs <- c(.01, .1, .3, .5)
+gene_type="all_non_zero_gene"
 for (pip_iter in 1:length(pip_threshs)) {
 	pip_thresh <- pip_threshs[pip_iter]
 	print(pip_thresh)
 	method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
-	heatmap <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, trait_tissue_prior_significance_file)
-	output_file <- paste0(visualize_tgfm_dir, "expected_num_causal_genes_", pip_thresh, "_", method_version,"_heatmap.pdf")
+	heatmap <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, trait_tissue_prior_significance_file, gene_type)
+	output_file <- paste0(visualize_tgfm_dir, "expected_num_causal_genes_", pip_thresh, "_", method_version, "_", gene_type,"_heatmap.pdf")
 	ggsave(heatmap, file=output_file, width=7.2, height=8.0, units="in")
-}
 }
 
 
@@ -3354,6 +3632,7 @@ write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.name
 }
 
 # Load in summary data
+if (FALSE) {
 pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
 # average and standard error of mean of pops-score binned by TGFM PIP
 output_file <- paste0(visualize_tgfm_dir, "mean_se_barplot_pops_score_binned_by_tgfm_pip_x_trait.pdf")
@@ -3367,6 +3646,27 @@ output_file <- paste0(visualize_tgfm_dir, "all_non_zero_gene_mean_se_barplot_pop
 barplot <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits)
 ggsave(barplot, file=output_file, width=7.2, height=3.7, units="in")
 print(output_file)
+}
+
+##########################################################
+# POPS comparison plot
+##########################################################
+if (FALSE) {
+component_pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
+all_non_zero_pops_summary_df <- read.table(paste0(pops_enrichment_dir, "all_non_zero_gene_cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
+barplot <- mean_se_barplot_of_pops_score_comparison_binned_by_tgfm_pip(component_pops_summary_df,all_non_zero_pops_summary_df, "component_gene", "all_non_zero_gene", independent_traits)
+output_file <- paste0(visualize_tgfm_dir, "gene_mean_se_barplot_pops_score_method_comparison_binned_by_tgfm_pip_x_trait.pdf")
+ggsave(barplot, file=output_file, width=7.2, height=4.7, units="in")
+}
+
+#output_file <- paste0(visualize_tgfm_dir, "mean_se_barplot_pops_score_binned_by_tgfm_pip_x_trait.pdf")
+#barplot <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits)
+#ggsave(barplot, file=output_file, width=7.2, height=3.7, units="in")
+
+
+
+
+
 
 ##########################################################
 # Make Figure 4

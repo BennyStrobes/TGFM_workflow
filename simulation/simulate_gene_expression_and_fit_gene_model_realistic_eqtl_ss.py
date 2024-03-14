@@ -14,7 +14,6 @@ ro.conversion.py2ri = numpy2ri
 numpy2ri.activate()
 from rpy2.robjects.packages import importr
 susieR_pkg = importr('susieR')
-from cafeh.cafeh_genotype import fit_cafeh_genotype
 
 
 def generate_tissue_covariance_structure_across_causal_effects(ge_h2):
@@ -405,6 +404,10 @@ def run_greml_no_covariate_h2_analysis_and_FUSION(chrom_num, gene_tss, expr_vec,
 	command_string = 'plink --bfile ' + genotype_stem + ' --keep-allele-order --pheno ' + gene_pheno_file + ' --threads 1 --make-bed --out ' + plink_window_stem + ' --keep ' + gene_pheno_file + ' --chr ' + chrom_num + ' --from-bp ' + str(start_pos) + ' --to-bp ' + str(end_pos) +' --allow-no-sex'
 	os.system(command_string)
 
+	n_cis_snps = np.loadtxt(plink_window_stem + '.bim',dtype=str,delimiter='\t').shape[0]
+	if n_cis_snps != len(cis_rsids):
+		print('assumptioner ororo')
+
 	# MAKE GRM WITH PLINK
 	command_string = 'plink --allow-no-sex --bfile ' + plink_window_stem + ' --make-grm-bin --threads 1 --out ' + plink_window_stem
 	os.system(command_string)
@@ -436,7 +439,7 @@ def run_greml_no_covariate_h2_analysis_and_FUSION(chrom_num, gene_tss, expr_vec,
 				causal_effects[ii] = mapping[snp_id]
 
 	# Clear temporary files from directory
-	os.system('rm ' + tmp_output_stem + '*')
+	#os.system('rm ' + tmp_output_stem + '*')
 	return hsq, hsq_se, hsq_p, causal_effects
 
 
@@ -529,9 +532,9 @@ def get_max_best_to_worst_pi_ratio_across_components(alpha_mat):
 	return best_to_worst_ratio
 
 
-def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num):
+def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_causal_eqtl_effect_summary_file, realistic_eqtl_sss, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num):
 	# Load in genotype data across chromosome for eQTL data set
-	genotype_stem = processed_genotype_data_dir + 'simulated_eqtl_' + str(eqtl_sample_size) + '_data_' + chrom_num
+	genotype_stem = processed_genotype_data_dir + 'simulated_eqtl_' + str(500) + '_data_' + chrom_num
 	G_obj = read_plink1_bin(genotype_stem + '.bed', genotype_stem + '.bim', genotype_stem + '.fam', verbose=False)
 	G_obj_geno = G_obj.values # Numpy 2d array of dimension num samples X num snps
 	G_obj_chrom = np.asarray(G_obj.chrom)
@@ -546,9 +549,24 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 	# Snp ids
 	G_obj_snp_ids = 'chr' + G_obj_chrom + '_' + (G_obj_pos.astype(str)) + '_' + G_obj_a0 + '_' + G_obj_a1
 
+
+	# Randomly shuffle which tissue gets which sample size
+	permuted_eqtl_sss = np.random.permutation(realistic_eqtl_sss)
+
+	# Save permuted eqtl ss
+	permuted_eqtl_ss_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_permuted_eqtl_ss.npy'
+	np.save(permuted_eqtl_ss_output_file, permuted_eqtl_sss)
+
+
 	# Mean impute and standardize genotype
-	G_obj_geno_stand = mean_impute_and_standardize_genotype(G_obj_geno)
+	G_obj_geno_stand_arr = []
+	G_obj_sample_names_arr = []
+	for eqtl_ss in permuted_eqtl_sss:
+		G_obj_geno_stand = mean_impute_and_standardize_genotype(G_obj_geno[:eqtl_ss,:])
+		G_obj_geno_stand_arr.append(G_obj_geno_stand)
+		G_obj_sample_names_arr.append(G_obj_sample_names[:eqtl_ss])
 	# Now loop through genes
+	tmp_fusion_output_stem = simulated_learned_gene_models_dir + simulation_name_string + '_tmp_fusion_h2_'
 	f = open(simulated_causal_eqtl_effect_summary_file)
 	head_count = 0
 	counter = 0
@@ -576,9 +594,9 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 		cis_snp_indices = np.asarray([False]*total_n_genome_snps)
 		cis_snp_indices[cis_snp_indices_raw] = True
 
-
 		n_cis_snps = np.sum(cis_snp_indices)
 		cis_rsids = G_obj_rsids[cis_snp_indices]
+
 
 		# Quick error check
 		if np.sum(cis_snp_indices) < 10:
@@ -586,18 +604,22 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 			pdb.set_trace()
 
 		# Extract standardized matrix of cis snps around the gene
-		gene_geno = G_obj_geno_stand[:, cis_snp_indices]
+		#gene_geno = G_obj_geno_stand[:, cis_snp_indices]
 
 		# Now loop through tissues (run simulation and gene-modeling seperately in each tissue)
 		n_tiss = sim_causal_eqtl_effect_sizes.shape[1]
 		pmces_cross_tissues = []
 		marginal_beta_cross_tissues = []
 		marginal_beta_var_cross_tissues = []
+		fusion_pmces_cross_tissues = []
 		valid_components = []
 		best_to_worst_pi_ratios = []
 		xt_expression = []
 		sim_non_zero_pmces = []
 		for tissue_iter in range(n_tiss):
+			# Extract genotype data for this tissue
+			gene_geno = G_obj_geno_stand_arr[tissue_iter][:, cis_snp_indices]
+
 			# Simulate gene expression in this gene, tissue pair
 			sim_expr = simulate_gene_expression(gene_geno, sim_causal_eqtl_effect_sizes[:, tissue_iter])
 			# Standardize simulated gene expression
@@ -619,14 +641,14 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 				best_to_worst_pi_ratio = get_max_best_to_worst_pi_ratio_across_components(susie_fitted.rx2('alpha'))
 				# Also need to save individual data objects
 				# alpha
-				alpha_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_alpha.npy'
+				alpha_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id  + '_tissue_' + str(tissue_iter) + '_gene_model_susie_alpha.npy'
 				np.save(alpha_model_output_file, susie_fitted.rx2('alpha'))
 				# mu
-				mu_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu.npy'
+				mu_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id  + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu.npy'
 				np.save(mu_model_output_file, susie_fitted.rx2('mu'))
 				# mu_var
 				mu_var = susie_fitted.rx2('mu2') - np.square(susie_fitted.rx2('mu'))
-				mu_var_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu_var.npy'
+				mu_var_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu_var.npy'
 				np.save(mu_var_model_output_file, mu_var)
 
 				valid_components.append('False')
@@ -638,14 +660,14 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 				best_to_worst_pi_ratio = get_max_best_to_worst_pi_ratio_across_components(susie_fitted.rx2('alpha'))
 				# Also need to save individual data objects
 				# alpha
-				alpha_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_alpha.npy'
+				alpha_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_tissue_' + str(tissue_iter) + '_gene_model_susie_alpha.npy'
 				np.save(alpha_model_output_file, susie_fitted.rx2('alpha'))
 				# mu
-				mu_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu.npy'
+				mu_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu.npy'
 				np.save(mu_model_output_file, susie_fitted.rx2('mu'))
 				# mu_var
 				mu_var = susie_fitted.rx2('mu2') - np.square(susie_fitted.rx2('mu'))
-				mu_var_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu_var.npy'
+				mu_var_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_tissue_' + str(tissue_iter) + '_gene_model_susie_mu_var.npy'
 				np.save(mu_var_model_output_file, mu_var)
 				valid_components.append('True')
 				best_to_worst_pi_ratios.append(best_to_worst_pi_ratio)
@@ -656,9 +678,20 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 			marginal_beta_cross_tissues.append(marginal_effects)
 			marginal_beta_var_cross_tissues.append(np.square(marginal_effects_se))
 
-		# Fit cafeh
-		fit_args = dict(update_variance=False)
-		cafehg = fit_cafeh_genotype(np.transpose(gene_geno), np.asarray(xt_expression), K=20, fit_args=fit_args)
+
+			# Run greml and FUSION
+			#hsq, hsq_se, hsq_p, fusion_causal_effects = run_greml_no_covariate_h2_analysis_and_FUSION(str(chrom_num), gene_tss, sim_stand_expr, genotype_stem, 100000, G_obj_sample_names_arr[tissue_iter], tmp_fusion_output_stem, cis_rsids, gene_geno)
+			try:
+				hsq, hsq_se, hsq_p, fusion_causal_effects = run_greml_no_covariate_h2_analysis_and_FUSION(str(chrom_num), gene_tss, sim_stand_expr, genotype_stem, 100000, G_obj_sample_names_arr[tissue_iter], tmp_fusion_output_stem, cis_rsids, gene_geno)
+			except:
+				fusion_causal_effects = np.zeros(len(cis_rsids))
+				hsq = 'nan'
+				hsq_se = 'nan'
+				hsq_p = 'nan'
+			#greml_h2_cross_tissues.append(str(hsq))
+			#greml_h2_se_cross_tissues.append(str(hsq_se))
+			fusion_pmces_cross_tissues.append(fusion_causal_effects)
+
 
 		# Convert pmces to numpy array
 		pmces_cross_tissues = np.asarray(pmces_cross_tissues)
@@ -666,38 +699,29 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 		marginal_beta_var_cross_tissues = np.asarray(marginal_beta_var_cross_tissues)
 		valid_components = np.asarray(valid_components)
 		best_to_worst_pi_ratios = np.asarray(best_to_worst_pi_ratios)
+		v = np.asarray(fusion_pmces_cross_tissues)
 
 		# Save gene-model valid components across tissues to output
-		valid_components_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_valid_susie_comp.npy'
+		valid_components_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_gene_valid_susie_comp.npy'
 		np.save(valid_components_output_file, valid_components)
 
 		# Save gene-model best-to-worst pi ratios across tissues to output
-		best_to_worst_pi_ratios_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_best_to_worst_susie_pi_ratios.npy'
+		best_to_worst_pi_ratios_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_gene_best_to_worst_susie_pi_ratios.npy'
 		np.save(best_to_worst_pi_ratios_output_file, best_to_worst_pi_ratios)
 
 		# Save gene-model PMCES across tissues to output
-		gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
+		gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_gene_model_pmces.npy'
 		np.save(gene_model_output_file, pmces_cross_tissues)
 
+		# Save lasso gene-model PMCES across tissues to output
+		lasso_gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_lasso_gene_model_pmces.npy'
+		np.save(lasso_gene_model_output_file, fusion_pmces_cross_tissues)
+
 		# Save marginal pvalue across tissues to output
-		marginal_beta_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_marginal_beta.npy'
+		marginal_beta_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_marginal_beta.npy'
 		np.save(marginal_beta_output_file, marginal_beta_cross_tissues)
-		marginal_beta_var_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_marginal_beta_var.npy'
+		marginal_beta_var_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id  + '_marginal_beta_var.npy'
 		np.save(marginal_beta_var_output_file, marginal_beta_var_cross_tissues)
-
-		# Save Cafeh pi output
-		cafeh_pi_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_pi.npy'
-		np.save(cafeh_pi_file, cafehg.pi)
-
-		# Save Cafeh p_active output
-		cafeh_p_active_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_p_active.npy'
-		np.save(cafeh_p_active_file, cafehg.active)
-
-		cafeh_mu_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_mu.npy'
-		np.save(cafeh_mu_file, cafehg.weight_means)
-
-		cafeh_mu_var_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_mu_var.npy'
-		np.save(cafeh_mu_var_file, cafehg.weight_vars)
 
 	f.close()
 	return
@@ -935,8 +959,11 @@ else:
 ############################
 # Simulate Gene expression and fit gene models for each data-set (eqtl sample-size), tissue
 ############################
-# Do seperately in each data set (eqtl sample size) because genotypes are different
-for eqtl_sample_size in eqtl_sample_sizes:
-	print(eqtl_sample_size)
-	simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num)
+eqtl_sss = [320, 320, 320, 320, 320, 101, 115, 116, 108, 122]
+simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sss, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num)
+
+
+
+
+
 

@@ -477,6 +477,32 @@ def create_mapping_from_element_name_to_bs_probs(ln_pi_input_file):
 	f.close()
 	return mapping
 
+def extract_log_prior_probabilities_from_categorized_bootstrapped_ln_pi_mapping(mapping, variants, genes, component_genes):
+	n_var = len(variants)
+	n_genes = len(genes)
+	n_bs = len(mapping['variant'])
+	var_probs = np.zeros((n_var, n_bs))
+	gene_probs = np.zeros((n_genes, n_bs))
+
+	for var_iter in range(n_var):
+		var_probs[var_iter, :] = mapping['variant']
+	for gene_iter, gene_name in enumerate(genes):
+		tissue_name = gene_name.split('_')[1]
+		if component_genes[gene_iter] == 'False':
+			tmp_str = 'nonzero'
+		else:
+			tmp_str = 'component'
+		gene_probs[gene_iter, :] = mapping[tissue_name + ':' + tmp_str]
+	
+	# Normalize rows
+	normalizers = np.sum(gene_probs,axis=0) + np.sum(var_probs,axis=0)
+	norm_var_probs = var_probs/normalizers
+	norm_gene_probs = gene_probs/normalizers
+
+
+	return np.log(norm_var_probs), np.log(norm_gene_probs)
+
+
 def extract_log_prior_probabilities_from_bootstrapped_ln_pi_mapping(mapping, variants, genes):
 	n_var = len(variants)
 	n_genes = len(genes)
@@ -846,6 +872,12 @@ if ln_pi_method_name == 'iterative_variant_gene_tissue_bootstrapped_sampler':
 elif ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped' or ln_pi_method_name == 'sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped':
 	ln_pi_input_file = tgfm_output_stem.split('_sampler')[0] + '_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped.txt'
 	ln_pi_ele_name_to_bs_probs_mapping = create_mapping_from_element_name_to_bs_probs(ln_pi_input_file)
+elif ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_w_prior_pip_level_bootstrapped':
+	ln_pi_input_file = tgfm_output_stem.split('_sampler')[0] + '_pmces_uniform_iterative_variant_gene_prior_w_prior_pip_level_bootstrapped.txt'
+	ln_pi_ele_name_to_bs_probs_mapping = create_mapping_from_element_name_to_bs_probs(ln_pi_input_file)
+elif ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_v3':
+	ln_pi_input_file = tgfm_output_stem.split('_sampler')[0] + '_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_v3.txt'
+	ln_pi_ele_name_to_bs_probs_mapping = create_mapping_from_element_name_to_bs_probs(ln_pi_input_file)
 elif ln_pi_method_name == 'tglr_bootstrapped_nonnegative_sampler':
 	ln_pi_input_file = tgfm_output_stem.split('susie')[0] + 'tglr_bootstrapped_nonnegative_per_element_h2s.txt'
 	ln_pi_ele_name_to_bs_probs_mapping = create_mapping_from_element_name_to_bs_probs(ln_pi_input_file)
@@ -864,8 +896,6 @@ elif ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_
 pip_output_file = tgfm_output_stem + '_tgfm_pip_summary.txt'
 t_pip = open(pip_output_file,'w')
 t_pip.write('window_name\tinclusion_elements\tinclusion_probabilities\n')
-
-
 
 
 
@@ -924,14 +954,22 @@ for window_iter in range(n_windows):
 			t_pip.write(window_name + '\tNA\tNA\n')
 			continue
 
-
-
 	if tgfm_tissues == 'no_t0':
 		tgfm_data, filter_error_bool = filter_tgfm_data_structure_to_remove_tissue0_gene_tissue_pairs(tgfm_data)
 		if filter_error_bool:
 			print('skipped because of no genes')
 			t_pip.write(window_name + '\tNA\tNA\n')
 			continue
+
+	if gene_type == 'cafeh':
+		booler = False
+		for ii in range(len(tgfm_data['sparse_sampled_gene_eqtl_pmces'])):
+			if tgfm_data['sparse_sampled_gene_eqtl_pmces'][ii].shape[0] == 0.0:
+				booler = True
+		if booler:
+			print('skipped because of no genes')
+			t_pip.write(window_name + '\tNA\tNA\n')
+			continue	
 
 
 	# Extract gwas p
@@ -948,10 +986,14 @@ for window_iter in range(n_windows):
 	# Load in LD
 	tgfm_data['reference_ld'] = np.load(ld_file)
 
+
 	# Extract log prior probabilities from summary file
-	if ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_cg' or ln_pi_method_name == 'iterative_variant_gene_tissue_bootstrapped_sampler' or ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped' or ln_pi_method_name == 'sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped' or ln_pi_method_name == 'tglr_bootstrapped_nonnegative_sampler':
+	if ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_w_prior_pip_level_bootstrapped' or ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_cg' or ln_pi_method_name == 'iterative_variant_gene_tissue_bootstrapped_sampler' or ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped' or ln_pi_method_name == 'sampler_uniform_iterative_variant_gene_prior_pip_level_bootstrapped' or ln_pi_method_name == 'tglr_bootstrapped_nonnegative_sampler' or ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_v2':
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_bootstrapped_ln_pi_mapping(ln_pi_ele_name_to_bs_probs_mapping, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
+	elif ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_v3':
+		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_categorized_bootstrapped_ln_pi_mapping(ln_pi_ele_name_to_bs_probs_mapping, tgfm_data['variants'], tgfm_data['genes'], tgfm_data['gene_valid_susie_comps'])
+		bootstrap_prior = True		
 	elif ln_pi_method_name == 'tglr_bootstrapped_nonnegative_pmces' or ln_pi_method_name == 'pmces_uniform_iterative_variant_gene_prior_pip_level_pmces':
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_mean_ln_pi_mapping(ln_pi_ele_name_to_mean_probs_mapping, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = False
@@ -963,12 +1005,10 @@ for window_iter in range(n_windows):
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_from_summary_file(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = False
 
-
 	##############################
 	# Run TGFM
 	###############################
 	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, init_method, bootstrap_prior)
-
 
 	##############################
 	# Organize TGFM data and print to results

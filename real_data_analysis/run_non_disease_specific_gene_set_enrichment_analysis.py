@@ -10,7 +10,7 @@ import statsmodels.api as sm
 
 
 
-def create_file_containing_list_of_gene_models_tested_by_tgfm(gtex_susie_gene_models_dir, tgfm_gene_list_file, tgfm_gene_tissue_list_file):
+def create_file_containing_list_of_gene_models_tested_by_tgfm(gtex_susie_gene_models_dir, tgfm_gene_list_file, tgfm_gene_tissue_list_file, gene_type):
 	t1 = open(tgfm_gene_list_file,'w')
 	t2 = open(tgfm_gene_tissue_list_file,'w')
 	t1.write('ensamble_id\n')
@@ -20,7 +20,11 @@ def create_file_containing_list_of_gene_models_tested_by_tgfm(gtex_susie_gene_mo
 	for tissue_name in os.listdir(gtex_susie_gene_models_dir):
 		if tissue_name.endswith('.py'):
 			continue
-		tissue_gene_list = gtex_susie_gene_models_dir + tissue_name + '/' + tissue_name + '_component_gene_pos_file.txt'
+		if tissue_name.endswith('.sh'):
+			continue
+		if tissue_name.startswith('temp'):
+			continue
+		tissue_gene_list = gtex_susie_gene_models_dir + tissue_name + '/' + tissue_name + '_' + gene_type + '_pos_file.txt'
 		head_count = 0
 		f = open(tissue_gene_list)
 		for line in f:
@@ -154,9 +158,9 @@ def get_gene_pip_dictionary(tgfm_results, middle_gene_indices):
 	return mapping
 
 
-def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, tgfm_organized_results_dir, preprocessed_tgfm_data_dir):
+def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, tgfm_organized_results_dir, preprocessed_tgfm_data_dir, gene_type):
 	# Use this file just to get windows
-	results_summary_file = tgfm_organized_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_tgfm_pip_summary.txt'
+	results_summary_file = tgfm_organized_results_dir + 'tgfm_results_' + trait_name + '_' + gene_type + '_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_tgfm_pip_summary.txt'
 
 	# Use dictionary to keep track of gene-tissue pairs and max pips
 	tgfm_genetissue_to_pip = {}
@@ -176,7 +180,7 @@ def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, tgfm_or
 		window_name = data[0]
 
 		# Load in TGFM results dir
-		tgfm_results_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_' + window_name + '_results.pkl'
+		tgfm_results_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_' + gene_type + '_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_' + window_name + '_results.pkl'
 		g = open(tgfm_results_file, 'rb')
 		tgfm_res = pickle.load(g)
 		g.close()
@@ -190,7 +194,7 @@ def get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, tgfm_or
 		'''
 
 		# Load in TGFM input data file
-		tgfm_input_file = preprocessed_tgfm_data_dir + 'component_gene_' + window_name + '_tgfm_trait_agnostic_input_data_obj.pkl'
+		tgfm_input_file = preprocessed_tgfm_data_dir + gene_type + '_' + window_name + '_tgfm_trait_agnostic_input_data_obj.pkl'
 		g = open(tgfm_input_file, 'rb')
 		tgfm_input = pickle.load(g)
 		g.close()
@@ -231,15 +235,20 @@ tgfm_organized_results_dir=sys.argv[5]
 non_disease_specific_gene_sets_file=sys.argv[6]
 em_gene_set_file = sys.argv[7]
 non_disease_specific_gene_set_enrichment_dir=sys.argv[8]
+gene_type = sys.argv[9]
+
 
 
 print(non_disease_specific_gene_set_enrichment_dir)
 
+non_disease_specific_gene_set_enrichment_dir = non_disease_specific_gene_set_enrichment_dir + gene_type + '_'
+
+print(non_disease_specific_gene_set_enrichment_dir)
 
 # Create file containing list of gene models tested by TGFM
 tgfm_gene_tissue_list_file = non_disease_specific_gene_set_enrichment_dir + 'tgfm_gene_tissues_tested.txt'
 tgfm_gene_list_file = non_disease_specific_gene_set_enrichment_dir + 'tgfm_genes_tested.txt'
-create_file_containing_list_of_gene_models_tested_by_tgfm(gtex_susie_gene_models_dir, tgfm_gene_list_file, tgfm_gene_tissue_list_file)
+create_file_containing_list_of_gene_models_tested_by_tgfm(gtex_susie_gene_models_dir, tgfm_gene_list_file, tgfm_gene_tissue_list_file, gene_type)
 
 # Extract list of TGFM genes
 tgfm_tested_genes_arr, tgfm_tested_genes_dicti = extract_tgfm_tested_genes(tgfm_gene_list_file)
@@ -263,7 +272,7 @@ for trait_name in independent_traits:
 	print(trait_name)
 
 	# Get TGFM gene names and pips
-	gene_to_tgfm_gene_pip = get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, tgfm_organized_results_dir, preprocessed_tgfm_data_dir)
+	gene_to_tgfm_gene_pip = get_tgfm_genes_and_pips_for_this_trait(trait_name, tgfm_results_dir, tgfm_organized_results_dir, preprocessed_tgfm_data_dir, gene_type)
 	# Get tgfm genes
 	tgfm_genes = np.asarray([*gene_to_tgfm_gene_pip])
 

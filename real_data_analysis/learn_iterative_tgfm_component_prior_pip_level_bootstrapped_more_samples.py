@@ -1240,15 +1240,15 @@ tissue_names = extract_pseudotissue_names(gtex_pseudotissue_file, ignore_tissues
 ###################################################
 suffix = 'tgfm_pip_summary.txt'
 num_jobs=8
-concatenated_pip_summary_file = new_tgfm_stem + '_iterative_prior_' + suffix
+concatenated_pip_summary_file = new_tgfm_stem + '_iterative_prior_m_iter_' + suffix
 concatenate_results_across_parallel_jobs(new_tgfm_stem, suffix, num_jobs, concatenated_pip_summary_file)
 
 
 ###################################################
 # Create component level summary data
 ###################################################
-component_level_abf_summary_file = new_tgfm_stem + '_iterative_prior_v2' + '_tgfm_component_level_abf_summary.txt'
-per_window_abf_output_stem = new_tgfm_stem + '_iterative_prior_v2_per_window_abf_'
+component_level_abf_summary_file = new_tgfm_stem + '_iterative_prior_v2_m_iter' + '_tgfm_component_level_abf_summary.txt'
+per_window_abf_output_stem = new_tgfm_stem + '_iterative_prior_v2_m_iter_per_window_abf_'
 generate_component_level_abf_summary_data(concatenated_pip_summary_file, component_level_abf_summary_file, tissue_names, new_tgfm_stem, tgfm_version, processed_tgfm_input_stem, per_window_abf_output_stem, version='v2')
 
 
@@ -1256,11 +1256,11 @@ generate_component_level_abf_summary_data(concatenated_pip_summary_file, compone
 # Learn iterative distribution variant-gene-tissue prior (bootstrapping ci intervals)
 ###################################################
 n_bootstraps=100
-variant_prob_emperical_distr, tissue_probs_emperical_distr, variant_counts, tissue_counts = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=400, n_bootstraps=n_bootstraps)
+variant_prob_emperical_distr, tissue_probs_emperical_distr, variant_counts, tissue_counts = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=1000, n_bootstraps=n_bootstraps)
 
 
 # Print to output
-variant_gene_distr_prior_output_file = perm_iterative_prior_results + '_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
+variant_gene_distr_prior_output_file = perm_iterative_prior_results + '_m_iter_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
 t = open(variant_gene_distr_prior_output_file,'w')
 t.write('element_name\tprior\texp_E_ln_prior\tprior_distribution\n')
 t.write('variant\t' + str(np.mean(variant_prob_emperical_distr)) + '\t' + str(np.exp(np.mean(np.log(variant_prob_emperical_distr)))) + '\t' + ';'.join(variant_prob_emperical_distr.astype(str)) + '\n')
@@ -1272,7 +1272,7 @@ print(variant_gene_distr_prior_output_file)
 
 
 # Print counts to output
-variant_gene_counts_output_file = perm_iterative_prior_results + '_iterative_variant_gene_counts_pip_level_bootstrapped.txt'
+variant_gene_counts_output_file = perm_iterative_prior_results + '_m_iter_iterative_variant_gene_counts_pip_level_bootstrapped.txt'
 t = open(variant_gene_counts_output_file,'w')
 t.write('element_name\tcounts_distribution\n')
 t.write('variant\t'+ ';'.join(variant_counts.astype(str)) + '\n')

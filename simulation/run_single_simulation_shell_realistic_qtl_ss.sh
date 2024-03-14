@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-23:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-35:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=11GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=10GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -44,7 +44,7 @@ simulated_learned_gene_models_dir=${simulated_learned_gene_models_base_dir}"simu
 # Step 1: Simulate gene expression and fit gene models
 #######################################################
 echo "Simulation Step 1"
-python3 simulate_gene_expression_and_fit_gene_model.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture
+python3 simulate_gene_expression_and_fit_gene_model_realistic_eqtl_ss.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture
 
 
 #######################################################
@@ -69,20 +69,15 @@ merged_gwas_summary_stat_file=${simulated_gwas_dir}${simulation_name_string}"_me
 python3 generate_merged_gwas_data.py $global_window_file $simulation_number $chrom_num $simulation_name_string ${simulated_gwas_dir} $processed_genotype_data_dir $n_gwas_individuals $merged_gwas_summary_stat_file
 
 
+
 #######################################################
 # Step 9: Run coloc
 #######################################################
 echo "Simulation Step 9"
 source /home/bes710/.bash_profile
 module load R/4.0.1
-eqtl_sample_size_arr=( "100" "300" "500" "1000")
-eqtl_sample_size_arr=( "100" )
-if false; then
-for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
-do
-	python3 run_coloc_shell.py $merged_gwas_summary_stat_file $simulation_number $chrom_num $simulation_name_string $eqtl_sample_size $n_gwas_individuals $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_coloc_results_dir
-done
-fi
+python3 run_coloc_shell_realistic_eqtl_ss.py $merged_gwas_summary_stat_file $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_coloc_results_dir
+
 
 
 source /home/bes710/.bash_profile
@@ -93,31 +88,18 @@ source /home/bes710/.bash_profile
 echo "Simulation Step 10"
 annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
 eqtl_type="susie"
-eqtl_sample_size_arr=( "100" "300" "500" "1000")
-eqtl_sample_size_arr=( "100" )
+python3 preprocess_data_for_tgfm_realistic_eqtl_ss.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir
+
+
 if false; then
-for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
-do
-	echo $eqtl_sample_size
-	python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir
-done
-fi
-
-for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
-do
-	echo $eqtl_sample_size
-	python3 preprocess_data_with_cafeh_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir
-done
-
-
 #######################################################
 # Step 11: Delete unnessary files
 #######################################################
 echo "Simulation Step 11"
-if false; then
-python3 delete_unnessary_learned_gene_model_files.py $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string
+python3 delete_unnessary_learned_gene_model_files_realistic_eqtl_ss.py $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string
 python3 delete_unnessary_gwas_sum_stat_files.py $simulated_gwas_dir $simulation_name_string $global_window_file
 fi
+
 
 date
 

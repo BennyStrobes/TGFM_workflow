@@ -2,9 +2,9 @@
 #SBATCH -c 1                               # Request one core
 #SBATCH -t 0-50:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=200GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
 
-# First three parts ran at 160GB
+# First three parts ran at 200GB
 
 
 
@@ -14,7 +14,9 @@ chrom_num="$3"
 n_gwas_individuals="$4"
 ldsc_baseline_hg19_annotation_dir="$5"
 kg_genotype_dir="$6"
+processed_ctwas_genotype_data_dir="$7"
 
+if false; then
 source ~/.bash_profile
 
 ###############################
@@ -26,7 +28,9 @@ python3 extract_list_of_ldsc_annotation_rs_ids.py $ldsc_baseline_hg19_annotation
 ###############################
 # Make genotype subdirectory for this gwas sampel size
 ###############################
+fi
 processed_genotype_data_dir=${processed_genotype_data_root_dir}"gwas_sample_size_"${n_gwas_individuals}"/"
+if false; then
 mkdir $processed_genotype_data_dir
 echo $processed_genotype_data_dir
 
@@ -112,10 +116,23 @@ reference_bim=${processed_genotype_data_dir}"simulated_gwas_data_"${chrom_num}".
 window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_"${window_size_mb}"_mb.txt"
 python3 create_chromosome_windows.py $window_size_mb $reference_bim $window_file ${chrom_num}
 
-echo "STARTING"
-
 python3 generate_gwas_in_sample_ld_for_all_windows.py $chrom_num $window_file ${processed_genotype_data_dir}
+fi
 
+
+
+
+#########################
+# Create LD windows for c-TWAS
+##########################
+module load gcc/9.2.0
+module load R/4.3.1
+ctwas_regions_file=${processed_ctwas_genotype_data_dir}"ctwas_quasi_independent_regions.bed"
+Rscript generate_quasi_independent_ld_windows_for_ctwas.R $chrom_num $processed_ctwas_genotype_data_dir $ctwas_regions_file
+
+
+source ~/.bash_profile
+python3 generate_gwas_in_sample_ld_for_all_ctwas_windows.py $chrom_num $ctwas_regions_file $processed_genotype_data_dir $processed_ctwas_genotype_data_dir
 
 
 

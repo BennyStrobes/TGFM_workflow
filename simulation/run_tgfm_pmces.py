@@ -854,6 +854,7 @@ for window_iter in range(n_windows):
 	gene_variant_full_ld = extract_full_gene_variant_ld(tgfm_data['gene_eqtl_pmces'], ld_mat)
 	del ld_mat
 
+
 	##############################
 	# Run TGFM
 	###############################

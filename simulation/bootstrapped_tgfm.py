@@ -160,6 +160,8 @@ class TGFM(object):
 
 				mixture_alpha_var = -1.0/(2.0*a_terms)
 				mixture_alpha_mu = b_terms*mixture_alpha_var
+				# HACK TO DEAL WITH MISSING gene models (mixture alpha_mu should never be precisely zero unless there is no gene model)
+				mixture_alpha_var[mixture_alpha_mu == 0.0] = 1e-30
 
 				#################
 				# Beta effects
@@ -338,6 +340,7 @@ class TGFM(object):
 
 			# Only perform computation for snps with non-zero eqtl effect in at least one gene
 			non_zero_snp_indices = np.sum(bs_eqtls_pmces!=0.0,axis=0) != 0.0
+
 			bs_precomputed_gene_gene_terms = -np.dot(np.dot(bs_eqtls_pmces[:, non_zero_snp_indices],D_mat[:, non_zero_snp_indices][non_zero_snp_indices,:]), np.transpose(bs_eqtls_pmces[:, non_zero_snp_indices]))
 
 			bs_precomputed_a_terms = .5*np.diag(bs_precomputed_gene_gene_terms)

@@ -138,12 +138,12 @@ gtex_gene_mapping = create_mapping_from_gene_name_to_tss_info_based_on_gtex_data
 # Create mapping from gene name to chrom_num and tss based on gene annotation file
 mapping = create_mapping_from_gene_name_to_gene_info(hg38_gene_annotation_file)
 
+
+'''
 #######################
 # Get list of pseudobulk cell types
 ct_summmary_file = pseudobulk_expression_dir + 'pseudobulk_data_set_summary_filtered.txt'
 pb_cell_types = get_list_of_pseudobulk_cell_types(ct_summmary_file)
-
-
 
 # Loop through cell types
 for pb_cell_type in pb_cell_types:
@@ -179,4 +179,40 @@ for pb_cell_type in pb_cell_types:
 				pdb.set_trace()
 		t.write(gene_name + '\t' + chrom_num + '\t' + tss + '\n')
 	t.close()
+'''
 
+
+# Also do for bulk_PBMC
+# Extract ordered gene names for this pb cell type
+pb_cell_type_expression_file = pseudobulk_expression_dir + 'cell_types_PBMC' + '_pseudobulk_expression.txt'
+cell_type_gene_names = extract_cell_type_gene_names_from_expression_file(pb_cell_type_expression_file)
+
+# Open output file handle
+pb_cell_type_gene_tss_file = pseudobulk_expression_dir + 'cell_types_PBMC'+ '_gene_tss_hg38.txt'
+t = open(pb_cell_type_gene_tss_file,'w')
+t.write('gene_name\tchrom_num\ttss\n')
+for gene_name in cell_type_gene_names:
+	if gene_name not in mapping:
+		print('skipped')
+		#pdb.set_trace()
+		if gene_name in gtex_gene_mapping:
+			print('assumption eroror')
+			pdb.set_trace()
+		continue
+
+	gene_info = mapping[gene_name]
+	chrom_num = gene_info[1]
+	tss = gene_info[3]
+
+	# Error checking
+	if gene_name in gtex_gene_mapping:
+		if chrom_num != gtex_gene_mapping[gene_name][0]:
+			print('assumption eroroor')
+			pdb.set_trace()
+		if tss != gtex_gene_mapping[gene_name][1]:
+			print('assumption eroror')
+			pdb.set_trace()
+	t.write(gene_name + '\t' + chrom_num + '\t' + tss + '\n')
+t.close()
+
+print(pb_cell_type_gene_tss_file)

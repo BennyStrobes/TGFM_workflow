@@ -269,7 +269,7 @@ make_n_detected_genes_se_barplot_gene_stratefied <- function(df_full) {
 	fraction_ub_arr <- c()
 	method_arr <- c()
 
-	gene_types <- c("all_non_zero_gene", "max_min_ratio_5", "max_min_ratio_10", "max_min_ratio_50", "max_min_ratio_100", "component_gene")
+	gene_types <- c("all_non_zero_gene", "max_min_ratio_2", "max_min_ratio_5", "max_min_ratio_10", "max_min_ratio_50", "max_min_ratio_100", "component_gene")
 	for (gene_type_iter in 1:length(gene_types)) {
 		gene_typer <- gene_types[gene_type_iter]
 		df <- df_full[as.character(df_full$gene_model_type) == gene_typer,]
@@ -1657,7 +1657,119 @@ make_agg_gene_fdr_plot_across_sample_sizes_for_various_gene_methods <- function(
 }
 
 
+make_gene_power_plot_at_realistic_qtl_sample_sizes <- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) {
+	# Initialize vectors for summary df
+	method_vec <- c()
+	eQTL_sample_size_vec <- c()
+	power_vec <- c()
+	power_lb_vec <- c()
+	power_ub_vec <- c()
 
+
+
+	gene_type <- "component_gene"
+	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_realistic_eqtl_ss_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_", gene_type,"_tgfm_pip_", pip_threshold, "_power.txt")
+	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
+	full_tmp_df = tgfm_power_df[as.character(tgfm_power_df$genetic_element_class) == "gene",]
+
+	method_name <- "TGFM (no sampling, uniform prior)"
+	tmp_df <- full_tmp_df[as.character(full_tmp_df$ln_pi_method)=="uniform",]
+	tmp_df <- tmp_df[as.character(tmp_df$twas_method)=="susie_pmces",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+
+	method_name <- "TGFM"
+	tmp_df <- full_tmp_df[as.character(full_tmp_df$ln_pi_method)=="pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped",]
+	tmp_df <- tmp_df[as.character(tmp_df$twas_method)=="susie_sampler",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+
+
+	# Convert into clean data frame
+	# Convert into clean data frame
+
+	df <- data.frame(method=factor(as.character(method_vec), levels=c("TGFM (no sampling, uniform prior)", "TGFM")), eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c("low_eqtl_ss", "high_eqtl_ss", "Aggregate")), power=power_vec, power_ub=power_ub_vec, power_lb=power_lb_vec)
+
+
+	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=power, fill=method)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="", y="Power", fill="", title=paste0("PIP >= ", pip_threshold)) +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) + 
+  		theme(legend.position="top")
+  	return(p)
+}
+
+
+make_gene_fdr_plot_at_realistic_qtl_sample_sizes <- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) {
+	# Initialize vectors for summary df
+	method_vec <- c()
+	eQTL_sample_size_vec <- c()
+	coverage_vec <- c()
+	coverage_lb_vec <- c()
+	coverage_ub_vec <- c()
+	expected_coverage_vec <- c()
+
+
+
+	gene_type <- "component_gene"
+	tgfm_calibration_file <- paste0(simulated_organized_results_dir, "organized_realistic_eqtl_ss_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_", gene_type,"_tgfm_pip_", pip_threshold, "_calibration.txt")
+	tgfm_calibration_df <- read.table(tgfm_calibration_file, header=TRUE)
+	full_tmp_df = tgfm_calibration_df[as.character(tgfm_calibration_df$genetic_element_class) == "gene",]
+
+
+	method_name <- "TGFM (no sampling, uniform prior)"
+	tmp_df <- full_tmp_df[as.character(full_tmp_df$ln_pi_method)=="uniform",]
+	tmp_df <- tmp_df[as.character(tmp_df$twas_method)=="susie_pmces",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+
+	method_name <- "TGFM"
+	tmp_df <- full_tmp_df[as.character(full_tmp_df$ln_pi_method)=="pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped",]
+	tmp_df <- tmp_df[as.character(tmp_df$twas_method)=="susie_sampler",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+
+
+	# Convert into clean data frame
+	df <- data.frame(method=factor(as.character(method_vec), levels=c("TGFM (no sampling, uniform prior)", "TGFM")), eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c("low_eqtl_ss", "high_eqtl_ss", "Aggregate")), precision=coverage_vec, precision_ub=coverage_ub_vec, precision_lb=coverage_lb_vec, expected_fdr=1.0-expected_coverage_vec)
+
+	df$fdr = 1.0 - df$precision
+	df$fdr_lb = 1.0 - df$precision_ub
+	df$fdr_ub = 1.0 - df$precision_lb
+
+
+
+	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=fdr, fill=method)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.3, position=position_dodge(.9), size=.5)  +
+  		geom_errorbar(aes(ymin=expected_fdr, ymax=expected_fdr), width=.8, position=position_dodge(.9), linetype='dotted')  +
+  		figure_theme() +
+  		labs(x="", y="FDR", fill="", title=paste0("PIP >= ", pip_threshold)) +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) +
+  		geom_hline(yintercept=1.0 - as.numeric(pip_threshold), linetype=2) +
+  		theme(legend.position="top")
+  	return(p)
+}
 
 make_gene_fdr_plot_across_sample_sizes_for_various_gene_methods <- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) {
 	# Initialize vectors for summary df
@@ -1695,7 +1807,7 @@ make_gene_fdr_plot_across_sample_sizes_for_various_gene_methods <- function(simu
 	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
 	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
 
-	gene_type <- "all_non_zero_gene_cg_prior"
+	gene_type <- "max_min_ratio_5"
 	tgfm_calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_", gene_type,"_tgfm_pip_", pip_threshold, "_calibration.txt")
 	tgfm_calibration_df <- read.table(tgfm_calibration_file, header=TRUE)
 	tmp_df = tgfm_calibration_df[as.character(tgfm_calibration_df$genetic_element_class) == "gene",]
@@ -1709,8 +1821,21 @@ make_gene_fdr_plot_across_sample_sizes_for_various_gene_methods <- function(simu
 
 
 
+	gene_type <- "max_min_ratio_50"
+	tgfm_calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_", gene_type,"_tgfm_pip_", pip_threshold, "_calibration.txt")
+	tgfm_calibration_df <- read.table(tgfm_calibration_file, header=TRUE)
+	tmp_df = tgfm_calibration_df[as.character(tgfm_calibration_df$genetic_element_class) == "gene",]
+	n_elements = dim(tmp_df)[1]
+	gene_type_vec <- c(gene_type_vec, rep(gene_type, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, tmp_df$eQTL_sample_size)
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+
+
 	# Convert into clean data frame
-	df <- data.frame(method=factor(as.character(gene_type_vec), levels=c("component_gene", "all_non_zero_gene","all_non_zero_gene_cg_prior")), eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c(100,1000)), precision=coverage_vec, precision_ub=coverage_ub_vec, precision_lb=coverage_lb_vec, expected_fdr=1.0-expected_coverage_vec)
+	df <- data.frame(method=factor(as.character(gene_type_vec), levels=c("component_gene", "max_min_ratio_50", "max_min_ratio_5", "all_non_zero_gene")), eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c(100)), precision=coverage_vec, precision_ub=coverage_ub_vec, precision_lb=coverage_lb_vec, expected_fdr=1.0-expected_coverage_vec)
 
 	df$fdr = 1.0 - df$precision
 	df$fdr_lb = 1.0 - df$precision_ub
@@ -2469,6 +2594,7 @@ make_gene_power_plot_across_sample_sizes_for_various_gene_methods <- function(si
 	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_", gene_type,"_tgfm_pip_", pip_threshold, "_power.txt")
 	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
 	tmp_df = tgfm_power_df[as.character(tgfm_power_df$genetic_element_class) == "gene",]
+	tmp_df = tmp_df[tmp_df$eQTL_sample_size==100,]
 	# Extract data for TGFM method
 	n_elements = dim(tmp_df)[1]
 	method_vec <- c(method_vec, rep(gene_type, n_elements))
@@ -2482,6 +2608,7 @@ make_gene_power_plot_across_sample_sizes_for_various_gene_methods <- function(si
 	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_", gene_type,"_tgfm_pip_", pip_threshold, "_power.txt")
 	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
 	tmp_df = tgfm_power_df[as.character(tgfm_power_df$genetic_element_class) == "gene",]
+	tmp_df = tmp_df[tmp_df$eQTL_sample_size==100,]
 	# Extract data for TGFM method
 	n_elements = dim(tmp_df)[1]
 	method_vec <- c(method_vec, rep(gene_type, n_elements))
@@ -2491,7 +2618,20 @@ make_gene_power_plot_across_sample_sizes_for_various_gene_methods <- function(si
 	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
 
 	# Load in TGFM data
-	gene_type <- "all_non_zero_gene_cg_prior"
+	gene_type <- "max_min_ratio_5"
+	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_", gene_type,"_tgfm_pip_", pip_threshold, "_power.txt")
+	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
+	tmp_df = tgfm_power_df[as.character(tgfm_power_df$genetic_element_class) == "gene",]
+	# Extract data for TGFM method
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(gene_type, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, tmp_df$eQTL_sample_size)
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+
+	# Load in TGFM data
+	gene_type <- "max_min_ratio_50"
 	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_", gene_type,"_tgfm_pip_", pip_threshold, "_power.txt")
 	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
 	tmp_df = tgfm_power_df[as.character(tgfm_power_df$genetic_element_class) == "gene",]
@@ -2505,8 +2645,10 @@ make_gene_power_plot_across_sample_sizes_for_various_gene_methods <- function(si
 
 
 
+
+
 	# Convert into clean data frame
-	df <- data.frame(qtl_arch_vec=factor(method_vec, levels=c("component_gene", "all_non_zero_gene", "all_non_zero_gene_cg_prior")), eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c(100, 1000)), power=power_vec, power_ub=power_ub_vec, power_lb=power_lb_vec)
+	df <- data.frame(qtl_arch_vec=factor(method_vec, levels=c("component_gene", "max_min_ratio_50", "max_min_ratio_5", "all_non_zero_gene")), eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c(100)), power=power_vec, power_ub=power_ub_vec, power_lb=power_lb_vec)
 
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=power, fill=qtl_arch_vec)) +
   		geom_bar(stat="identity", position=position_dodge()) +
@@ -2880,6 +3022,53 @@ cmp_tgfm_variant_pip_susie_pip_scatter <- function(file_name) {
   	return(pp)
 }
 
+make_fdr_power_line_plot_at_realistic_eqtl_ss <- function(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss, limit_fdr_range=FALSE) {
+	# Generate global vectors
+	fdr_vec <- c()
+	power_vec <- c()
+	pip_vec <- c()
+	method_vec <- c()
+
+	# Component_gene input_file
+	input_file <- paste0(simulated_organized_results_dir, "organized_realistic_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_component_gene_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	print(head(df))
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("TGFM", length(df$power)))
+
+
+	# Component_gene input_file
+	input_file <- paste0(simulated_organized_results_dir, "organized_realistic_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_component_gene_susie_pmces_uniform_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("TGFM (no prior, no sampling)", length(df$power)))
+
+
+
+
+	df <- data.frame(power=power_vec,fdr=fdr_vec, pip=pip_vec, method=factor(method_vec, levels=c("TGFM (no prior, no sampling)", "TGFM")))
+
+	if (limit_fdr_range) {
+		#df <- df[df$fdr <= 0.5,]
+		df <- df[df$power <= 0.002,]
+	}
+
+
+	df<- df[seq(dim(df)[1],1),]
+
+	p<-ggplot(df, aes(x=power, y=fdr, group=method)) +
+ 		geom_line(aes(color=method)) + 
+ 		figure_theme() +
+ 		labs(title=paste0(eqtl_ss), x="Power",y="FDR",color="")
+
+ 	return(p)
+
+}
+
 make_fdr_power_line_plot <- function(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss, limit_fdr_range=FALSE) {
 	# Generate global vectors
 	fdr_vec <- c()
@@ -2896,15 +3085,6 @@ make_fdr_power_line_plot <- function(simulated_organized_results_dir, global_sim
 	method_vec <- c(method_vec, rep("component_gene", length(df$power)))
 
 
-	# Component_gene (no sampling) input_file
-	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_component_gene_susie_pmces_uniform_", eqtl_ss, "_tgfm_gene_tissue_fdr_power_curve_data.txt")
-	df <- read.table(input_file, header=TRUE,sep="\t")
-	fdr_vec <- c(fdr_vec, df$fdr)
-	power_vec <- c(power_vec, df$power)
-	pip_vec <- c(pip_vec, df$pip_threshold)
-	method_vec <- c(method_vec, rep("component_gene_no_sampling", length(df$power)))
-
-
 	# all_non_zero_gene input_file
 	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_all_non_zero_gene_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_", eqtl_ss, "_tgfm_gene_tissue_fdr_power_curve_data.txt")
 	df <- read.table(input_file, header=TRUE,sep="\t")
@@ -2913,22 +3093,36 @@ make_fdr_power_line_plot <- function(simulated_organized_results_dir, global_sim
 	pip_vec <- c(pip_vec, df$pip_threshold)
 	method_vec <- c(method_vec, rep("all_non_zero_gene", length(df$power)))	
 
-
-	# Component_gene (no sampling) input_file
-	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_all_non_zero_gene_susie_pmces_uniform_", eqtl_ss, "_tgfm_gene_tissue_fdr_power_curve_data.txt")
+	# all_non_zero_gene input_file
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_max_min_ratio_50_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_", eqtl_ss, "_tgfm_gene_tissue_fdr_power_curve_data.txt")
 	df <- read.table(input_file, header=TRUE,sep="\t")
 	fdr_vec <- c(fdr_vec, df$fdr)
 	power_vec <- c(power_vec, df$power)
 	pip_vec <- c(pip_vec, df$pip_threshold)
-	method_vec <- c(method_vec, rep("all_non_zero_gene_no_sampling", length(df$power)))
+	method_vec <- c(method_vec, rep("max_min_ratio_50", length(df$power)))
+
+
+	# all_non_zero_gene input_file
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_max_min_ratio_5_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_", eqtl_ss, "_tgfm_gene_tissue_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("max_min_ratio_5", length(df$power)))	
 
 
 
-	df <- data.frame(power=power_vec,fdr=fdr_vec, pip=pip_vec, method=factor(method_vec))
+	df <- data.frame(power=power_vec,fdr=fdr_vec, pip=pip_vec, method=factor(method_vec, levels=c("component_gene", "max_min_ratio_50", "max_min_ratio_5", "all_non_zero_gene")))
 
 	if (limit_fdr_range) {
-		df <- df[df$fdr <= 0.5,]
+		#df <- df[df$fdr <= 0.5,]
+		df <- df[df$power <= 0.002,]
 	}
+
+	df2 <- df[as.character(df$method)=="component_gene",]
+
+
+	df<- df[seq(dim(df)[1],1),]
 
 	p<-ggplot(df, aes(x=power, y=fdr, group=method)) +
  		geom_line(aes(color=method)) + 
@@ -3484,6 +3678,55 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_sim
 ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
 }
 
+if (FALSE) {
+#####################################################################
+# Plot FDR and power at realistic eQTL sample sizes
+#####################################################################
+# Precision plots
+pip_threshold <- "0.5"
+fdr_plot_5 <- make_gene_fdr_plot_at_realistic_qtl_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+pip_threshold <- "0.9"
+fdr_plot_9 <- make_gene_fdr_plot_at_realistic_qtl_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+
+
+
+# Power plots
+pip_threshold <- "0.5"
+power_plot_5 <- make_gene_power_plot_at_realistic_qtl_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+pip_threshold <- "0.9"
+power_plot_9 <- make_gene_power_plot_at_realistic_qtl_sample_sizes(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+
+
+legender <- get_legend(power_plot_5)
+
+joint_plot <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.position="none"), fdr_plot_9 +theme(legend.position="none"), power_plot_5 +theme(legend.position="none"), power_plot_9 +theme(legend.position="none"), ncol=2, labels=c("a", "b", "c","d")), ncol=1, rel_heights=c(.05, .03, 1))
+
+# Make joint plot
+output_file <- paste0(visualize_simulated_results_dir, "simulation_realistic_qtl_ss_", global_simulation_name_string, "_gene_tissue_summary_plot.pdf")
+ggsave(joint_plot, file=output_file, width=7.2, height=5.5, units="in")
+}
+
+#####################################################################
+# Make FDR-Power curve at realistic eQTL sample sizes
+#####################################################################
+eqtl_ss="aggregate"
+fdr_power_plot_low_eqtl_ss <- make_fdr_power_line_plot_at_realistic_eqtl_ss(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss)
+output_file <- paste0(visualize_simulated_results_dir, "realistic_eqtl_ss_simulation_", global_simulation_name_string, "_fdr_power_line_plot_aggreagate.pdf")
+ggsave(fdr_power_plot_low_eqtl_ss, file=output_file, width=7.2, height=4.0, units="in")
+
+
+eqtl_ss="low_eqtl_ss"
+fdr_power_plot_low_eqtl_ss <- make_fdr_power_line_plot_at_realistic_eqtl_ss(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss)
+eqtl_ss="high_eqtl_ss"
+fdr_power_plot_high_eqtl_ss <- make_fdr_power_line_plot_at_realistic_eqtl_ss(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss)
+
+legender <- get_legend(fdr_power_plot_low_eqtl_ss)
+joint_fdr_power_lineplot <- plot_grid(fdr_power_plot_low_eqtl_ss+theme(legend.position="none"), fdr_power_plot_high_eqtl_ss+theme(legend.position="none"), ncol=2)
+joint2 = plot_grid(joint_fdr_power_lineplot, legender, ncol=1, rel_heights=c(1,.07))
+output_file <- paste0(visualize_simulated_results_dir, "realistic_eqtl_ss_simulation_", global_simulation_name_string, "_fdr_power_line_plot.pdf")
+ggsave(joint2, file=output_file, width=7.2, height=4.0, units="in")
+
+
 
 #####################################################################
 # Make version of Figure 1 comparing TGFM gene-tissue calibration and power over range of eqtl architectures
@@ -3548,23 +3791,13 @@ ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
 if (FALSE) {
 eqtl_ss="100"
 fdr_power_plot_100 <- make_fdr_power_line_plot(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss)
-eqtl_ss="1000"
-fdr_power_plot_1000 <- make_fdr_power_line_plot(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss)
-legender <- get_legend(fdr_power_plot_100+theme(legend.position="bottom")+guides(color = guide_legend(nrow = 2)))
-joint_fdr_power_plot <- plot_grid(fdr_power_plot_100 + theme(legend.position="none"), fdr_power_plot_1000+ theme(legend.position="none"), ncol=2)
-joint_fdr_power_plot2 <- plot_grid(joint_fdr_power_plot, legender, ncol=1, rel_heights=c(1,.17))
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_fdr_power_line_plot.pdf")
-ggsave(joint_fdr_power_plot2, file=output_file, width=7.2, height=4.5, units="in")
+ggsave(fdr_power_plot_100, file=output_file, width=7.2, height=4.0, units="in")
 
 eqtl_ss="100"
 fdr_power_plot_100 <- make_fdr_power_line_plot(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss, limit_fdr_range=TRUE)
-eqtl_ss="1000"
-fdr_power_plot_1000 <- make_fdr_power_line_plot(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss, limit_fdr_range=TRUE)
-legender <- get_legend(fdr_power_plot_1000+theme(legend.position="bottom")+guides(color = guide_legend(nrow = 2)))
-joint_fdr_power_plot <- plot_grid(fdr_power_plot_100 + theme(legend.position="none"), fdr_power_plot_1000+ theme(legend.position="none"), ncol=2)
-joint_fdr_power_plot2 <- plot_grid(joint_fdr_power_plot, legender, ncol=1, rel_heights=c(1,.17))
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_limit_fdr_range_fdr_power_line_plot.pdf")
-ggsave(joint_fdr_power_plot2, file=output_file, width=7.2, height=4.5, units="in")
+ggsave(fdr_power_plot_100, file=output_file, width=7.2, height=4.0, units="in")
 }
 
 if (FALSE) {
@@ -3587,8 +3820,8 @@ ggsave(scatter, file=output_file, width=7.2, height=4.6, units="in")
 #####################################################################
 # Make version of Figure 1 comparing TGFM gene-tissue calibration and power over range of gene methods
 #####################################################################
-if (FALSE) {
 # Precision plots
+if (FALSE) {
 pip_threshold <- "0.5"
 fdr_plot_5 <- make_gene_fdr_plot_across_sample_sizes_for_various_gene_methods(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
 pip_threshold <- "0.9"
@@ -3610,7 +3843,9 @@ figure <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.position
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_various_methods_precision_and_power.pdf")
 ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
+print(output_file)
 }
+
 #####################################################################
 # Make version of Figure 1 comparing TGFM gene-tissue calibration and power over range of gene methods
 #####################################################################
@@ -3665,6 +3900,7 @@ ggsave(figure, file=output_file, width=7.2, height=3.5, units="in")
 #####################################################################
 # Make number of detected genes bar plot
 #####################################################################
+if (FALSE) {
 n_detected_genes_input_file <- paste0(simulated_organized_results_dir,"organized_simulation_", global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default_number_of_genes_with_gene_model.txt")
 n_gene_df <- read.table(n_detected_genes_input_file, header=TRUE)
 n_gene_barplot <- make_n_detected_genes_se_barplot_gene_stratefied(n_gene_df)
@@ -3672,8 +3908,8 @@ n_gene_barplot <- make_n_detected_genes_se_barplot_gene_stratefied(n_gene_df)
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_n_detected_genes_se_barplot_gene_stratefied.pdf")
 ggsave(n_gene_barplot, file=output_file, width=7.2, height=3.7, units="in")
-
-
+print(output_file)
+}
 
 #####################################################################
 # Make barplot with standard error showing Type 1 error and power using gaussian approximation of bootstrapped iterative VGT PMCES for different gene methods

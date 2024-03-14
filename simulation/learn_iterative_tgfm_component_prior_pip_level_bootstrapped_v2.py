@@ -151,7 +151,7 @@ def update_prior_prob_emperical_distributions_for_variant_gene_tissue(component_
 
 	return variant_prob_distr, tissue_probs_distr
 
-def update_prior_probs_for_variant_gene_tissue(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob, tissue_probs, tissue_names, window_to_class_to_indices):
+def update_prior_probs_for_variant_gene_tissue(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob, tissue_probs_comp, tissue_probs_non_zero, tissue_names, window_to_class_to_indices):
 	variant_posterior_sum = 0.0
 	variant_counts = 0.0
 	tissue_posterior_sum = np.zeros(len(tissue_probs))
@@ -221,7 +221,7 @@ def update_prior_probs_for_variant_gene_tissue(component_level_abf_summary_file,
 	variant_prob = variant_posterior_sum/variant_counts
 	tissue_probs = tissue_posterior_sum/tissue_counts
 
-	return variant_prob, tissue_probs
+	return variant_prob, tissue_probs_comp, tissue_probs_non_zero
 
 def extract_alpha_vec_given_lbf_and_prior(lbf, prior_probs):
 	maxlbf = np.max(lbf)
@@ -254,8 +254,10 @@ def create_mapping_from_window_to_class_to_indices(component_level_abf_summary_f
 		sub_dicti['variant'] = []
 		sub_dicti_middle['variant'] = []
 		for tissue_name in tissue_names:
-			sub_dicti[tissue_name] = []
-			sub_dicti_middle[tissue_name] = []
+			sub_dicti[tissue_name + ':component'] = []
+			sub_dicti_middle[tissue_name+ ':component'] = []
+			sub_dicti[tissue_name + ':non_zero'] = []
+			sub_dicti_middle[tissue_name+ ':non_zero'] = []
 
 		# Extract element names
 		ele_names = np.asarray(data[3].split(';'))
@@ -264,12 +266,24 @@ def create_mapping_from_window_to_class_to_indices(component_level_abf_summary_f
 		for middle_ele_name in middle_ele_names:
 			middle_ele_dicti[middle_ele_name] = 1
 
+		# Create valid gene dictionary
+		gene_names = np.asarray(data[7].split(';'))
+		valid_genes = np.asarray(data[8].split(';'))
+		valid_genes_dicti = {}
+		for ii, gene_name in enumerate(gene_names):
+			if valid_genes[ii] == 'True':
+				valid_genes_dicti[gene_name] = 1
+
 
 		# loop through elements and add to sub-dictionary
 		variant_counter = -1
 		for ele_iter, ele_name in enumerate(ele_names):
 			if ele_name.startswith('ENSG'):
 				ele_category = '_'.join(ele_name.split('_')[1:])
+				if ele_name in valid_genes_dicti:
+					ele_category = ele_category + ':component'
+				else:
+					ele_category = ele_category + ':non_zero'
 			else:
 				ele_category = 'variant'
 				variant_counter = variant_counter + 1
@@ -283,7 +297,11 @@ def create_mapping_from_window_to_class_to_indices(component_level_abf_summary_f
 		# Change to np arrays
 		sub_dicti['variant'] = np.asarray(sub_dicti['variant'])
 		sub_dicti_middle['variant'] = np.asarray(sub_dicti_middle['variant'])
-		for tissue_name in tissue_names:
+		for tissue_name_raw in tissue_names:
+			tissue_name = tissue_name_raw + ':component'
+			sub_dicti[tissue_name] = np.asarray(sub_dicti[tissue_name])
+			sub_dicti_middle[tissue_name] = np.asarray(sub_dicti_middle[tissue_name])
+			tissue_name = tissue_name_raw + ':non_zero'
 			sub_dicti[tissue_name] = np.asarray(sub_dicti[tissue_name])
 			sub_dicti_middle[tissue_name] = np.asarray(sub_dicti_middle[tissue_name])
 		# Add n_elements to sub_dicti
@@ -306,7 +324,8 @@ def learn_iterative_variant_gene_tissue_prior(component_level_abf_summary_file, 
 
 	# Initialize prior probabilitie
 	variant_prob = .1
-	tissue_probs = np.ones(len(tissue_names))*.1
+	tissue_probs_comp = np.ones(len(tissue_names))*.1
+	tissue_probs_non_zero = np.ones(len(tissue_names))*.1
 
 	# can probably precompute window to indices
 	# Can probably precompute window to prior prob (in each iteration)
@@ -319,7 +338,7 @@ def learn_iterative_variant_gene_tissue_prior(component_level_abf_summary_file, 
 
 
 	for itera in range(max_iter):
-		variant_prob, tissue_probs = update_prior_probs_for_variant_gene_tissue(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob, tissue_probs, tissue_names, window_to_class_to_indices)
+		variant_prob, tissue_probs_comp, tissue_probs_non_zero = update_prior_probs_for_variant_gene_tissue(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob, tissue_probs_comp, tissue_probs_non_zero, tissue_names, window_to_class_to_indices)
 		print('################################')
 		print('ITERATION: ' + str(itera))
 		print('variant: ' + str(variant_prob))
@@ -384,8 +403,8 @@ def learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_l
 
 	# Initialize prior probability emperical distribution
 	variant_prob_distr = np.ones(n_bootstraps)*.1
-	tissue_probs_distr = np.ones((len(tissue_names), n_bootstraps))*.1
-
+	tissue_component_probs_distr = np.ones((len(tissue_names), n_bootstraps))*.1
+	tissue_non_zero_probs_distr = np.ones((len(tissue_names), n_bootstraps))*.1
 
 	# Create mapping from window to class to indices
 	window_to_class_to_indices, window_to_class_to_middle_indices, window_to_variant_middle = create_mapping_from_window_to_class_to_indices(component_level_abf_summary_file, tissue_name_to_position, tissue_names)
@@ -432,15 +451,16 @@ def learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_l
 	for itera in range(max_iter):
 		print(itera)
 		t1 = time.time()
-		old_tissue_probs = np.copy(tissue_probs_distr)
-		variant_prob_distr, tissue_probs_distr = update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob_distr, tissue_probs_distr, tissue_names, window_to_class_to_indices, window_to_class_to_middle_indices, n_bootstraps, bs_indices, bs_mapping, window_names, window_to_bootstraps, version)
-		diff=tissue_probs_distr - old_tissue_probs
+		old_tissue_probs = np.copy(tissue_component_probs_distr)
+		variant_prob_distr, tissue_component_probs_distr, tissue_non_zero_probs_distr = update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob_distr, tissue_component_probs_distr, tissue_non_zero_probs_distr, tissue_names, window_to_class_to_indices, window_to_class_to_middle_indices, n_bootstraps, bs_indices, bs_mapping, window_names, window_to_bootstraps, version)
+		print(tissue_component_probs_distr)
+		diff=tissue_component_probs_distr - old_tissue_probs
 		print(np.sort(np.mean(diff,axis=1)))
 		t2 = time.time()
 		print(t2-t1)
 
 
-	return variant_prob_distr, tissue_probs_distr
+	return variant_prob_distr, tissue_component_probs_distr, tissue_non_zero_probs_distr
 
 def extract_alpha_vec_given_lbf_and_prior_matrix(lbf, prior_probs):
 	maxlbf = np.max(lbf)
@@ -489,7 +509,7 @@ def compute_expected_pips_from_sampled_distribution(alpha_mats, window_samples, 
 	return expected_pips, weights
 
 
-def update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob_distr, tissue_probs_distr, tissue_names, window_to_class_to_indices, window_to_class_to_middle_indices, n_bootstraps, bs_indices, bs_mapping, window_names, window_to_bootstraps, version):
+def update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob_distr, tissue_component_probs_distr, tissue_non_zero_probs_distr, tissue_names, window_to_class_to_indices, window_to_class_to_middle_indices, n_bootstraps, bs_indices, bs_mapping, window_names, window_to_bootstraps, version):
 	# General info
 	n_tissues = len(tissue_names)	
 	n_windows = len(window_names)
@@ -497,14 +517,17 @@ def update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_s
 	# Keep track of counts in each window
 	variant_posterior_sum = np.zeros(n_bootstraps)
 	variant_counts = np.zeros(n_bootstraps)
-	tissue_posterior_sum = np.zeros((n_tissues, n_bootstraps))
-	tissue_counts = np.zeros((n_tissues, n_bootstraps))
+	tissue_component_posterior_sum = np.zeros((n_tissues, n_bootstraps))
+	tissue_component_counts = np.zeros((n_tissues, n_bootstraps))
+	tissue_nonzero_posterior_sum = np.zeros((n_tissues, n_bootstraps))
+	tissue_nonzero_counts = np.zeros((n_tissues, n_bootstraps))
 
 	# Create prior hash
 	prior_hash = {}
 	prior_hash['variant'] = variant_prob_distr
 	for ii in range(n_tissues):
-		prior_hash[tissue_names[ii]] = tissue_probs_distr[ii,:]
+		prior_hash[tissue_names[ii] + ':component'] = tissue_component_probs_distr[ii,:]
+		prior_hash[tissue_names[ii] + ':non_zero'] = tissue_non_zero_probs_distr[ii,:]
 
 	# Create mapping from window name to expected prior probs
 	window_to_prior_probs = {}
@@ -514,11 +537,20 @@ def update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_s
 		class_indices = window_to_class_to_indices[window_name][class_name]
 
 		prior_prob_raw[class_indices, :] = prior_hash[class_name]
-		for class_name in tissue_names:
+		for tmp_class_name in tissue_names:
+			# Component
+			class_name = tmp_class_name + ':component'
 			class_indices = window_to_class_to_indices[window_name][class_name]
 			if len(class_indices) == 0:
 				continue
 			prior_prob_raw[class_indices, :] = prior_hash[class_name]
+			# non zero
+			class_name = tmp_class_name + ':non_zero'
+			class_indices = window_to_class_to_indices[window_name][class_name]
+			if len(class_indices) == 0:
+				continue
+			prior_prob_raw[class_indices, :] = prior_hash[class_name]
+
 		# Normalize each bootstrapped sample
 		prior_probs = prior_prob_raw/np.sum(prior_prob_raw,axis=0)
 
@@ -560,13 +592,21 @@ def update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_s
 				variant_counts = variant_counts + (bs_scaling_factors*len(indices))
 				# For genes
 				for tiss_iter, tissue_name in enumerate(tissue_names):
-					indices = np.asarray(window_to_class_to_middle_indices[prev_window_name][tissue_name])
+					# Component
+					indices = np.asarray(window_to_class_to_middle_indices[prev_window_name][tissue_name + ':component'])
 					if len(indices) == 0:
 						continue
-					#if tissue_name == 'Whole_Blood' and np.sum(np.sum(expected_pips[indices,:],axis=0) > 0.1) > 0:
-					#	pdb.set_trace()
-					tissue_posterior_sum[tiss_iter, :] = tissue_posterior_sum[tiss_iter, :] + (bs_scaling_factors*np.sum(expected_pips[indices,:],axis=0))
-					tissue_counts[tiss_iter, :] = tissue_counts[tiss_iter, :] + (bs_scaling_factors*len(indices))
+					tissue_component_posterior_sum[tiss_iter, :] = tissue_component_posterior_sum[tiss_iter, :] + (bs_scaling_factors*np.sum(expected_pips[indices,:],axis=0))
+					tissue_component_counts[tiss_iter, :] = tissue_component_counts[tiss_iter, :] + (bs_scaling_factors*len(indices))
+					
+					# Non-zero
+					indices = np.asarray(window_to_class_to_middle_indices[prev_window_name][tissue_name + ':non_zero'])
+					if len(indices) == 0:
+						continue
+					tissue_nonzero_posterior_sum[tiss_iter, :] = tissue_nonzero_posterior_sum[tiss_iter, :] + (bs_scaling_factors*np.sum(expected_pips[indices,:],axis=0))
+					tissue_nonzero_counts[tiss_iter, :] = tissue_nonzero_counts[tiss_iter, :] + (bs_scaling_factors*len(indices))
+
+
 			window_abfs = np.load(data[5])
 			window_samples = np.load(data[6])
 			component_counter = 0
@@ -606,26 +646,36 @@ def update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_s
 	variant_counts = variant_counts + (bs_scaling_factors*len(indices))
 	# For genes
 	for tiss_iter, tissue_name in enumerate(tissue_names):
-		indices = np.asarray(window_to_class_to_middle_indices[window_name][tissue_name])
+		# Component
+		indices = np.asarray(window_to_class_to_middle_indices[prev_window_name][tissue_name + ':component'])
 		if len(indices) == 0:
 			continue
-		tissue_posterior_sum[tiss_iter, :] = tissue_posterior_sum[tiss_iter, :] + (bs_scaling_factors*np.sum(expected_pips[indices,:],axis=0))
-		tissue_counts[tiss_iter, :] = tissue_counts[tiss_iter, :] + (bs_scaling_factors*len(indices))
+		tissue_component_posterior_sum[tiss_iter, :] = tissue_component_posterior_sum[tiss_iter, :] + (bs_scaling_factors*np.sum(expected_pips[indices,:],axis=0))
+		tissue_component_counts[tiss_iter, :] = tissue_component_counts[tiss_iter, :] + (bs_scaling_factors*len(indices))
+					
+		# Non-zero
+		indices = np.asarray(window_to_class_to_middle_indices[prev_window_name][tissue_name + ':non_zero'])
+		if len(indices) == 0:
+			continue
+		tissue_nonzero_posterior_sum[tiss_iter, :] = tissue_nonzero_posterior_sum[tiss_iter, :] + (bs_scaling_factors*np.sum(expected_pips[indices,:],axis=0))
+		tissue_nonzero_counts[tiss_iter, :] = tissue_nonzero_counts[tiss_iter, :] + (bs_scaling_factors*len(indices))
+
 
 
 	variant_prob_distr = variant_posterior_sum/variant_counts
-	tissue_counts[tissue_counts == 0.0] = .1
-	tissue_probs_distr = tissue_posterior_sum/tissue_counts
+	tissue_component_counts[tissue_component_counts == 0.0] = .1
+	tissue_component_probs_distr = tissue_component_posterior_sum/tissue_component_counts
+	tissue_nonzero_counts[tissue_nonzero_counts == 0.0] = .1
+	tissue_non_zero_probs_distr = tissue_nonzero_posterior_sum/tissue_nonzero_counts
 
-	print(tissue_probs_distr)
 
-	return variant_prob_distr, tissue_probs_distr
+	return variant_prob_distr, tissue_component_probs_distr, tissue_non_zero_probs_distr
 
 
 def generate_component_level_abf_summary_data(concatenated_pip_summary_file, component_level_abf_summary_file, tissue_names, file_stem, model_version, per_window_abf_output_stem, version='v1'):
 	f = open(concatenated_pip_summary_file)
 	t = open(component_level_abf_summary_file,'w')
-	t.write('window_name\tbootstrap_number\tcomponent_number\telement_names\tmiddle_element_names\twindow_abf_file\twindow_component_samples_file\tannotation_mat_file\n')
+	t.write('window_name\tbootstrap_number\tcomponent_number\telement_names\tmiddle_element_names\twindow_abf_file\twindow_component_samples_file\tgene_names\tcomponent_genes\n')
 	tiss_to_position_mapping = {}
 	for ii,tissue_name in enumerate(tissue_names):
 		tiss_to_position_mapping[tissue_name] = ii
@@ -653,10 +703,10 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 
 		# Load in tgfm results data
 		# Load in tgfm results data
-		#tgfm_input_data = data[2]
-		#g = open(tgfm_input_data, "rb")
-		#tgfm_data = pickle.load(g)
-		#g.close()
+		tgfm_input_data = data[2]
+		g = open(tgfm_input_data, "rb")
+		tgfm_data = pickle.load(g)
+		g.close()
 
 		# Add middle gene indices to tgfm results
 		#tgfm_results['middle_gene_indices'] = np.copy(tgfm_data['middle_gene_indices'])
@@ -698,7 +748,7 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 					log_abf = np.hstack((tgfm_results['alpha_lbf'][component_iter, :], tgfm_results['beta_lbf'][component_iter, :]))
 					element_names = np.hstack((tgfm_results['genes'], tgfm_results['variants']))
 					middle_element_names = np.hstack((tgfm_results['genes'][tgfm_results['middle_gene_indices']], tgfm_results['variants'][tgfm_results['middle_variant_indices']]))
-					liner = window_name + '\t' + 'NA' + '\t' + str(component_iter) + '\t' + ';'.join(element_names) + '\t' + ';'.join(middle_element_names) + '\t' + per_window_abf_output_file + '\t' + per_window_sample_names_output_file + '\t' + per_window_anno_output_file + '\n'
+					liner = window_name + '\t' + 'NA' + '\t' + str(component_iter) + '\t' + ';'.join(element_names) + '\t' + ';'.join(middle_element_names) + '\t' + per_window_abf_output_file + '\t' + per_window_sample_names_output_file + '\t' + ';'.join(tgfm_results['genes']) + '\t' + ';'.join(tgfm_data['gene_valid_susie_comps']) + '\n'
 					lines.append(liner)
 					per_window_abf.append(log_abf)
 					per_window_samples.append(0)
@@ -721,8 +771,12 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 					per_window_samples.append(0)
 					if component_iter in tgfm_results['valid_components']:
 						if component_in_middle_of_window(tgfm_results['alpha_phi'][component_iter, :], tgfm_results['beta_phi'][component_iter, :], middle_gene_indices_dicti, middle_variant_indices_dicti):
-							window_has_component = True	
+							window_has_component = True
+				if len(lines) >4:
+					print('skip')
+					continue
 				if window_has_component:
+					print(len(lines))
 					for liner in lines:
 						t.write(liner)
 		elif model_version.startswith('sampler'):
@@ -781,29 +835,30 @@ tissue_names = np.asarray(tissue_names)
 ###################################################
 # Create component level summary data
 ###################################################
-component_level_abf_summary_file = new_tgfm_stem + '_iterative_prior_pip_level' + '_tgfm_component_level_abf_summary_bs.txt'
-per_window_abf_output_stem = new_tgfm_stem + '_iterative_prior_pip_level_per_window_abf_bs_'
+component_level_abf_summary_file = new_tgfm_stem + '_iterative_prior_pip_level' + '_tgfm_component_level_abf_summary_bs_v2.txt'
+per_window_abf_output_stem = new_tgfm_stem + '_iterative_prior_pip_level_per_window_abf_bs_v2_'
 generate_component_level_abf_summary_data(tgfm_input_summary_file, component_level_abf_summary_file, tissue_names, new_tgfm_stem, tgfm_version, per_window_abf_output_stem, version='v2')
-
-
 
 ###################################################
 # Learn iterative distribution variant-gene-tissue prior (doing non-distribution based prior)
 ###################################################
 n_bootstraps=100
-variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=400, n_bootstraps=n_bootstraps)
+variant_prob_emperical_distr, tissue_component_probs_emperical_distr, tissue_non_zero_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=400, n_bootstraps=n_bootstraps)
 
 
 
 
 # Print to output
-variant_gene_distr_prior_output_file = new_tgfm_stem + '_iterative_variant_gene_prior_pip_level_bootstrapped.txt'
+variant_gene_distr_prior_output_file = new_tgfm_stem + '_iterative_variant_gene_prior_pip_level_bootstrapped_v3.txt'
 t = open(variant_gene_distr_prior_output_file,'w')
 t.write('element_name\tprior\texp_E_ln_prior\tprior_distribution\n')
 t.write('variant\t' + str(np.mean(variant_prob_emperical_distr)) + '\t' + str(np.exp(np.mean(np.log(variant_prob_emperical_distr)))) + '\t' + ';'.join(variant_prob_emperical_distr.astype(str)) + '\n')
 for tiss_iter, tissue_name in enumerate(tissue_names):
-	t.write(tissue_name + '\t' + str(np.mean(tissue_probs_emperical_distr[tiss_iter,:])) + '\t' + str(np.exp(np.mean(np.log(tissue_probs_emperical_distr[tiss_iter,:])))) + '\t' + ';'.join(tissue_probs_emperical_distr[tiss_iter,:].astype(str)) + '\n')
+	t.write(tissue_name + ':component' + '\t' + str(np.mean(tissue_component_probs_emperical_distr[tiss_iter,:])) + '\t' + str(np.exp(np.mean(np.log(tissue_component_probs_emperical_distr[tiss_iter,:])))) + '\t' + ';'.join(tissue_component_probs_emperical_distr[tiss_iter,:].astype(str)) + '\n')
+	t.write(tissue_name + ':nonzero' + '\t' + str(np.mean(tissue_non_zero_probs_emperical_distr[tiss_iter,:])) + '\t' + str(np.exp(np.mean(np.log(tissue_non_zero_probs_emperical_distr[tiss_iter,:])))) + '\t' + ';'.join(tissue_non_zero_probs_emperical_distr[tiss_iter,:].astype(str)) + '\n')
+
 t.close()
+print(variant_gene_distr_prior_output_file)
 
 print(variant_gene_distr_prior_output_file)
 # Delete unneccessary files

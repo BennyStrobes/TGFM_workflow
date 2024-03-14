@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-25:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-27:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=30GB                         # Memory total in MiB (for all cores)
 
@@ -39,7 +39,7 @@ init_method="best"
 est_resid_var="False"
 
 # File summarizing TGFM input
-tgfm_input_summary_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_bootstrapped_tgfm_input_data_summary.txt"
+tgfm_input_summary_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_bootstrapped_tgfm_input_data_w_cafeh_summary.txt"
 # File summarizing simulated gene expression
 sim_gene_expression_summary=${simulated_gene_expression_dir}${simulation_name_string}"_causal_eqtl_effect_summary.txt"
 # File summarizing simulated gene-trait effect sizes
@@ -52,20 +52,17 @@ simulation_name_string=${simulation_name_string}"_"${tgfm_tissues}"_"${gene_type
 
 echo $simulation_name_string
 
+echo $tgfm_input_summary_file
 
-echo "Part 0: Get best tagging gene tissue pairs"
-best_tagging_gt_output_stem=${simulated_best_tagging_gt_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_best_tagging_gt_pairs"
-if false; then
-python3 get_best_tagging_gene_tissue_pairs.py $tgfm_input_summary_file $tgfm_tissues $best_tagging_gt_output_stem $sim_gene_expression_summary $processed_genotype_data_dir $sim_gene_trait_effect_size_file ${eqtl_sample_size}
-fi
+
+
 
 echo "Part 1: Uniform PMCES"
 # Uniform (PMCES)
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
-if false; then
 python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues $gene_type
-fi
+
 
 if false; then
 echo "Part 2: Uniform Sampler"
@@ -80,50 +77,14 @@ echo "Part 3: iterative prior"
 version="pmces"
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
-if false; then
 python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $tgfm_input_summary_file $tgfm_output_stem $version $tgfm_tissues
-fi
+
 
 echo "Part 4: prior - sampler"
 version="pmces"
 ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
-if false; then
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues $gene_type
-fi
-
-echo "Part 3_v2: iterative prior"
-# Iterative prior (PMCES)
-version="pmces"
-ln_pi_method="uniform"
-tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
-if false; then
-python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped_v2.py $tgfm_input_summary_file $tgfm_output_stem $version $tgfm_tissues
-fi
-
-echo "Part 4_v2: prior - sampler"
-version="pmces"
-ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_v3"
-tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
-if false; then
-python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues $gene_type
-fi
-
-
-echo "Part 3: iterative prior w prior"
-# Iterative prior (PMCES)
-version="pmces"
-ln_pi_method="uniform"
-tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
-python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped_w_prior.py $tgfm_input_summary_file $tgfm_output_stem $version $tgfm_tissues
-
-
-echo "Part 4: prior - sampler with prior-prior"
-version="pmces"
-ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_w_prior_pip_level_bootstrapped"
-tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
-python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues $gene_type
-
 
 
 

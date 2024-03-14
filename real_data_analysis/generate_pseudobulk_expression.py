@@ -329,11 +329,6 @@ gene_annotation_file = sys.argv[5]
 genotype_pc_file = processed_genotype_dir + 'inds_v2_sample_filter_ind_snp_pcs.eigenvec'
 individual_to_genotype_pcs = create_mapping_from_individual_to_genotype_pcs(genotype_pc_file)
 
-# Create ouptut file summarizing all created pseudobulk data sets
-psuedobulk_data_set_summary_file = pseudobulk_expression_dir + 'pseudobulk_data_set_summary.txt'
-t = open(psuedobulk_data_set_summary_file,'w')
-t.write('data_set_name\tcluster_method_name\tcluster_name\tpseudobulk_expression_file\tcovariate_file\tnum_donors\tnum_genes\tnum_cells_per_individual_file\n')
-
 # File containing ordered list of individuals that we have genotype and expresssion data for
 genotyped_individuals_file = processed_sc_expression_dir + 'individual_info_european_rna_and_dna.txt'
 # NOW GONNA USE filtered_sample_info_file for this
@@ -369,6 +364,70 @@ ordered_gene_names = adata.raw.var['gene_ids'][protein_coding_gene_indices]
 sc_expr_mat = (adata.raw.X[:,protein_coding_gene_indices]).toarray()
 
 
+# Create bulk pseudobulk data set "bulk_PBMC""
+psuedobulk_data_set_summary_file = pseudobulk_expression_dir + 'bulk_PBMC_data_set_summary.txt'
+t = open(psuedobulk_data_set_summary_file,'w')
+t.write('data_set_name\tcluster_method_name\tcluster_name\tpseudobulk_expression_file\tcovariate_file\tnum_donors\tnum_genes\tnum_cells_per_individual_file\n')
+
+# Get boolean vector of cells representing whether cell is assigned to the current cluster
+cell_assigned_to_cluster_boolean = np.asarray([True]*len(cluster_assignments))
+
+
+# Generate pseudobulk expression
+min_cells_per_indi = 5
+pseudobulk_expression, num_cells_per_individual, cluster_specific_individuals = generate_pseudobulk_expression(adata.obs['ind_cov'][cell_assigned_to_cluster_boolean], sc_expr_mat.shape[1], sc_expr_mat[cell_assigned_to_cluster_boolean,:], ordered_individuals, min_cells_per_indi)
+
+# Filter genes in pseudobulk file
+fraction_samples_expressed_threshold = .8
+pseudobulk_expression, pseudobulk_gene_names = filter_genes_in_pseudobulk_file(pseudobulk_expression, ordered_gene_names, fraction_samples_expressed_threshold)
+
+
+# Normalize gene expression
+# Options for sample level normalization are currently 'none'
+sample_level_normalization = 'edger_cpm'
+# Options for gene level normalization are 'zscore' and 'ign'
+gene_level_normalization = 'zscore'
+normalized_expression = normalize_expression(pseudobulk_expression, sample_level_normalization, gene_level_normalization)
+
+# Run PCA on pseudobulk data
+num_pcs = 10
+expr_pcs, expr_pcs_pve = generate_pca_scores_and_variance_explained(normalized_expression, num_pcs)
+
+# Create full covariates
+full_covariate_mat = generate_full_covariate_mat(cluster_specific_individuals, individual_to_covariate_vector, covariate_header, expr_pcs)
+	
+# Create expr mat with headers and column names
+temp_gene_names = np.hstack((['gene_id'], np.asarray(pseudobulk_gene_names)))
+normalized_expression_annotated = np.transpose(np.vstack((temp_gene_names, np.hstack((np.transpose(np.asmatrix(cluster_specific_individuals)),normalized_expression.astype(str))))))
+
+#name of data set
+cluster_method_name = 'cell_types'
+cluster_assignment = 'PBMC'
+data_set_name = cluster_method_name + '_' + cluster_assignment
+
+# Save expression mat to output file
+expression_output_file = pseudobulk_expression_dir + data_set_name + '_pseudobulk_expression.txt'
+np.savetxt(expression_output_file, normalized_expression_annotated, fmt="%s", delimiter='\t')
+
+
+# Save covariate mat to output file
+covariate_output_file = pseudobulk_expression_dir + data_set_name + '_pseudobulk_covariates.txt'
+np.savetxt(covariate_output_file, full_covariate_mat, fmt="%s", delimiter='\t')
+
+# Make number of cells per individual output file
+num_cells_output_file = pseudobulk_expression_dir + data_set_name + '_num_cells_per_individual.txt'
+make_num_cells_per_individual_output_file(num_cells_per_individual, cluster_specific_individuals, num_cells_output_file)
+
+t.write(data_set_name + '\t' + cluster_method_name + '\t' + cluster_assignment + '\t' + expression_output_file + '\t' + covariate_output_file + '\t')
+t.write(str(len(cluster_specific_individuals)) + '\t' + str(pseudobulk_gene_names.shape[0]) + '\t' + num_cells_output_file + '\n')
+
+t.close()
+
+'''
+# Create ouptut file summarizing all created pseudobulk data sets
+psuedobulk_data_set_summary_file = pseudobulk_expression_dir + 'pseudobulk_data_set_summary.txt'
+t = open(psuedobulk_data_set_summary_file,'w')
+t.write('data_set_name\tcluster_method_name\tcluster_name\tpseudobulk_expression_file\tcovariate_file\tnum_donors\tnum_genes\tnum_cells_per_individual_file\n')
 
 # Name of cluster method
 cluster_method_name = 'cell_types'
@@ -452,7 +511,6 @@ for line in f:
 	t.write(line + '\n')
 f.close()
 t.close()
-
-
+'''
 
 

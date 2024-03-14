@@ -612,10 +612,12 @@ def update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_s
 		tissue_posterior_sum[tiss_iter, :] = tissue_posterior_sum[tiss_iter, :] + (bs_scaling_factors*np.sum(expected_pips[indices,:],axis=0))
 		tissue_counts[tiss_iter, :] = tissue_counts[tiss_iter, :] + (bs_scaling_factors*len(indices))
 
-
-	variant_prob_distr = variant_posterior_sum/variant_counts
+	scale = .01
+	prior_a = 1.0*scale
+	prior_b = 500*scale
+	variant_prob_distr = (variant_posterior_sum+prior_a)/(variant_counts+prior_b)
 	tissue_counts[tissue_counts == 0.0] = .1
-	tissue_probs_distr = tissue_posterior_sum/tissue_counts
+	tissue_probs_distr = (tissue_posterior_sum+prior_a)/(tissue_counts+prior_b)
 
 	print(tissue_probs_distr)
 
@@ -781,8 +783,8 @@ tissue_names = np.asarray(tissue_names)
 ###################################################
 # Create component level summary data
 ###################################################
-component_level_abf_summary_file = new_tgfm_stem + '_iterative_prior_pip_level' + '_tgfm_component_level_abf_summary_bs.txt'
-per_window_abf_output_stem = new_tgfm_stem + '_iterative_prior_pip_level_per_window_abf_bs_'
+component_level_abf_summary_file = new_tgfm_stem + '_iterative_prior_w_prior_pip_level' + '_tgfm_component_level_abf_summary_bs.txt'
+per_window_abf_output_stem = new_tgfm_stem + '_iterative_prior_w_prior_pip_level_per_window_abf_bs_'
 generate_component_level_abf_summary_data(tgfm_input_summary_file, component_level_abf_summary_file, tissue_names, new_tgfm_stem, tgfm_version, per_window_abf_output_stem, version='v2')
 
 
@@ -797,7 +799,7 @@ variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_var
 
 
 # Print to output
-variant_gene_distr_prior_output_file = new_tgfm_stem + '_iterative_variant_gene_prior_pip_level_bootstrapped.txt'
+variant_gene_distr_prior_output_file = new_tgfm_stem + '_iterative_variant_gene_prior_w_prior_pip_level_bootstrapped.txt'
 t = open(variant_gene_distr_prior_output_file,'w')
 t.write('element_name\tprior\texp_E_ln_prior\tprior_distribution\n')
 t.write('variant\t' + str(np.mean(variant_prob_emperical_distr)) + '\t' + str(np.exp(np.mean(np.log(variant_prob_emperical_distr)))) + '\t' + ';'.join(variant_prob_emperical_distr.astype(str)) + '\n')
@@ -805,8 +807,27 @@ for tiss_iter, tissue_name in enumerate(tissue_names):
 	t.write(tissue_name + '\t' + str(np.mean(tissue_probs_emperical_distr[tiss_iter,:])) + '\t' + str(np.exp(np.mean(np.log(tissue_probs_emperical_distr[tiss_iter,:])))) + '\t' + ';'.join(tissue_probs_emperical_distr[tiss_iter,:].astype(str)) + '\n')
 t.close()
 
+
 print(variant_gene_distr_prior_output_file)
 # Delete unneccessary files
+already_deleted = {}
+f = open(component_level_abf_summary_file)
+head_count = 0
+for line in f:
+	line = line.rstrip()
+	data = line.split('\t')
+	if head_count == 0:
+		head_count = head_count + 1
+		continue
+	if data[5] not in already_deleted:
+		os.system('rm ' + data[5])
+		already_deleted[data[5]] = 1
+	if data[6] not in already_deleted:
+		os.system('rm ' + data[6])
+		already_deleted[data[6]] = 1
+f.close()
+
 os.system('rm ' + component_level_abf_summary_file)
-os.system('rm ' + per_window_abf_output_stem + '*')
+#os.system('rm ' + per_window_abf_output_stem + '*')
+
 
