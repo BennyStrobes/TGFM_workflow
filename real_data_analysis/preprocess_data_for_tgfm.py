@@ -1107,8 +1107,6 @@ used_chrom_arr = get_chromosome_names_used_in_this_analysis(ukbb_windows_parr)
 print(used_chrom_arr)
 #short_variant_name_to_annotation_vec = create_mapping_from_short_variant_name_to_annotation_vec(used_chrom_arr, annotation_dir)
 
-
-
 # Open outputful summarizing TGFM input (one line for each window)
 tgfm_input_data_summary_file = preprocessed_tgfm_data_dir + 'tgfm_input_data_summary_' + str(job_number) + '_' + str(num_jobs) + '.txt'
 t = open(tgfm_input_data_summary_file,'w')

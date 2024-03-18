@@ -10,8 +10,7 @@ def get_number_of_genes_with_a_gene_model_in_gtex(tissue_name, gtex_gene_models_
 	n_genes = aa.shape[0] - 1
 	return n_genes
 
-def get_mapping_from_ct_to_n_cells_per_individual(filer):
-	mapping = {}
+def get_mapping_from_ct_to_n_cells_per_individual(filer, mapping):
 	head_count = 0
 	f = open(filer)
 	for line in f:
@@ -40,7 +39,11 @@ sc_pbmc_gene_models_dir = sys.argv[5]
 sc_pseudobulk_expression_dir = sys.argv[6]
 
 # Get number of cells per individual from the pseudobulk data
-ct_to_n_cells_per_indi = get_mapping_from_ct_to_n_cells_per_individual(sc_pseudobulk_expression_dir + 'pseudobulk_data_set_summary.txt')
+ct_to_n_cells_per_indi = {}
+ct_to_n_cells_per_indi = get_mapping_from_ct_to_n_cells_per_individual(sc_pseudobulk_expression_dir + 'pseudobulk_data_set_summary.txt', ct_to_n_cells_per_indi)
+ct_to_n_cells_per_indi = get_mapping_from_ct_to_n_cells_per_individual(sc_pseudobulk_expression_dir + 'bulk_PBMC_data_set_summary.txt', ct_to_n_cells_per_indi)
+
+
 
 t = open(merged_tissue_cell_type_file,'w')
 t.write('context\tcontext_sample_size\tdata_set\tn_gene_model_genes\tavg_n_cells_per_individual\n')

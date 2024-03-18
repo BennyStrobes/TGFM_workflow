@@ -21,6 +21,8 @@ liftover_directory="/n/groups/price/ben/tools/liftOver_x86/"
 # File containing gtex tissues to do analysis on and their sample size
 # Individual names: /n/groups/price/tiffany/subpheno/AllGTExTissues_restore/Downsampled_Ind
 gtex_pseudotissue_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_info.txt"
+gtex_pseudotissue_whole_blood_subsampled_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_whole_blood_subsampled_info.txt"
+
 # File containing gtex pseudotissues and their assigned tissue category
 gtex_pseudotissue_category_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_categories.txt"
 # File containing gtex tissue info
@@ -160,6 +162,8 @@ gtex_susie_gene_models_dir=$perm_output_root"gtex_susie_gene_models/"
 # Directory containing preprocessed TGFM data
 preprocessed_tgfm_data_dir=$output_root"preprocessed_tgfm_data/"
 
+# Directory containing preprocessed TGFM data
+preprocessed_tgfm_data_whole_blood_subsampled_dir=$output_root"preprocessed_tgfm_data_whole_blood_subsampled/"
 
 # Directory containing TGFM results
 tgfm_results_dir=$output_root"tgfm_results/"
@@ -212,11 +216,17 @@ preprocessed_sc_pb_tgfm_data_dir=$output_root"preprocessed_sc_pb_tgfm_data/"
 # Directory containing TGFM results
 sc_tgfm_results_dir=$output_root"sc_tgfm_results/"
 
+# Directory containing TGFM results
+sc_pb_tgfm_results_dir=$output_root"sc_pb_tgfm_results/"
+
 # Directory containing organized TGFM results
 sc_tgfm_organized_results_dir=$perm_output_root"sc_tgfm_organized_results/"
 
 # Directory containing TGFM iterative prior results
 iterative_sc_tgfm_prior_results_dir=$perm_output_root"iterative_sc_tgfm_prior/"
+
+# Directory containing TGFM iterative prior results
+iterative_sc_pb_tgfm_prior_results_dir=$perm_output_root"iterative_sc_pb_tgfm_prior/"
 
 # Visualize specific TGFM examples dir
 visualize_specific_tgfm_examples_dir=$perm_output_root"visualize_specific_examples/"
@@ -332,6 +342,10 @@ sed 1d $gtex_pseudotissue_file | while read pseudotissue_name sample_size sample
 	sbatch organize_susie_gene_model_results_in_a_single_pseudotissue.sh $pseudotissue_name $gtex_pseudotissue_gene_model_input_dir $gtex_susie_gene_models_dir
 done
 fi
+pseudotissue_name="Whole_Blood_subsampled"
+if false; then
+sbatch organize_susie_gene_model_results_in_a_single_pseudotissue.sh $pseudotissue_name $gtex_pseudotissue_gene_model_input_dir $gtex_susie_gene_models_dir
+fi
 
 
 
@@ -375,6 +389,23 @@ if false; then
 sh organize_processed_tgfm_input_data.sh $num_jobs $gene_type $preprocessed_tgfm_data_dir
 fi
 
+# Number of parallel jobs
+num_jobs="40"
+#gene_type="cis_heritable_gene"
+gene_type="component_gene"
+# FIle summarizing ukkbb windows
+ukkbb_window_summary_file=$ukbb_preprocessed_for_genome_wide_susie_dir"genome_wide_susie_windows_and_processed_data.txt"
+if false; then
+for job_number in $(seq 0 $(($num_jobs-1))); do 
+	sbatch preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $gtex_pseudotissue_whole_blood_subsampled_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_whole_blood_subsampled_dir $job_number $num_jobs $gene_type
+done
+fi
+gene_type="component_gene"
+# Organize preprocessed TGFM results across parallel jobs
+if false; then
+sh organize_processed_tgfm_input_data.sh $num_jobs $gene_type $preprocessed_tgfm_data_whole_blood_subsampled_dir
+fi
+
 
 
 
@@ -409,6 +440,19 @@ sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_rea
 done
 fi
 
+
+gene_type="component_gene"
+num_jobs="8"
+ignore_tissues="None"
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" | while read trait_name study_file sample_size h2; do
+	for job_number in $(seq 0 $(($num_jobs-1))); do
+		tgfm_input_summary_file=${preprocessed_tgfm_data_whole_blood_subsampled_dir}${gene_type}"_tgfm_input_data_summary.txt"
+		tgfm_output_stem=${tgfm_results_dir}"tgfm_results_wb_subsamp_"${trait_name}"_"${gene_type}
+		sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_whole_blood_subsampled_file $job_number $num_jobs $ignore_tissues
+	done
+done
+fi
 
 
 
@@ -836,33 +880,63 @@ done
 fi
 
 # Organize preprocessed TGFM results across parallel jobs
+# SC CELL TYPES
 if false; then
 sh organize_processed_tgfm_input_data.sh $num_jobs $gene_type $preprocessed_sc_tgfm_data_dir
 fi
+#PBMC
+if false; then
+sh organize_processed_tgfm_input_data.sh $num_jobs $gene_type $preprocessed_sc_pb_tgfm_data_dir
+fi
+
 
 # Merge gtex tissue names and cell types
+# SC CELL TYPES
 merged_tissue_cell_type_file=${sc_pseudobulk_expression_dir}"merged_gtex_tissue_single_cell_cell_type_summary.txt"
 if false; then
 python3 merge_gtex_tissue_names_and_cell_type_names.py $gtex_pseudotissue_file $pb_cell_type_file $merged_tissue_cell_type_file $gtex_susie_gene_models_dir $sc_pbmc_susie_gene_models_dir $sc_pseudobulk_expression_dir
 fi
-
-
+#PBMC
+merged_tissue_PBMC_file=${sc_pseudobulk_expression_dir}"merged_gtex_tissue_single_cell_PBMC_summary.txt"
+if false; then
+python3 merge_gtex_tissue_names_and_cell_type_names.py $gtex_pseudotissue_file $bulk_pbmc_file $merged_tissue_PBMC_file $gtex_susie_gene_models_dir $sc_pbmc_susie_gene_models_dir $sc_pseudobulk_expression_dir
+fi
 
 ########################################
 # Run TGFM
 ########################################
+# SC CELL TYPES
 gene_type="component_gene"
+ignore_tissues="None"
 num_jobs="8"
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
 	for job_number in $(seq 0 $(($num_jobs-1))); do
 		tgfm_input_summary_file=${preprocessed_sc_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 		tgfm_output_stem=${sc_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-		sh run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs
+		sh run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_cell_type_file $job_number $num_jobs $ignore_tissues
 	done
 done
 fi
 
+
+
+echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt"
+#PBMC
+ignore_tissues="Whole_Blood"
+job_number="0"
+num_jobs="8"
+gene_type="component_gene"
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" | while read trait_name study_file sample_size h2; do
+	for job_number in $(seq 0 $(($num_jobs-1))); do
+		echo $trait_name
+		tgfm_input_summary_file=${preprocessed_sc_pb_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+		tgfm_output_stem=${sc_pb_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+		sh run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_PBMC_file $job_number $num_jobs $ignore_tissues
+	done
+done
+fi
 
 
 ########################################
@@ -875,6 +949,22 @@ sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_rea
 	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $merged_tissue_cell_type_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_sc_tgfm_prior_results_dir
 done
 fi
+
+
+ignore_tissues="Whole_Blood"
+gene_type="component_gene"
+tgfm_input_summary_file=${preprocessed_sc_pb_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+# Need output
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" | while read trait_name study_file sample_size h2; do
+	tgfm_output_stem=${sc_pb_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $merged_tissue_PBMC_file ${preprocessed_sc_pb_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_sc_pb_tgfm_prior_results_dir $ignore_tissues
+done
+fi
+
+
+
+
 
 
 #################################
