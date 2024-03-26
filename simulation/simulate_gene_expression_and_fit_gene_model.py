@@ -14,7 +14,6 @@ ro.conversion.py2ri = numpy2ri
 numpy2ri.activate()
 from rpy2.robjects.packages import importr
 susieR_pkg = importr('susieR')
-from cafeh.cafeh_genotype import fit_cafeh_genotype
 
 
 def generate_tissue_covariance_structure_across_causal_effects(ge_h2):
@@ -528,6 +527,72 @@ def get_max_best_to_worst_pi_ratio_across_components(alpha_mat):
 			best_to_worst_ratio = kk_ratio
 	return best_to_worst_ratio
 
+def extract_h2_from_greml_hsq_file(hsq_file):
+	f = open(hsq_file)
+	for line in f:
+		line = line.rstrip()
+		data = line.split()
+		if line.startswith('V(G)/Vp'):
+			hsq = float(data[1])
+			hsq_se = float(data[2])
+		if line.startswith('Pval'):
+			pval = float(data[1])
+	f.close()
+	return hsq, hsq_se, pval
+
+def run_greml_no_covariate_h2_analysis_and_FUSION(chrom_num, gene_tss, expr_vec, genotype_stem, cis_window, expr_ind_ids, tmp_output_stem, cis_rsids, genotype_mat):
+	gcta_path="/n/groups/price/tiffany/subpheno/fusion_twas-master/gcta_nr_robust"
+	# Create gene pheno file
+	gene_pheno_file = tmp_output_stem + 'gene_pheno'
+	n_samples = len(expr_vec)
+	#gene_pheno_data = np.hstack((np.zeros((n_samples,1)).astype(int).astype(str), expr_ind_ids.reshape(n_samples,1), expr_vec.astype(str).reshape(n_samples,1)))
+	gene_pheno_data = np.hstack((expr_ind_ids.reshape(n_samples,1), expr_ind_ids.reshape(n_samples,1), expr_vec.astype(str).reshape(n_samples,1)))
+	np.savetxt(gene_pheno_file, gene_pheno_data, fmt="%s", delimiter='\t')
+
+	# Run PLINK to get plink file specifically consisting of cis snps
+	start_pos = gene_tss - int(cis_window)
+	end_pos = gene_tss + int(cis_window)
+	plink_window_stem = tmp_output_stem + 'window_plink'
+	command_string = 'plink --bfile ' + genotype_stem + ' --keep-allele-order --pheno ' + gene_pheno_file + ' --threads 1 --make-bed --out ' + plink_window_stem + ' --keep ' + gene_pheno_file + ' --chr ' + chrom_num + ' --from-bp ' + str(start_pos) + ' --to-bp ' + str(end_pos) +' --allow-no-sex'
+	os.system(command_string)
+
+	n_cis_snps = np.loadtxt(plink_window_stem + '.bim',dtype=str,delimiter='\t').shape[0]
+	if n_cis_snps != len(cis_rsids):
+		print('assumptioner ororo')
+
+	# MAKE GRM WITH PLINK
+	command_string = 'plink --allow-no-sex --bfile ' + plink_window_stem + ' --make-grm-bin --threads 1 --out ' + plink_window_stem
+	os.system(command_string)
+
+	# estimate heritability with GREML
+	greml_h2_res_file = tmp_output_stem + 'h2_res' 
+	#arg = paste( gcta_path ," --grm ",temp_tissue_specific_stem," --pheno ",raw.pheno.file," --qcovar ",covariate_file," --out ",temp_tissue_specific_stem," --reml --reml-no-constrain --reml-lrt 1",sep='')
+	command_string = gcta_path + ' --grm ' + plink_window_stem + ' --pheno ' + gene_pheno_file + ' --out ' + greml_h2_res_file + ' --reml --reml-no-constrain --reml-lrt 1'
+	os.system(command_string)
+	# Now extract heritabilities
+	hsq, hsq_se, hsq_p = extract_h2_from_greml_hsq_file(greml_h2_res_file + '.hsq')
+	causal_effects = np.zeros(len(cis_rsids))
+	if hsq > 0 and hsq_p < .05:
+		command_string = 'plink --allow-no-sex --bfile ' + plink_window_stem + ' --keep-allele-order --threads 1 --lasso ' + str(hsq) + ' --out ' + plink_window_stem + 'lasso'
+		os.system(command_string)
+		f = open(plink_window_stem + 'lasso.lasso')
+		mapping = {}
+		head_count = 0
+		for line in f:
+			line = line.rstrip()
+			data = line.split('\t')
+			if head_count == 0:
+				head_count = head_count + 1
+				continue
+			mapping[data[1]] = -float(data[3])
+		f.close()
+		for ii,snp_id in enumerate(cis_rsids):
+			if snp_id in mapping:
+				causal_effects[ii] = mapping[snp_id]
+
+	# Clear temporary files from directory
+	#os.system('rm ' + tmp_output_stem + '*')
+	return hsq, hsq_se, hsq_p, causal_effects
 
 def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num):
 	# Load in genotype data across chromosome for eQTL data set
@@ -549,6 +614,7 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 	# Mean impute and standardize genotype
 	G_obj_geno_stand = mean_impute_and_standardize_genotype(G_obj_geno)
 	# Now loop through genes
+	tmp_fusion_output_stem = simulated_learned_gene_models_dir + simulation_name_string + '_tmp_fusion_h2_'
 	f = open(simulated_causal_eqtl_effect_summary_file)
 	head_count = 0
 	counter = 0
@@ -656,9 +722,18 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 			marginal_beta_cross_tissues.append(marginal_effects)
 			marginal_beta_var_cross_tissues.append(np.square(marginal_effects_se))
 
-		# Fit cafeh
-		fit_args = dict(update_variance=False)
-		cafehg = fit_cafeh_genotype(np.transpose(gene_geno), np.asarray(xt_expression), K=20, fit_args=fit_args)
+			try:
+				hsq, hsq_se, hsq_p, fusion_causal_effects = run_greml_no_covariate_h2_analysis_and_FUSION(str(chrom_num), gene_tss, sim_stand_expr, genotype_stem, 100000, G_obj_sample_names, tmp_fusion_output_stem, cis_rsids, gene_geno)
+			except:
+				fusion_causal_effects = np.zeros(len(cis_rsids))
+				hsq = 'nan'
+				hsq_se = 'nan'
+				hsq_p = 'nan'
+			#greml_h2_cross_tissues.append(str(hsq))
+			#greml_h2_se_cross_tissues.append(str(hsq_se))
+			fusion_pmces_cross_tissues.append(fusion_causal_effects)
+
+
 
 		# Convert pmces to numpy array
 		pmces_cross_tissues = np.asarray(pmces_cross_tissues)
@@ -685,19 +760,6 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 		marginal_beta_var_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_marginal_beta_var.npy'
 		np.save(marginal_beta_var_output_file, marginal_beta_var_cross_tissues)
 
-		# Save Cafeh pi output
-		cafeh_pi_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_pi.npy'
-		np.save(cafeh_pi_file, cafehg.pi)
-
-		# Save Cafeh p_active output
-		cafeh_p_active_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_p_active.npy'
-		np.save(cafeh_p_active_file, cafehg.active)
-
-		cafeh_mu_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_mu.npy'
-		np.save(cafeh_mu_file, cafehg.weight_means)
-
-		cafeh_mu_var_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_cafeh_mu_var.npy'
-		np.save(cafeh_mu_var_file, cafehg.weight_vars)
 
 	f.close()
 	return

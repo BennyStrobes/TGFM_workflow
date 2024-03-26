@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-25:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-45:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=30GB                         # Memory total in MiB (for all cores)
 
@@ -38,6 +38,7 @@ est_resid_var="False"
 
 # File summarizing TGFM input
 tgfm_input_summary_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_susie_bootstrapped_tgfm_input_data_summary.txt"
+tgfm_lasso_input_summary_file=${simulated_tgfm_input_data_dir}${simulation_name_string}"_susie_lasso_tgfm_input_data_summary.txt"
 # File summarizing simulated gene expression
 sim_gene_expression_summary=${simulated_gene_expression_dir}${simulation_name_string}"_causal_eqtl_effect_summary.txt"
 # File summarizing simulated gene-trait effect sizes
@@ -51,11 +52,7 @@ simulation_name_string=${simulation_name_string}"_"${tgfm_tissues}"_"${gene_type
 echo $simulation_name_string
 
 
-echo "Part 0: Get best tagging gene tissue pairs"
-best_tagging_gt_output_stem=${simulated_best_tagging_gt_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_best_tagging_gt_pairs"
-if false; then
-python3 get_best_tagging_gene_tissue_pairs.py $tgfm_input_summary_file $tgfm_tissues $best_tagging_gt_output_stem $sim_gene_expression_summary $processed_genotype_data_dir $sim_gene_trait_effect_size_file ${eqtl_sample_size}
-fi
+
 
 echo "Part 1: Uniform PMCES"
 # Uniform (PMCES)
@@ -64,13 +61,19 @@ tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_susie_p
 python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues $gene_type
 
 
+echo "Part 1: Uniform LASSO"
+# Uniform (PMCES)
+ln_pi_method="uniform"
+tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_lasso_"${ln_pi_method}
+python3 run_tgfm_pmces.py $tgfm_lasso_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues "lasso"
+
+
 echo "Part 2: Uniform Sampler"
 # Uniform (sampler)
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_susie_sampler_"${ln_pi_method}
-if false; then
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues $gene_type
-fi
+
 
 
 echo "Part 3: iterative prior"

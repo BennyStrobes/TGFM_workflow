@@ -102,6 +102,15 @@ simulated_focus_input_dir=$temp_output_root"simulated_focus_input/"
 # Directory containing simulated focus results dir
 simulated_focus_results_dir=$temp_output_root"simulated_focus_results/"
 
+# Directory containing simulated causal-twas input data
+simulated_causal_twas_input_data_dir=$temp_output_root"simulated_causal_twas_input/"
+
+# Directory containing simulated causal-twas gene models data
+simulated_causal_twas_gene_models_dir=$perm_output_root"simulated_causal_twas_gene_models/"
+
+# Directory containing simulated causal-twas results
+simulated_causal_twas_results_dir=$temp_output_root"simulated_causal_twas_results/"
+
 # Directory containing visualizations of simulated results
 visualize_simulated_results_dir=$perm_output_root"visualize_simulated_results/"
 visualize_simulated_results_debug_dir=$perm_output_root"visualize_simulated_results_debug/"
@@ -161,7 +170,6 @@ fi
 
 
 
-
 ############################
 # Main simulation parameters
 ############################
@@ -194,6 +202,7 @@ gene_trait_architecture="2_caus_t"
 eqtl_architecture="random_Neqtl"
 eqtl_architecture="selection_1"
 eqtl_architecture="selection_125"
+eqtl_architecture="default"
 
 
 
@@ -208,6 +217,9 @@ for simulation_number in $(seq 1 100); do
 	sbatch run_single_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture $eqtl_architecture
 done
 fi
+
+
+
 
 if false; then
 for simulation_number in $(seq 101 200); do 
@@ -372,10 +384,6 @@ for simulation_number in $(seq 101 200); do
 	sbatch run_single_tgfm_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $eqtl_sample_size $tgfm_tissues $simulated_best_tagging_gt_dir $gene_type
 done
 fi
-
-
-
-
 
 
 
@@ -549,10 +557,11 @@ for simulation_number in $(seq 1 100); do
 	sbatch run_single_simulation_shell_realistic_qtl_ss.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture $eqtl_architecture
 done
 fi
-simulation_number="101"
-simulation_name_string="simulation_realistic_qtl_ss_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
 if false; then
+for simulation_number in $(seq 101 200); do 
+simulation_name_string="simulation_realistic_qtl_ss_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
 sbatch run_single_simulation_shell_realistic_qtl_ss.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture $eqtl_architecture
+done
 fi
 
 ############################
@@ -568,7 +577,13 @@ for simulation_number in $(seq 1 100); do
 done
 fi
 
-
+if false; then
+for simulation_number in $(seq 101 200); do 
+	gene_type="component_gene"
+	simulation_name_string="simulation_realistic_qtl_ss_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
+	sbatch run_single_tgfm_simulation_shell_realistic_qtl_ss.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $tgfm_tissues $simulated_best_tagging_gt_dir $gene_type
+done
+fi
 
 
 
@@ -708,9 +723,6 @@ for simulation_number in $(seq 1 50); do
 done
 fi
 
-
-
-
 ############################
 # Run FOCUS simulation
 ############################
@@ -730,14 +742,36 @@ for simulation_number in $(seq 21 100); do
 done
 fi
 
+############################
+# Run causal-TWAS simulation
+############################
+gene_trait_architecture="1_caus_t"
+eqtl_architecture="default"
+eqtl_sample_size="realistic_qtl_ss"
+simulation_number="101"
+simulation_name_string="simulation_new_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
+if false; then
+sbatch run_single_causal_twas_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_causal_twas_input_data_dir $simulated_causal_twas_gene_models_dir $simulated_causal_twas_results_dir $eqtl_sample_size $processed_ctwas_genotype_data_dir
+fi
+
+if false; then
+for simulation_number in $(seq 103 200); do 
+	simulation_name_string="simulation_new_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
+	sbatch run_single_causal_twas_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_causal_twas_input_data_dir $simulated_causal_twas_gene_models_dir $simulated_causal_twas_results_dir $eqtl_sample_size $processed_ctwas_genotype_data_dir
+done
+fi
+
 
 
 # Organize simulation results across parallel simulations
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}
 global_simulation_name_string="chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}
 if false; then
-sh organize_simulation_results_across_parallel_simulations.sh $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $simulated_gene_position_file $processed_genotype_data_dir $simulated_focus_results_dir $simulated_coloc_results_dir $simulated_best_tagging_gt_dir
+sh organize_simulation_results_across_parallel_simulations.sh $chrom_num $cis_window $n_gwas_individuals $global_simulation_name_string $total_heritability $fraction_expression_mediated_heritability $simulated_organized_results_dir $simulated_tgfm_results_dir $simulated_trait_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $simulated_gene_position_file $processed_genotype_data_dir $simulated_focus_results_dir $simulated_coloc_results_dir $simulated_causal_twas_results_dir
 fi
+
+
+
 
 ############################
 # Visualize single simulation

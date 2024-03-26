@@ -1710,6 +1710,167 @@ make_gene_power_plot_at_realistic_qtl_sample_sizes <- function(simulated_organiz
 }
 
 
+make_gene_power_plot_at_realistic_qtl_sample_sizes_including_ctwas_comparison <- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) {
+	# Initialize vectors for summary df
+	method_vec <- c()
+	eQTL_sample_size_vec <- c()
+	power_vec <- c()
+	power_lb_vec <- c()
+	power_ub_vec <- c()
+
+
+
+	gene_type <- "component_gene"
+	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_realistic_eqtl_ss_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_", gene_type,"_tgfm_pip_", pip_threshold, "_power.txt")
+	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
+	full_tmp_df = tgfm_power_df[as.character(tgfm_power_df$genetic_element_class) == "gene",]
+
+	method_name <- "TGFM (no sampling, uniform prior)"
+	tmp_df <- full_tmp_df[as.character(full_tmp_df$ln_pi_method)=="uniform",]
+	tmp_df <- tmp_df[as.character(tmp_df$twas_method)=="susie_pmces",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+
+	method_name <- "TGFM (uniform prior)"
+	tmp_df <- full_tmp_df[as.character(full_tmp_df$ln_pi_method)=="uniform",]
+	tmp_df <- tmp_df[as.character(tmp_df$twas_method)=="susie_pmces",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+
+
+	method_name <- "TGFM"
+	tmp_df <- full_tmp_df[as.character(full_tmp_df$ln_pi_method)=="pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped",]
+	tmp_df <- tmp_df[as.character(tmp_df$twas_method)=="susie_sampler",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+
+	method_name <- "cTWAS-TG"
+	ctwas_power_file <- paste0(simulated_organized_results_dir, "organized_realistic_eqtl_ss_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_component_gene_ctwas_tg_pip_", pip_threshold, "_power.txt")
+	ctwas_power_df <- read.table(ctwas_power_file, header=TRUE)
+	tmp_df = ctwas_power_df[as.character(ctwas_power_df$genetic_element_class) == "gene",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+
+
+	# Convert into clean data frame
+	# Convert into clean data frame
+
+	df <- data.frame(method=factor(as.character(method_vec), levels=c("TGFM (no sampling, uniform prior)", "TGFM (uniform prior)", "TGFM", "cTWAS-TG")), eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c("low_eqtl_ss", "high_eqtl_ss", "Aggregate")), power=power_vec, power_ub=power_ub_vec, power_lb=power_lb_vec)
+
+
+	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=power, fill=method)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="", y="Power", fill="", title=paste0("PIP >= ", pip_threshold)) +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) + 
+  		theme(legend.position="top")
+  	return(p)
+}
+
+
+
+make_gene_fdr_plot_at_realistic_qtl_sample_sizes_including_ctwas_comparison <- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) {
+	# Initialize vectors for summary df
+	method_vec <- c()
+	eQTL_sample_size_vec <- c()
+	coverage_vec <- c()
+	coverage_lb_vec <- c()
+	coverage_ub_vec <- c()
+	expected_coverage_vec <- c()
+
+
+
+	gene_type <- "component_gene"
+	tgfm_calibration_file <- paste0(simulated_organized_results_dir, "organized_realistic_eqtl_ss_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_", gene_type,"_tgfm_pip_", pip_threshold, "_calibration.txt")
+	tgfm_calibration_df <- read.table(tgfm_calibration_file, header=TRUE)
+	full_tmp_df = tgfm_calibration_df[as.character(tgfm_calibration_df$genetic_element_class) == "gene",]
+
+	method_name <- "TGFM (no sampling, uniform prior)"
+	tmp_df <- full_tmp_df[as.character(full_tmp_df$ln_pi_method)=="uniform",]
+	tmp_df <- tmp_df[as.character(tmp_df$twas_method)=="susie_pmces",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+
+	method_name <- "TGFM (uniform prior)"
+	tmp_df <- full_tmp_df[as.character(full_tmp_df$ln_pi_method)=="uniform",]
+	tmp_df <- tmp_df[as.character(tmp_df$twas_method)=="susie_sampler",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+
+
+	method_name <- "TGFM"
+	tmp_df <- full_tmp_df[as.character(full_tmp_df$ln_pi_method)=="pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped",]
+	tmp_df <- tmp_df[as.character(tmp_df$twas_method)=="susie_sampler",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+
+	method_name <- "cTWAS-TG"
+	ctwas_calibration_file <- paste0(simulated_organized_results_dir, "organized_realistic_eqtl_ss_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_component_gene_ctwas_tg_pip_", pip_threshold, "_calibration.txt")
+	ctwas_calibration_df <- read.table(ctwas_calibration_file, header=TRUE)
+	tmp_df = ctwas_calibration_df[as.character(ctwas_calibration_df$genetic_element_class) == "gene",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep(method_name, n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+
+
+	# Convert into clean data frame
+	df <- data.frame(method=factor(as.character(method_vec), levels=c("TGFM (no sampling, uniform prior)", "TGFM (uniform prior)", "TGFM", "cTWAS-TG")), eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c("low_eqtl_ss", "high_eqtl_ss", "Aggregate")), precision=coverage_vec, precision_ub=coverage_ub_vec, precision_lb=coverage_lb_vec, expected_fdr=1.0-expected_coverage_vec)
+
+	df$fdr = 1.0 - df$precision
+	df$fdr_lb = 1.0 - df$precision_ub
+	df$fdr_ub = 1.0 - df$precision_lb
+
+
+
+	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=fdr, fill=method)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.3, position=position_dodge(.9), size=.5)  +
+  		geom_errorbar(aes(ymin=expected_fdr, ymax=expected_fdr), width=.8, position=position_dodge(.9), linetype='dotted')  +
+  		figure_theme() +
+  		labs(x="", y="FDR", fill="", title=paste0("PIP >= ", pip_threshold)) +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) +
+  		geom_hline(yintercept=1.0 - as.numeric(pip_threshold), linetype=2) +
+  		theme(legend.position="top")
+  	return(p)
+}
+
+
 make_gene_fdr_plot_at_realistic_qtl_sample_sizes <- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) {
 	# Initialize vectors for summary df
 	method_vec <- c()
@@ -3069,6 +3230,70 @@ make_fdr_power_line_plot_at_realistic_eqtl_ss <- function(simulated_organized_re
 
 }
 
+make_fdr_power_line_plot_at_realistic_eqtl_ss_including_ctwas_comparison <- function(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss, limit_fdr_range=FALSE) {
+	# Generate global vectors
+	fdr_vec <- c()
+	power_vec <- c()
+	pip_vec <- c()
+	method_vec <- c()
+
+	# Component_gene input_file
+	input_file <- paste0(simulated_organized_results_dir, "organized_realistic_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_component_gene_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	print(head(df))
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("TGFM", length(df$power)))
+
+
+	# Component_gene input_file
+	input_file <- paste0(simulated_organized_results_dir, "organized_realistic_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_component_gene_susie_pmces_uniform_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("TGFM (no prior, no sampling)", length(df$power)))
+
+	# Component_gene input_file
+	input_file <- paste0(simulated_organized_results_dir, "organized_realistic_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_component_gene_susie_sampler_uniform_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("TGFM (no prior)", length(df$power)))
+
+	# Component_gene input_file
+	input_file <- paste0(simulated_organized_results_dir, "organized_realistic_simulation_", global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default_ctwas_tg_lasso_ctwas_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("cTWAS-TG", length(df$power)))
+
+
+
+	df <- data.frame(power=power_vec,fdr=fdr_vec, pip=pip_vec, method=factor(method_vec, levels=c("TGFM (no prior, no sampling)", "TGFM (no prior)", "TGFM", "cTWAS-TG")))
+
+	if (limit_fdr_range) {
+		#df <- df[df$fdr <= 0.5,]
+		df <- df[df$power <= 0.002,]
+	}
+
+
+	df<- df[seq(dim(df)[1],1),]
+
+	p<-ggplot(df, aes(x=power, y=fdr, group=method)) +
+ 		geom_line(aes(color=method)) + 
+ 		figure_theme() +
+ 		labs(title=paste0(eqtl_ss), x="Power",y="FDR",color="")
+
+ 	return(p)
+
+}
+
+
+
 make_fdr_power_line_plot <- function(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss, limit_fdr_range=FALSE) {
 	# Generate global vectors
 	fdr_vec <- c()
@@ -3709,6 +3934,7 @@ ggsave(joint_plot, file=output_file, width=7.2, height=5.5, units="in")
 #####################################################################
 # Make FDR-Power curve at realistic eQTL sample sizes
 #####################################################################
+if (FALSE) {
 eqtl_ss="aggregate"
 fdr_power_plot_low_eqtl_ss <- make_fdr_power_line_plot_at_realistic_eqtl_ss(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss)
 output_file <- paste0(visualize_simulated_results_dir, "realistic_eqtl_ss_simulation_", global_simulation_name_string, "_fdr_power_line_plot_aggreagate.pdf")
@@ -3725,6 +3951,55 @@ joint_fdr_power_lineplot <- plot_grid(fdr_power_plot_low_eqtl_ss+theme(legend.po
 joint2 = plot_grid(joint_fdr_power_lineplot, legender, ncol=1, rel_heights=c(1,.07))
 output_file <- paste0(visualize_simulated_results_dir, "realistic_eqtl_ss_simulation_", global_simulation_name_string, "_fdr_power_line_plot.pdf")
 ggsave(joint2, file=output_file, width=7.2, height=4.0, units="in")
+}
+
+
+#####################################################################
+# Plot FDR and power at realistic eQTL sample sizes (including comparison to CTWAS)
+#####################################################################
+# Precision plots
+pip_threshold <- "0.5"
+fdr_plot_5 <- make_gene_fdr_plot_at_realistic_qtl_sample_sizes_including_ctwas_comparison(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+pip_threshold <- "0.9"
+fdr_plot_9 <- make_gene_fdr_plot_at_realistic_qtl_sample_sizes_including_ctwas_comparison(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+
+
+
+# Power plots
+pip_threshold <- "0.5"
+power_plot_5 <- make_gene_power_plot_at_realistic_qtl_sample_sizes_including_ctwas_comparison(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+pip_threshold <- "0.9"
+power_plot_9 <- make_gene_power_plot_at_realistic_qtl_sample_sizes_including_ctwas_comparison(simulated_organized_results_dir, global_simulation_name_string, pip_threshold)
+
+
+legender <- get_legend(power_plot_5)
+
+joint_plot <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.position="none"), fdr_plot_9 +theme(legend.position="none"), power_plot_5 +theme(legend.position="none"), power_plot_9 +theme(legend.position="none"), ncol=2, labels=c("a", "b", "c","d")), ncol=1, rel_heights=c(.05, .03, 1))
+
+# Make joint plot
+output_file <- paste0(visualize_simulated_results_dir, "simulation_realistic_qtl_ss_", global_simulation_name_string, "_ctwas_comparison_gene_tissue_summary_plot.pdf")
+ggsave(joint_plot, file=output_file, width=7.2, height=5.5, units="in")
+
+#####################################################################
+# Make FDR-Power curve at realistic eQTL sample sizes (including comparison to CTWAS)
+#####################################################################
+if (FALSE) {
+eqtl_ss="aggregate"
+fdr_power_plot_low_eqtl_ss <- make_fdr_power_line_plot_at_realistic_eqtl_ss_including_ctwas_comparison(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss)
+output_file <- paste0(visualize_simulated_results_dir, "realistic_eqtl_ss_simulation_", global_simulation_name_string, "_ctwas_comparison_fdr_power_line_plot_aggreagate.pdf")
+ggsave(fdr_power_plot_low_eqtl_ss, file=output_file, width=7.2, height=4.0, units="in")
+
+eqtl_ss="low_eqtl_ss"
+fdr_power_plot_low_eqtl_ss <- make_fdr_power_line_plot_at_realistic_eqtl_ss_including_ctwas_comparison(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss)
+eqtl_ss="high_eqtl_ss"
+fdr_power_plot_high_eqtl_ss <- make_fdr_power_line_plot_at_realistic_eqtl_ss_including_ctwas_comparison(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss)
+
+legender <- get_legend(fdr_power_plot_low_eqtl_ss + guides(colour = guide_legend(nrow = 2)))
+joint_fdr_power_lineplot <- plot_grid(fdr_power_plot_low_eqtl_ss+theme(legend.position="none"), fdr_power_plot_high_eqtl_ss+theme(legend.position="none"), ncol=2)
+joint2 = plot_grid(joint_fdr_power_lineplot, legender, ncol=1, rel_heights=c(1,.2))
+output_file <- paste0(visualize_simulated_results_dir, "realistic_eqtl_ss_simulation_", global_simulation_name_string, "_ctwas_comparison_fdr_power_line_plot.pdf")
+ggsave(joint2, file=output_file, width=7.2, height=4.0, units="in")
+}
 
 
 

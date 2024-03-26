@@ -90,15 +90,16 @@ annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
 eqtl_type="susie"
 python3 preprocess_data_for_tgfm_realistic_eqtl_ss.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir
 
+python3 preprocess_data_for_tgfm_realistic_eqtl_ss_lasso_gene_model.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir
 
-if false; then
+
 #######################################################
 # Step 11: Delete unnessary files
 #######################################################
 echo "Simulation Step 11"
 python3 delete_unnessary_learned_gene_model_files_realistic_eqtl_ss.py $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string
 python3 delete_unnessary_gwas_sum_stat_files.py $simulated_gwas_dir $simulation_name_string $global_window_file
-fi
+
 
 
 date

@@ -390,6 +390,7 @@ sh organize_processed_tgfm_input_data.sh $num_jobs $gene_type $preprocessed_tgfm
 fi
 
 # Number of parallel jobs
+# Whole blood subsampled!
 num_jobs="40"
 #gene_type="cis_heritable_gene"
 gene_type="component_gene"
@@ -458,8 +459,6 @@ fi
 
 
 
-
-
 ########################################
 # Compute iterative prior
 ########################################
@@ -483,19 +482,20 @@ sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_rea
 done
 fi
 
+# WB SUBSAMP
+gene_type="component_gene"
+tgfm_input_summary_file=${preprocessed_tgfm_data_whole_blood_subsampled_dir}${gene_type}"_tgfm_input_data_summary.txt"
+ignore_tissues="None"
 if false; then
-trait_name="body_HEIGHTz"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir $ignore_tissues
-
-trait_name="bmd_HEEL_TSCOREz"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir $ignore_tissues
-
-trait_name="blood_MEAN_CORPUSCULAR_HEMOGLOBIN"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_file ${preprocessed_tgfm_data_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir $ignore_tissues
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" | while read trait_name study_file sample_size h2; do
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_wb_subsamp_"${trait_name}"_"${gene_type}
+	sbatch learn_iterative_tgfm_component_prior.sh $trait_name $tgfm_output_stem $gtex_pseudotissue_whole_blood_subsampled_file ${preprocessed_tgfm_data_whole_blood_subsampled_dir}${gene_type} $tgfm_input_summary_file $iterative_tgfm_prior_results_dir $ignore_tissues
+done
 fi
+
+
+
+
 
 #################################
 # Run TGFM with iterative prior
@@ -531,7 +531,34 @@ done
 fi
 
 
+gene_type="component_gene"
+num_jobs="8"
+ignore_tissues="None"
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" | while read trait_name study_file sample_size h2; do
+echo $trait_name
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_tgfm_data_whole_blood_subsampled_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_wb_subsamp_"${trait_name}"_"${gene_type}
+	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_whole_blood_subsampled_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+done
+done
+fi
 
+
+if false; then
+trait_name="body_HEIGHTz"
+job_number="6"
+tgfm_input_summary_file=${preprocessed_tgfm_data_whole_blood_subsampled_dir}${gene_type}"_tgfm_input_data_summary.txt"
+tgfm_output_stem=${tgfm_results_dir}"tgfm_results_wb_subsamp_"${trait_name}"_"${gene_type}
+sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_whole_blood_subsampled_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+
+trait_name="blood_MEAN_CORPUSCULAR_HEMOGLOBIN"
+job_number="4"
+tgfm_input_summary_file=${preprocessed_tgfm_data_whole_blood_subsampled_dir}${gene_type}"_tgfm_input_data_summary.txt"
+tgfm_output_stem=${tgfm_results_dir}"tgfm_results_wb_subsamp_"${trait_name}"_"${gene_type}
+sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_whole_blood_subsampled_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+fi
 
 
 #################################
@@ -965,8 +992,6 @@ fi
 
 
 
-
-
 #################################
 # Run TGFM with iterative prior
 #################################
@@ -980,6 +1005,40 @@ done
 done
 fi
 
+ignore_tissues="Whole_Blood"
+gene_type="component_gene"
+tgfm_input_summary_file=${preprocessed_sc_pb_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+num_jobs="8"
+
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" | while read trait_name study_file sample_size h2; do
+for job_number in $(seq 0 $(($num_jobs-1))); do
+	tgfm_input_summary_file=${preprocessed_sc_pb_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+	tgfm_output_stem=${sc_pb_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_PBMC_file $iterative_sc_pb_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+done
+done
+fi
+
+trait_name="body_HEIGHTz"
+job_number="6"
+tgfm_input_summary_file=${preprocessed_sc_pb_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+tgfm_output_stem=${sc_pb_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
+if false; then
+sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_PBMC_file $iterative_sc_pb_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+fi
+
+trait_name="blood_MEAN_CORPUSCULAR_HEMOGLOBIN"
+job_number="6"
+if false; then
+sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_PBMC_file $iterative_sc_pb_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+fi
+
+trait_name="blood_MEAN_CORPUSCULAR_HEMOGLOBIN"
+job_number="4"
+if false; then
+sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_PBMC_file $iterative_sc_pb_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+fi
 
 
 #################################

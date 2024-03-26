@@ -46,7 +46,7 @@ simulated_learned_gene_models_dir=${simulated_learned_gene_models_base_dir}"simu
 echo "Simulation Step 1"
 python3 simulate_gene_expression_and_fit_gene_model.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture
 
-
+if false; then
 #######################################################
 # Step 2: Simulate trait values
 #######################################################
@@ -67,7 +67,7 @@ python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows.py $simulation_numbe
 source /home/bes710/.bash_profile
 merged_gwas_summary_stat_file=${simulated_gwas_dir}${simulation_name_string}"_merged_gwas_summary_stats.txt"
 python3 generate_merged_gwas_data.py $global_window_file $simulation_number $chrom_num $simulation_name_string ${simulated_gwas_dir} $processed_genotype_data_dir $n_gwas_individuals $merged_gwas_summary_stat_file
-
+fi
 
 #######################################################
 # Step 9: Run coloc
@@ -103,11 +103,6 @@ do
 done
 fi
 
-for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
-do
-	echo $eqtl_sample_size
-	python3 preprocess_data_with_cafeh_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir
-done
 
 
 #######################################################
