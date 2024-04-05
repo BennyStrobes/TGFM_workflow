@@ -21,6 +21,7 @@ simulated_tgfm_input_data_dir="${12}"
 eqtl_sample_size="${13}"
 simulated_focus_input_dir="${14}"
 simulated_focus_results_dir="${15}"
+gene_type="${16}"
 
 
 
@@ -34,9 +35,8 @@ echo $eqtl_sample_size
 
 ##############################
 # Preprocess gene model data to put into fusion format
-source ~/.bash_profile
-python3 prepare_gene_models_for_focus.py $simulation_number $chrom_num $simulation_name_string $simulated_gene_expression_dir $simulated_learned_gene_models_dir $eqtl_sample_size $processed_genotype_data_dir $focus_gene_models_dir
-
+source /home/bes710/.bash_profile
+python3 prepare_gene_models_for_focus.py $simulation_number $chrom_num $simulation_name_string $simulated_gene_expression_dir $simulated_learned_gene_models_dir $eqtl_sample_size $processed_genotype_data_dir $focus_gene_models_dir $gene_type
 
 
 # Create cross tissue gene model pos files
@@ -73,11 +73,10 @@ done
 
 ##############################
 # Generate gwas data
-source ~/.bash_profile
+source /home/bes710/.bash_profile
 focus_gwas_summary_stat_file=${focus_gene_models_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample_size}"_gwas_summary_stats.txt"
 global_window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_3_mb.txt"
 python3 generate_gwas_input_for_focus.py $global_window_file $simulation_number $chrom_num $simulation_name_string $eqtl_sample_size ${simulated_gwas_dir} $processed_genotype_data_dir $n_gwas_individuals $focus_gwas_summary_stat_file
-
 
 module load gcc/9.2.0
 module load python/3.9.14
@@ -107,8 +106,6 @@ db_file=${focus_gene_models_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample
 output_stem=${simulated_focus_results_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample_size}"_focus_res"
 focus finemap $sum_stats_file $genotype_file $db_file --chr ${chrom_num} --out $output_stem
 
-
-
 # per tissue version
 for tissue_number in $(seq 0 9); do 
 	sum_stats_file=${focus_cleaned_gwas_summary_stat_stem}".sumstats.gz"
@@ -116,6 +113,24 @@ for tissue_number in $(seq 0 9); do
 	db_file=${focus_gene_models_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample_size}"_tissue"${tissue_number}"_focus_input.db"
 	output_stem=${simulated_focus_results_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample_size}"_tissue"${tissue_number}"_focus_res"
 	focus finemap $sum_stats_file $genotype_file $db_file --chr ${chrom_num} --out $output_stem
+done
+
+
+
+# cross tissue version with intercept
+sum_stats_file=${focus_cleaned_gwas_summary_stat_stem}".sumstats.gz"
+genotype_file=${processed_genotype_data_dir}"simulated_gwas_data_"${chrom_num}
+db_file=${focus_gene_models_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample_size}"_focus_input.db"
+output_stem=${simulated_focus_results_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample_size}"_focus_w_intercept_res"
+focus finemap $sum_stats_file $genotype_file $db_file --chr ${chrom_num} --intercept --out $output_stem
+
+# per tissue version with intercept
+for tissue_number in $(seq 0 9); do 
+	sum_stats_file=${focus_cleaned_gwas_summary_stat_stem}".sumstats.gz"
+	genotype_file=${processed_genotype_data_dir}"simulated_gwas_data_"${chrom_num}
+	db_file=${focus_gene_models_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample_size}"_tissue"${tissue_number}"_focus_input.db"
+	output_stem=${simulated_focus_results_dir}${simulation_name_string}"_eqtlss_"${eqtl_sample_size}"_tissue"${tissue_number}"_focus_w_intercept_res"
+	focus finemap $sum_stats_file $genotype_file $db_file --chr ${chrom_num} --intercept --out $output_stem
 done
 
 

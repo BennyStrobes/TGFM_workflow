@@ -5,30 +5,27 @@ import pdb
 import scipy.stats
 
 
-def create_mapping_from_rsid_to_gwas_sum_stats(window_names, simulated_gwas_stem):
+def create_mapping_from_rsid_to_gwas_sum_stats(simulated_gwas_file):
 	mapping = {}
-	for window_name in window_names:
-		print(window_name)
-		gwas_window_file = simulated_gwas_stem + window_name + '.txt'
-		f = open(gwas_window_file)
-		head_count = 0
-		for line in f:
-			line = line.rstrip()
-			data = line.split('\t')
-			if head_count == 0:
-				head_count = head_count + 1
-				continue
-			rsid = data[0]
-			beta = float(data[1])
-			se = float(data[2])
-			z_score = float(data[3])
-			pvalue = scipy.stats.norm.sf(abs(z_score))*2
-			if rsid in mapping:
-				if mapping[rsid][0] != beta or mapping[rsid][1] != pvalue:
-					print('assumption erororor')
-					pdb.set_trace()
-			mapping[rsid] = (beta, pvalue)
-		f.close()
+
+	f = open(simulated_gwas_file)
+	head_count = 0
+	for line in f:
+		line =line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+		rsid = data[1]
+		beta = float(data[6])
+		se = np.sqrt(float(data[7]))
+		z_score = beta/se
+		pvalue = scipy.stats.norm.sf(abs(z_score))*2
+		if rsid in mapping:
+			print('assumption erororor')
+			pdb.set_trace()
+		mapping[rsid] = (beta, pvalue)
+	f.close()
 	return mapping
 
 #######################################
@@ -48,8 +45,8 @@ focus_gwas_summary_stat_file = sys.argv[9]  # output file
 window_names = np.loadtxt(global_window_file, dtype=str, delimiter='\t')[1:,0]
 
 # Create mapping from rsid to beta and pvalue
-simulated_gwas_stem = simulated_gwas_dir + simulation_name_string + '_simualated_gwas_results_window_'
-rsid_to_gwas_sum_stats = create_mapping_from_rsid_to_gwas_sum_stats(window_names, simulated_gwas_stem)
+simulated_gwas_file = simulated_gwas_dir + simulation_name_string + '_merged_gwas_summary_stats.txt'
+rsid_to_gwas_sum_stats = create_mapping_from_rsid_to_gwas_sum_stats(simulated_gwas_file)
 
 # Genotype bim file
 genotype_bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + str(chrom_num) + '.bim'

@@ -712,8 +712,6 @@ for line in f:
 	tgfm_data['middle_variant_indices'] = middle_variant_indices
 	tgfm_data['gene_eqtl_pmces'] = pmces_weights
 	tgfm_data['gene_variances'] = gene_variances
-	#tgfm_data['full_gene_variances'] = full_gene_variances
-	#tgfm_data['annotation'] = window_anno_mat
 	tgfm_data['tss'] = gene_tissue_pairs_tss
 	tgfm_data['variant_positions'] = window_variant_position_vec
 

@@ -31,7 +31,7 @@ simulated_learned_gene_models_dir = sys.argv[5]
 eqtl_sample_size = sys.argv[6]
 processed_genotype_data_dir = sys.argv[7]
 focus_gene_models_dir = sys.argv[8]
-
+gene_type = sys.argv[9]
 
 
 # Extract gene-tissue pairs for this run
@@ -72,7 +72,7 @@ for line in f:
 		pdb.set_trace()
 
 	# Load in gene models for gene across tissues
-	fitted_gene_file = simulated_learned_gene_models_dir + 'simulation_' + simulation_number + '/' + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
+	fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_model_pmces.npy'
 	gene_model_mat = np.load(fitted_gene_file)
 
 	# Load in snp indices
@@ -103,10 +103,16 @@ for line in f:
 	# Total number of tissues for this gene
 	n_tiss = gene_model_mat.shape[0]
 
+	# Extract vector of length number of tissues corresponding to whether tissue has a valid component
+	valid_components_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_valid_susie_comp.npy'
+	valid_components = np.load(valid_components_file)
+
 	# Looop through tissues
 	for tissue_iter in range(n_tiss):
 		# Skip gene, tissue pairs with no gene models
 		if np.array_equal(gene_model_mat[tissue_iter,:], np.zeros(n_cis_snps)):
+			continue
+		if gene_type == 'component_gene' and valid_components[tissue_iter] == 'False':
 			continue
 		# Save weights
 		weights_file = focus_gene_models_dir + simulation_name_string + '_eqtlss_' + str(eqtl_sample_size) + '_' + ensamble_id + '_' + str(tissue_iter) + '_susie_weights.txt'

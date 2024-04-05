@@ -735,16 +735,10 @@ tgfm_output_stem = sys.argv[2]
 init_method = sys.argv[3]
 est_resid_var_str = sys.argv[4]
 ln_pi_method_name = sys.argv[5]
-tgfm_tissues = sys.argv[6]
-gene_type = sys.argv[7]
-
-
-
-
+gene_type = sys.argv[6]
 
 
 window_pvalue_thresh = 1e-5
-
 
 
 if est_resid_var_str == 'False':
@@ -764,7 +758,6 @@ t_pip.write('window_name\tinclusion_elements\tinclusion_probabilities\n')
 
 
 
-
 # Now loop through windows
 # In each window run TGFM independently
 # Loop through trait components
@@ -777,16 +770,15 @@ tgfm_input_data = tgfm_input_data[1:,:]
 n_windows = tgfm_input_data.shape[0]
 tmp_counter = 0
 
+
 for window_iter in range(n_windows):
 	data = tgfm_input_data[window_iter, :]
-
 
 	##############################
 	# Extract relevent fields
 	###############################
 	window_name = data[0]
 	print(window_name)
-
 
 	ld_file = data[1]
 	tgfm_input_pkl = data[2]
@@ -821,12 +813,6 @@ for window_iter in range(n_windows):
 			t_pip.write(window_name + '\tNA\tNA\n')
 			continue	
 
-	if tgfm_tissues == 'no_t0':
-		tgfm_data, filter_error_bool = filter_tgfm_data_structure_to_remove_tissue0_gene_tissue_pairs(tgfm_data)
-		if filter_error_bool:
-			print('skipped because of no genes')
-			t_pip.write(window_name + '\tNA\tNA\n')
-			continue
 
 	# Extract gwas p
 	gwas_z = tgfm_data['gwas_beta']/tgfm_data['gwas_beta_se']

@@ -1607,7 +1607,7 @@ make_bar_plot_showing_iterative_prior_probability_of_each_tissue <- function(ite
 
 }
 
-make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits <- function(trait_names, trait_names_readable, method_version, tgfm_results_dir, ordered_tissues, pip_thresh, selected_traits, trait_tissue_prior_significance_file, significance_bool=FALSE) {
+make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits <- function(trait_names, trait_names_readable, method_version, tgfm_results_dir, ordered_tissues, pip_thresh, selected_traits, trait_tissue_prior_significance_file, significance_bool=FALSE, only_fdr_05=FALSE) {
 	df_prior = read.table(trait_tissue_prior_significance_file, header=TRUE)
 	df_prior$fdr_significance = as.character(df_prior$fdr_significance)
 
@@ -1652,7 +1652,15 @@ make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_
 				if (sig_value == "null") {
 					sig_vec <- c(sig_vec, "")
 				} else {
-					sig_vec <- c(sig_vec, sig_value)
+					if (only_fdr_05) {
+						if (sig_value == "**") {
+							sig_vec <- c(sig_vec, "*")
+						} else {
+							sig_vec <- c(sig_vec, "")
+						}
+					} else {
+						sig_vec <- c(sig_vec, sig_value)
+						}
 				}
 
 			}
@@ -2858,7 +2866,6 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip <- function(df_full, independen
 
 
 	df2 <- data.frame(pops=pops_mean_vec, pops_se=pops_mean_se_vec, tgfm_bin=factor(bin_names_vec))
-	print(df2)
 
 	green_color=brewer.pal(n = 9, name = "Greens")[6]
 
@@ -2870,11 +2877,7 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip <- function(df_full, independen
     		theme(axis.text.x = element_text(angle = 45, hjust=1)) + 
     		figure_theme()
 
-
-
     return(p)
-
-
 }
 
 mean_se_barplot_of_pops_score_binned_by_tgfm_pip_supp_table <- function(df_full, independent_traits) {
@@ -3195,6 +3198,112 @@ make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot <- fu
 }
 
 
+make_trait_tissue_chromatin_overlap_barplot <- function(trait_tissue_chromatin_overlap_barplot, independent_traits=TRUE) {
+	# Load in data
+	df <- read.table(trait_tissue_chromatin_overlap_barplot, header=TRUE, sep="\t")
+
+	# Potentially filter to independent traits
+	if (independent_traits) {
+		df <- df[as.character(df$trait_type) == "independent", ]
+	}
+
+	# Now split up data frame into trait-tissue pairs identified as significant by TGFM
+	tgfm_sig_df <- df[as.character(df$tgfm_sig) == "True",]
+	tgfm_null_df <- df[as.character(df$tgfm_sig) == "False",]
+
+	aa = sum((tgfm_sig_df$sldsc_p < 0.05) & (tgfm_sig_df$sldsc_z > 0.0))
+	bb = dim(tgfm_sig_df)[1] - aa
+	n_tgfm_sig = aa +bb
+
+	cc = sum((tgfm_null_df$sldsc_p < 0.05) & (tgfm_null_df$sldsc_z > 0.0))
+	dd = dim(tgfm_null_df)[1] - cc
+	n_tgfm_null = cc + dd
+
+	plot_df <- data.frame(x=c("FDR <= 0.05", "FDR > 0.05"), y=c(aa/n_tgfm_sig, cc/n_tgfm_null), totals=c(paste0(n_tgfm_sig), paste0(n_tgfm_null)))
+
+	red_color =brewer.pal(n = 9, name = "Reds")[6]
+
+
+	pp <- ggplot(data=plot_df, aes(x=x, y=y, fill=x)) +
+  		geom_bar(stat="identity", width=0.9) +
+  		geom_text(aes(label=totals, y=c(0.033,0.033)),vjust=0.0) +
+  		labs(x="Tissue-trait pairs\n(TGFM tissue-specific prior)", y="Replication\n rate in SLDSC") +
+  		figure_theme() +
+  		scale_fill_manual(values=c(red_color,red_color)) + 
+  		theme(legend.position="None") +
+  		theme(axis.text.x = element_text(angle = 45, hjust=1)) 
+  	return(pp)
+}
+
+make_trait_tissue_chromatin_overlap_barplot_multiple_thresh <- function(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=TRUE) {
+	# Load in data
+	df <- read.table(trait_tissue_chromatin_overlap_barplot, header=TRUE, sep="\t")
+
+	# Potentially filter to independent traits
+	if (independent_traits) {
+		df <- df[as.character(df$trait_type) == "independent", ]
+	}
+
+
+	fdr_vec <- c()
+	replication_frac_vec <- c()
+	totals_vec <- c()
+	pval_vec <- c()
+
+	# Now split up data frame into trait-tissue pairs identified as significant by TGFM
+	tgfm_sig_df <- df[as.character(df$tgfm_sig) == "True",]
+	tgfm_null_df <- df[as.character(df$tgfm_sig) == "False",]
+
+	aa = sum((tgfm_sig_df$sldsc_p < 0.05) & (tgfm_sig_df$sldsc_z > 0.0))
+	bb = dim(tgfm_sig_df)[1] - aa
+	n_tgfm_sig = aa +bb
+
+	cc = sum((tgfm_null_df$sldsc_p < 0.05) & (tgfm_null_df$sldsc_z > 0.0))
+	dd = dim(tgfm_null_df)[1] - cc
+	n_tgfm_null = cc + dd
+
+	fdr_vec <- c(fdr_vec, c(paste0("FDR <= ", fdr), paste0("FDR > ",0.05)))
+	replication_frac_vec = c(replication_frac_vec, c(aa/n_tgfm_sig, cc/n_tgfm_null))
+	totals_vec <- c(totals_vec, c(paste0(n_tgfm_sig), paste0(n_tgfm_null)))
+	pval_vec <- c(pval_vec, c(".05", ".05"))
+
+
+	# Now split up data frame into trait-tissue pairs identified as significant by TGFM
+	tgfm_sig_df <- df[as.character(df$tgfm_sig) == "True",]
+	tgfm_null_df <- df[as.character(df$tgfm_sig) == "False",]
+
+	aa = sum((tgfm_sig_df$sldsc_p < 0.001) & (tgfm_sig_df$sldsc_z > 0.0))
+	bb = dim(tgfm_sig_df)[1] - aa
+	n_tgfm_sig = aa +bb
+
+	cc = sum((tgfm_null_df$sldsc_p < 0.001) & (tgfm_null_df$sldsc_z > 0.0))
+	dd = dim(tgfm_null_df)[1] - cc
+	n_tgfm_null = cc + dd
+
+	fdr_vec <- c(fdr_vec, c(paste0("FDR <= ", fdr), paste0("FDR > ",fdr)))
+	replication_frac_vec = c(replication_frac_vec, c(aa/n_tgfm_sig, cc/n_tgfm_null))
+	totals_vec <- c(totals_vec, c(paste0(n_tgfm_sig), paste0(n_tgfm_null)))
+	pval_vec <- c(pval_vec, c(".001", ".001"))
+
+	plot_df <- data.frame(tgfm_fdr=fdr_vec, replication_rate=replication_frac_vec, total=totals_vec, pval=factor(pval_vec))
+
+	red_color =brewer.pal(n = 9, name = "Reds")[6]
+	red_color2 =brewer.pal(n = 9, name = "Reds")[4]
+
+	print(plot_df)
+
+
+	pp <- ggplot(data=plot_df, aes(x=pval, y=replication_rate, fill=tgfm_fdr)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_text(aes(label=total, y=c(0.033,0.033, .033, .033)),vjust=0.0, position = position_dodge(0.9), color="white") +
+  		labs(x="SLDSC p-value threshold", y="Replication\n rate in SLDSC") +
+  		figure_theme() +
+  		scale_fill_manual(values=c(red_color,red_color2)) + 
+  		theme(legend.position="bottom") +
+  		theme(axis.text.x = element_text(angle = 45, hjust=1)) 
+  	return(pp)
+}
+
 
 
 
@@ -3213,8 +3322,7 @@ non_disease_specific_gene_set_enrichment_dir <- args[7]
 visualize_tgfm_dir <- args[8]
 tissue_tissue_correlation_file <- args[9]
 gtex_pseudotissue_file <- args[10]
-
-
+chromatin_cell_type_group_ldsc_dir <- args[11]
 
 
 ##########################################################
@@ -3240,7 +3348,7 @@ trait_names_readable <- as.character(trait_df$study_name_readable)
 
 
 
-gene_type="all_non_zero_gene"
+gene_type="component_gene"
 # Extract tissue names
 iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_names[1], "_", gene_type,"_", "susie_pmces_uniform", "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
 aa = read.table(iterative_prior_file, header=TRUE,sep="\t")
@@ -3255,17 +3363,15 @@ if (FALSE) {
 output_file <- paste0(visualize_tgfm_dir, "tissue_tissue_correlation_heatmap.pdf")
 tt_corr_heatmap = make_tissue_tissue_correlation_heatmap(tissue_tissue_correlation_file)
 ggsave(tt_corr_heatmap, file=output_file, width=7.2, height=7.5, units="in")
-}
+
 
 ##################################################
 # Make scatterplot showing relationship between sample size and average correlation
 ##################################################
-if (FALSE) {
 output_file <- paste0(visualize_tgfm_dir, "tissue_tissue_correlation_sample_size_scatter.pdf")
 tt_corr_ss_scatter = make_tissue_tissue_correlation_sample_size_scatterplot(tissue_tissue_correlation_file, pseudotissue_names, pseudotissue_ss)
 ggsave(tt_corr_ss_scatter, file=output_file, width=7.2, height=5.5, units="in")
 }
-
 
 ##################################################
 # Simply count up number of gene-tissue pairs, genes, and variants above some PIP threshold
@@ -3307,20 +3413,6 @@ print(supp_table_file)
 }
 
 
-##################################################
-# error barplot comparison showing non-disease-specific gene set enrichments for two different methods
-##################################################
-if (FALSE) {
-pip_thresh=0.5
-enrichment_barplot <- make_non_disease_specific_gene_set_enrichment_method_comparison_barplot_at_single_pip_thresh(non_disease_specific_gene_set_enrichment_dir,pip_thresh)
-output_file <- paste0(visualize_tgfm_dir, "non_disease_specific_gene_set_enrichments_method_comparison_", pip_thresh,"_standard_error_barplot.pdf")
-ggsave(enrichment_barplot, file=output_file, width=7.2, height=4.4, units="in")
-pip_thresh=0.25
-enrichment_barplot <- make_non_disease_specific_gene_set_enrichment_method_comparison_barplot_at_single_pip_thresh(non_disease_specific_gene_set_enrichment_dir,pip_thresh)
-output_file <- paste0(visualize_tgfm_dir, "non_disease_specific_gene_set_enrichments_method_comparison_", pip_thresh,"_standard_error_barplot.pdf")
-ggsave(enrichment_barplot, file=output_file, width=7.2, height=4.4, units="in")
-}
-
 
 
 ##################################################
@@ -3332,7 +3424,7 @@ for (trait_iter in 1:length(trait_names)) {
 	trait_name_readable <- trait_names_readable[trait_iter]
 
 	# Sampler approach
-	gene_type="all_non_zero_gene"
+	gene_type="component_gene"
 	method_version="susie_pmces_uniform"
 	iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_name, "_", gene_type, "_", method_version, "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
 	iterative_sampler_violin_plot <- make_violin_plot_showing_distribution_of_iterative_prior_probability_of_each_tissue(iterative_prior_file, method_version, trait_name_readable)
@@ -3343,15 +3435,15 @@ for (trait_iter in 1:length(trait_names)) {
 }
 }
 
-
 ##################################################
 # Make file summarizing prior significance of each trait-tissue pair
 ##################################################
 method_version="susie_pmces_uniform"
-gene_type <- "all_non_zero_gene"
+gene_type <- "component_gene"
 trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, gene_type, "_trait_tissue_prior_bonferronni_corrected_significance.txt")
+if (FALSE) {
 generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file, gene_type)
-
+}
 
 
 ##########################################################
@@ -3362,23 +3454,20 @@ method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_le
 output_file_pdf <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_tgfm_pip_density_plot_stratified_by_element_class.pdf")
 density_hist <- make_pip_density_histogram_across_element_classes(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits)
 ggsave(density_hist, file=output_file_pdf, width=7.2, height=3.7, units="in", dpi=400)
-}
+
 
 ##########################################################
 # Swarm-plot showing gene-tissue PIPs colored by tissue group for each trait
 ##########################################################
-gene_type <- "all_non_zero_gene"
+gene_type <- "component_gene"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
-if (FALSE) {
 beeswarm_plot <- make_swarm_plot_showing_gene_tissue_pips_colored_by_tissue_group_for_each_trait(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, gene_type)
 output_file <- paste0(visualize_tgfm_dir, "beeswarm_gene_tissue_pip_colored_by_tissue_group_", method_version, "_", gene_type, ".pdf")
 ggsave(beeswarm_plot, file=output_file, width=15.2, height=4.5, units="in")
-}
 
 ##########################################################
 # Barplot with standard errors showing fraction of high pip genetic elements from gene expression
 ##########################################################
-if (FALSE) {
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 output_file <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_average_fraction_of_high_pip_genetic_elements_from_gene_expression_se_barplot.pdf")
 med_prob_se_barplot <- make_fraction_of_genetic_elements_from_gene_expression_se_barplot(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits)
@@ -3400,6 +3489,7 @@ output_file <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_joint_fract
 ggsave(joint_fraction_med_plot, file=output_file, width=7.2, height=6.2, units="in")
 }
 
+
 ##########################################################
 # Bar plot showing expected number of causal gene-tissue pairs in each tissue
 ##########################################################
@@ -3408,7 +3498,7 @@ for (trait_iter in 1:length(trait_names)) {
 	trait_name <- trait_names[trait_iter]
 	trait_name_readable <- trait_names_readable[trait_iter]
 
-	gene_type <- "all_non_zero_gene"
+	gene_type <- "component_gene"
 	# Sampler approach
 	method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 	tissue_bar_plot <- make_bar_plot_showing_expected_number_of_causal_gene_tissue_pairs_for_single_trait(trait_name, trait_name_readable, method_version, tgfm_organized_results_dir, tissue_names, gene_type)
@@ -3420,24 +3510,6 @@ for (trait_iter in 1:length(trait_names)) {
 
 
 if (FALSE) {
-trait_name="biochemistry_LDLdirect"
-method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
-tissue_names = pseudotissue_names[as.character(pseudotissue_names) != "Testis"]
-
-trait_name="biochemistry_LDLdirect"
-trait_name_readable="LDL direct"
-ldl_per_tissue_heatmap <- make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot(trait_name, trait_name_readable, method_version, tgfm_organized_results_dir,tissue_names)
-
-trait_name="biochemistry_VitaminD"
-trait_name_readable="Vitamin D levels"
-vitaminD_per_tissue_heatmap <- make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot(trait_name, trait_name_readable, method_version, tgfm_organized_results_dir,tissue_names)
-
-joint_plot <- plot_grid(ldl_per_tissue_heatmap, vitaminD_per_tissue_heatmap, ncol=2)
-
-output_file <- paste0(visualize_tgfm_dir, "tissue_heatmap_barplot_of_expected_number_of_gene_tissue_pairs_joint.pdf")
-ggsave(joint_plot, file=output_file, width=7.2, height=4.0, units="in")
-}
-
 ##########################################################
 # Barplot showing number high pip gene-tissue pairs between methods
 ##########################################################
@@ -3450,15 +3522,13 @@ method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_le
 n_genes_barplot_9 <- make_number_of_high_pip_gene_tissue_pairs_method_comparison_barplot(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, pip_threshold, independent_traits)
 
 n_genes_joint_plot <- plot_grid(n_genes_barplot_5, n_genes_barplot_9,ncol=1)
-if (FALSE) {
 output_file <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_number_of_high_pip_gene_tissue_pairs_method_comparison_barplot.pdf")
 ggsave(n_genes_joint_plot, file=output_file, width=7.2, height=5.7, units="in")
-}
+
 
 ##########################################################
 # Barplot showing number high pip genes vs gene-tissue pairs
 ##########################################################
-if (FALSE) {
 pip_threshold <- "0.5"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 n_genes_barplot_5 <- make_number_of_high_pip_genes_vs_gene_tissues_barplot(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, pip_threshold, independent_traits)
@@ -3472,11 +3542,13 @@ output_file <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_number_of_h
 ggsave(n_genes_joint_plot, file=output_file, width=7.2, height=5.7, units="in")
 }
 
+
 ##########################################################
 # Heatmap showing expected number of causal genes in each tissue-trait pair
 ##########################################################
+if (FALSE) {
 pip_threshs <- c(.01, .1, .3, .5)
-gene_type="all_non_zero_gene"
+gene_type="component_gene"
 for (pip_iter in 1:length(pip_threshs)) {
 	pip_thresh <- pip_threshs[pip_iter]
 	print(pip_thresh)
@@ -3485,13 +3557,14 @@ for (pip_iter in 1:length(pip_threshs)) {
 	output_file <- paste0(visualize_tgfm_dir, "expected_num_causal_genes_", pip_thresh, "_", method_version, "_", gene_type,"_heatmap.pdf")
 	ggsave(heatmap, file=output_file, width=7.2, height=8.0, units="in")
 }
+}
 
 
 ##########################################################
 # Supplementary data for heatmap of expected number of causal genes in each tissue-trait pir
 ##########################################################
-if (FALSE) {
 pip_thresh=.5
+if (FALSE) {
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 supp_table_df <- get_heatmap_data_showing_expected_number_of_causal_gene_tissue_pairs_cross_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, trait_tissue_prior_significance_file)
 supp_table_file = paste0(visualize_tgfm_dir, "suppTable_figure4a_numerical.txt")
@@ -3499,11 +3572,10 @@ write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.name
 print(supp_table_file)
 }
 
-
+if (FALSE) {
 ##########################################################
 # Make Figure 3
 ##########################################################
-if (FALSE) {
 # Get ordered traits according to number of hits identified by gene-tissue pairs
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 ordered_traits <- make_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_trait_order_according_to_gene_tissue_pairs(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits)
@@ -3551,11 +3623,11 @@ joint_heatmap_barplot_poster <- plot_grid(gene_tissue_heatmap_barplot2, gene_hea
 ggsave(joint_heatmap_barplot_poster, file=output_file_pdf, width=21.2, height=2.7, units="in", dpi=400)
 }
 
+if (FALSE) {
 #######################################################
 # Supp figure for figure 3 across all traits
 #######################################################
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
-if (FALSE) {
 ordered_traits <- rev(make_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_trait_order_according_to_gene_tissue_pairs(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, trait_names, gene_type=gene_type))
 # Make heatmap-barplot showing expected number of causal variants
 
@@ -3571,13 +3643,11 @@ output_file_pdf <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_", gene
 joint_plot <- plot_grid(gene_tissue_heatmap_t_barplot + theme(legend.position="bottom"), gene_heatmap_t_barplot + theme(legend.position="bottom"),variant_heatmap_t_barplot + theme(legend.position="bottom"), ncol=3,rel_widths=c(1.11,.6,.6))
 
 ggsave(joint_plot, file=output_file_pdf, width=7.2, height=7.2, units="in", dpi=400)
-}
 
 
 #######################################################
 # Supp figure for figure 3 (one for variant, gene, and gene-tissue)
 #######################################################
-if (FALSE) {
 # Make heatmap-barplot showing expected number of causal variants
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 
@@ -3599,25 +3669,30 @@ ggsave(gene_tissue_heatmap_t_barplot, file=output_file_pdf, width=7.2, height=6.
 
 
 
-
-
+if (FALSE) {
+##########################################################
+# Make heatmap (with significance stars) showing expected number of causal genes in each tissue-trait pair for selected traits
+##########################################################
+pip_thresh <- "0.5"
+method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
+selected_traits <- c("disease_AID_ALL", "biochemistry_VitaminD", "body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled")
+heatmap <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, selected_traits,trait_tissue_prior_significance_file, significance_bool=TRUE, only_fdr_05=TRUE)
+output_file <- paste0(visualize_tgfm_dir, "expected_num_causal_genes_", pip_thresh, "_", method_version,"_selected_traits_heatmap_with_significance.pdf")
+ggsave(heatmap, file=output_file, width=7.2, height=6.0, units="in")
 
 ##########################################################
 # Make heatmap showing expected number of causal genes in each tissue-trait pair for selected traits
 ##########################################################
-if (FALSE) {
 pip_thresh <- "0.5"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 selected_traits <- c("disease_AID_ALL", "biochemistry_VitaminD", "body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled")
 heatmap <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, selected_traits,trait_tissue_prior_significance_file)
 output_file <- paste0(visualize_tgfm_dir, "expected_num_causal_genes_", pip_thresh, "_", method_version,"_selected_traits_heatmap.pdf")
 ggsave(heatmap, file=output_file, width=7.2, height=6.0, units="in")
-}
 
 ##########################################################
 # Make POPS enrichment standard error barplot
 ##########################################################
-if (FALSE) {
 # Load in summary data
 pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
 # average and standard error of mean of pops-score binned by TGFM PIP
@@ -3629,63 +3704,146 @@ pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgf
 supp_table_df <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip_supp_table(pops_summary_df, independent_traits)
 supp_table_file = paste0(visualize_tgfm_dir, "suppTable_figure4b_numerical.txt")
 write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
-}
 
 # Load in summary data
-if (FALSE) {
 pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
 # average and standard error of mean of pops-score binned by TGFM PIP
 output_file <- paste0(visualize_tgfm_dir, "mean_se_barplot_pops_score_binned_by_tgfm_pip_x_trait.pdf")
 barplot <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits)
 ggsave(barplot, file=output_file, width=7.2, height=3.7, units="in")
-
-# Load in summary data
-pops_summary_df <- read.table(paste0(pops_enrichment_dir, "all_non_zero_gene_cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
-# average and standard error of mean of pops-score binned by TGFM PIP
-output_file <- paste0(visualize_tgfm_dir, "all_non_zero_gene_mean_se_barplot_pops_score_binned_by_tgfm_pip_x_trait.pdf")
-barplot <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits)
-ggsave(barplot, file=output_file, width=7.2, height=3.7, units="in")
-print(output_file)
 }
 
+
 ##########################################################
-# POPS comparison plot
+# Make trait-tissue pair chromatin overlap bar plot
 ##########################################################
 if (FALSE) {
-component_pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
-all_non_zero_pops_summary_df <- read.table(paste0(pops_enrichment_dir, "all_non_zero_gene_cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
-barplot <- mean_se_barplot_of_pops_score_comparison_binned_by_tgfm_pip(component_pops_summary_df,all_non_zero_pops_summary_df, "component_gene", "all_non_zero_gene", independent_traits)
-output_file <- paste0(visualize_tgfm_dir, "gene_mean_se_barplot_pops_score_method_comparison_binned_by_tgfm_pip_x_trait.pdf")
+fdr <- "0.05"
+trait_tissue_chromatin_overlap_barplot <- paste0(chromatin_cell_type_group_ldsc_dir, "tgfm_sldsc_chromatin_overlap_summary_", fdr, ".txt")
+barplot <- make_trait_tissue_chromatin_overlap_barplot(trait_tissue_chromatin_overlap_barplot, independent_traits=TRUE)
+output_file <- paste0(visualize_tgfm_dir, "trait_tissue_pair_chromatin_overlap_tgfm_fdr_", fdr, ".pdf")
 ggsave(barplot, file=output_file, width=7.2, height=4.7, units="in")
 }
 
-#output_file <- paste0(visualize_tgfm_dir, "mean_se_barplot_pops_score_binned_by_tgfm_pip_x_trait.pdf")
-#barplot <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits)
-#ggsave(barplot, file=output_file, width=7.2, height=3.7, units="in")
-
-
-
+##########################################################
+# Make trait-tissue pair chromatin overlap bar plot for a range of thresholds
+##########################################################
+fdr <- "0.05"
+trait_tissue_chromatin_overlap_barplot <- paste0(chromatin_cell_type_group_ldsc_dir, "tgfm_sldsc_chromatin_overlap_summary_", fdr, ".txt")
+barplot_05 <- make_trait_tissue_chromatin_overlap_barplot_multiple_thresh(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=TRUE)
+output_file <- paste0(visualize_tgfm_dir, "trait_tissue_pair_chromatin_overlap_tgfm_multiple_thresh.pdf")
+ggsave(barplot_05, file=output_file, width=7.2, height=4.7, units="in")
 
 
 
 ##########################################################
 # Make Figure 4
 ##########################################################
+# FIG 4A
+pip_thresh <- "0.5"
+method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
+selected_traits <- c("disease_AID_ALL", "biochemistry_VitaminD", "body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled")
+fig_4a <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, selected_traits,trait_tissue_prior_significance_file, significance_bool=TRUE, only_fdr_05=TRUE)
+
+# FIG 4B
+fdr <- "0.05"
+trait_tissue_chromatin_overlap_barplot <- paste0(chromatin_cell_type_group_ldsc_dir, "tgfm_sldsc_chromatin_overlap_summary_", fdr, ".txt")
+fig_4b <- make_trait_tissue_chromatin_overlap_barplot(trait_tissue_chromatin_overlap_barplot, independent_traits=TRUE)
+fig_4b <- plot_grid(fig_4b, NULL, ncol=1, rel_heights=c(1,.05))
+
+# FIG 4c
+pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
+fig_4c <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits)
+
+# MAke joint plot
+fig_4bc_null = plot_grid(NULL, NULL, ncol=2, rel_widths=c(.35, .6), labels=c("b", "c"))
+fig_4bc = plot_grid(fig_4b, fig_4c, ncol=2, rel_widths=c(.35, .6))
+fig_4bc = plot_grid(fig_4bc_null, fig_4bc, ncol=1, rel_heights=c(.1,1))
+fig_4 <- plot_grid(fig_4a + theme(legend.position="top") + theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points")), fig_4bc, ncol=1, rel_heights=c(.65,.4), labels=c("a", ""))
+output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
+ggsave(fig_4, file=output_file, width=7.2, height=6.7, units="in")
+
+
+##########################################################
+# Make Figure 4 (old)
+##########################################################
 if (FALSE) {
 # FIG 4A
 pip_thresh <- "0.5"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 selected_traits <- c("disease_AID_ALL", "biochemistry_VitaminD", "body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled")
-fig_4a <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, selected_traits,trait_tissue_prior_significance_file)
+fig_4a <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, selected_traits,trait_tissue_prior_significance_file, significance_bool=TRUE, only_fdr_05=TRUE)
 # FIG 4B
 pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
 fig_4b <- plot_grid(NULL,mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits), rel_widths=c(.02,1))
 
 # MAke joint plot
 fig_4 <- plot_grid(fig_4a + theme(legend.position="top"), fig_4b, ncol=1, rel_heights=c(.77,.4), labels=c("a","b"))
-output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
+output_file <- paste0(visualize_tgfm_dir, "figure4_old.pdf")
 ggsave(fig_4, file=output_file, width=7.2, height=6.7, units="in")
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ###################################################
 # Figure 4 for poster
@@ -3697,37 +3855,19 @@ output_file <- paste0(visualize_tgfm_dir, "figure4_poster.pdf")
 ggsave(fig_4, file=output_file, width=7.2, height=6.7, units="in")
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+##################################################
+# error barplot comparison showing non-disease-specific gene set enrichments for two different methods
+##################################################
+if (FALSE) {
+pip_thresh=0.5
+enrichment_barplot <- make_non_disease_specific_gene_set_enrichment_method_comparison_barplot_at_single_pip_thresh(non_disease_specific_gene_set_enrichment_dir,pip_thresh)
+output_file <- paste0(visualize_tgfm_dir, "non_disease_specific_gene_set_enrichments_method_comparison_", pip_thresh,"_standard_error_barplot.pdf")
+ggsave(enrichment_barplot, file=output_file, width=7.2, height=4.4, units="in")
+pip_thresh=0.25
+enrichment_barplot <- make_non_disease_specific_gene_set_enrichment_method_comparison_barplot_at_single_pip_thresh(non_disease_specific_gene_set_enrichment_dir,pip_thresh)
+output_file <- paste0(visualize_tgfm_dir, "non_disease_specific_gene_set_enrichments_method_comparison_", pip_thresh,"_standard_error_barplot.pdf")
+ggsave(enrichment_barplot, file=output_file, width=7.2, height=4.4, units="in")
+}
 
 
 ##########################################################

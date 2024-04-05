@@ -759,22 +759,13 @@ def generate_component_level_abf_summary_data(concatenated_pip_summary_file, com
 tgfm_input_summary_file = sys.argv[1]
 new_tgfm_stem = sys.argv[2]
 tgfm_version = sys.argv[3]
-tgfm_tissues = sys.argv[4]
-
+n_bootstraps = int(sys.argv[4])
 
 
 #Extract tissue names
 tissue_names = []
-if tgfm_tissues == 'all_t':
-	for tiss_iter in range(10):
-		tissue_names.append('tissue' + str(tiss_iter))
-elif tgfm_tissues == 'no_t0':
-	for tiss_iter in range(10):
-		if tiss_iter != 0:
-			tissue_names.append('tissue' + str(tiss_iter))
-else:
-	print('tgfm tissue method not yet implemented. fatal error')
-	pdb.set_trace()
+for tiss_iter in range(10):
+	tissue_names.append('tissue' + str(tiss_iter))
 tissue_names = np.asarray(tissue_names)
 
 
@@ -790,7 +781,6 @@ generate_component_level_abf_summary_data(tgfm_input_summary_file, component_lev
 ###################################################
 # Learn iterative distribution variant-gene-tissue prior (doing non-distribution based prior)
 ###################################################
-n_bootstraps=100
 variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=400, n_bootstraps=n_bootstraps)
 
 

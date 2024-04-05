@@ -848,13 +848,10 @@ tgfm_output_stem = sys.argv[2]
 init_method = sys.argv[3]
 est_resid_var_str = sys.argv[4]
 ln_pi_method_name = sys.argv[5]
-tgfm_tissues = sys.argv[6]
-gene_type = sys.argv[7]
-
+gene_type = sys.argv[6]
 
 
 window_pvalue_thresh = 1e-5
-
 
 
 if est_resid_var_str == 'False':
@@ -953,23 +950,6 @@ for window_iter in range(n_windows):
 			print('skipped because of no genes')
 			t_pip.write(window_name + '\tNA\tNA\n')
 			continue
-
-	if tgfm_tissues == 'no_t0':
-		tgfm_data, filter_error_bool = filter_tgfm_data_structure_to_remove_tissue0_gene_tissue_pairs(tgfm_data)
-		if filter_error_bool:
-			print('skipped because of no genes')
-			t_pip.write(window_name + '\tNA\tNA\n')
-			continue
-
-	if gene_type == 'cafeh':
-		booler = False
-		for ii in range(len(tgfm_data['sparse_sampled_gene_eqtl_pmces'])):
-			if tgfm_data['sparse_sampled_gene_eqtl_pmces'][ii].shape[0] == 0.0:
-				booler = True
-		if booler:
-			print('skipped because of no genes')
-			t_pip.write(window_name + '\tNA\tNA\n')
-			continue	
 
 
 	# Extract gwas p

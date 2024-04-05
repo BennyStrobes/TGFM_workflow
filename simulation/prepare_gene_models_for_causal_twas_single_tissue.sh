@@ -14,10 +14,10 @@ tmp_pos_file="$5"
 gene_model_output_root="$6"
 gene_model_base_root="$7"
 eqtl_sample_size="$8"
+tissue_number="$9"
 
 
-
-python3 prepare_gene_models_for_causal_twas_pt1.py $input_causal_eqtl_effects_file $simulated_learned_gene_models_stem $genotype_bim_file $tmp_pos_file $gene_model_output_root $eqtl_sample_size
+python3 prepare_gene_models_for_causal_twas_pt1_single_tissue.py $input_causal_eqtl_effects_file $simulated_learned_gene_models_stem $genotype_bim_file $tmp_pos_file $gene_model_output_root $eqtl_sample_size $tissue_number
 
 Rscript prepare_gene_models_for_causal_twas_pt2.R $tmp_pos_file $gene_model_base_root
 

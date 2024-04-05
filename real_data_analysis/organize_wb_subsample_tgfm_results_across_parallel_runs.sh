@@ -17,11 +17,10 @@ processed_tgfm_input_stem="$7"
 ukbb_preprocessed_for_genome_wide_susie_dir="$8"
 tgfm_organized_results_dir="${9}"
 gene_annotation_file="${10}"
-trait_name="${11}"
-tgfm_result_file_stem="${12}"
+tgfm_result_file_stem="${11}"
 
 if false; then
 source ~/.bash_profile
 fi
 
-python3 organize_tgfm_results_across_parallel_runs.py $tgfm_results_dir $gene_type $num_jobs $trait_names_file $gtex_pseudotissue_file $gtex_pseudotissue_category_file $processed_tgfm_input_stem $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file $trait_name $tgfm_result_file_stem
+python3 organize_wb_subsample_tgfm_results_across_parallel_runs.py $tgfm_results_dir $gene_type $num_jobs $trait_names_file $gtex_pseudotissue_file $gtex_pseudotissue_category_file $processed_tgfm_input_stem $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file $tgfm_result_file_stem

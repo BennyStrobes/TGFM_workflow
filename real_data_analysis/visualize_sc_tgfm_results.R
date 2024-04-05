@@ -8,9 +8,11 @@ library(stringr)
 library(reshape2)
 library(ggbeeswarm)
 library(RColorBrewer)
+library(ggrepel)
+library(ggnewscale)
+library(RColorBrewer)
 options(warn=1)
 options(bitmapType='cairo')
-
 
 figure_theme <- function() {
 	return(theme(plot.title = element_text(face="plain",size=11), text = element_text(size=11),axis.text=element_text(size=11), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"), legend.text = element_text(size=11), legend.title = element_text(size=11)))
@@ -2766,6 +2768,52 @@ generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_it
 }
 
 
+make_replication_analysis_histogram <- function(repication_data_file, replication_name, original_tissue, replicating_tissue, replicating_tissue_name_readable) {
+	df <- read.table(repication_data_file, header=TRUE, sep="\t")
+
+	all_tissue_names <- as.character(unique(df$new_tissue))
+
+	# Remore replicating tissue
+	other_tissue_names <- all_tissue_names[all_tissue_names!=replicating_tissue]
+
+
+	tissue_names_arr <- c()
+	avg_pip_arr <- c()
+
+
+	# loop Through tissues
+	for (tissue_iter in 1:length(other_tissue_names)) {
+		tissue_name <- other_tissue_names[tissue_iter]
+		avg_pip = mean(df$new_tissue_pip[as.character(df$new_tissue) == tissue_name])
+
+		tissue_names_arr <- c(tissue_names_arr, tissue_name)
+		avg_pip_arr <- c(avg_pip_arr, avg_pip)
+
+	}
+
+	df2 <- data.frame(PIP=avg_pip_arr, tissue=tissue_names_arr)
+
+
+	replication_avg_pip = mean(df$new_tissue_pip[as.character(df$new_tissue) == replicating_tissue])
+
+	df3 <- data.frame(PIPPY=c(replication_avg_pip), labeler=c(replicating_tissue_name_readable), density=c(10))
+
+
+	p <- ggplot(df2, aes(PIP)) +
+  		geom_density(fill="skyblue", alpha=0.6) +
+  		figure_theme() +
+  		geom_vline(xintercept = replication_avg_pip,color = "red", size=1.5) + 
+  		xlim(0, .35) +
+		geom_text_repel(data=df3, aes(x=PIPPY, y=density, label=labeler), color="red",size=4.4, nudge_x=-.02) +
+		labs(y="", x="Average Replicating Gene-Tissue PIP / Tissue")
+
+
+  	return(p)
+
+
+}
+
+
 
 ##################################
 # Extract command line arguments
@@ -2777,6 +2825,7 @@ tgfm_organized_results_dir <- args[3]
 iterative_tgfm_prior_dir <- args[4]
 visualize_tgfm_dir <- args[5]
 tissue_tissue_ct_ct_correlation_file <- args[6]
+tissue_replication_results_dir <- args[7]
 
 
 
@@ -2806,6 +2855,30 @@ tissue_names = as.character(aa$element_name[2:length(aa$element_name)])
 
 independent_traits <- c("body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "pigment_HAIR", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled")
 
+
+
+
+
+##################################################
+# Make replication analysis histogram
+##################################################
+# PBMC replication
+replication_name="Whole_Blood_PBMC"
+original_tissue="Whole_Blood"
+replicating_tissue="PBMC"
+repication_data_file <- paste0(tissue_replication_results_dir, replication_name, "_replication_pip_0.5_raw_replication_results.txt")
+rep_histo <- make_replication_analysis_histogram(repication_data_file, replication_name, original_tissue, replicating_tissue , "PBMC")
+output_file = paste0(visualize_tgfm_dir, replication_name, "_replication_histogram.pdf")
+ggsave(rep_histo, file=output_file, width=7.2, height=4.1, units="in")
+
+# Whole blood subsampled replication
+replication_name="Whole_Blood_Whole_Blood_subsampled"
+original_tissue="Whole_Blood"
+replicating_tissue="Whole_Blood_subsampled"
+repication_data_file <- paste0(tissue_replication_results_dir, replication_name, "_replication_pip_0.5_raw_replication_results.txt")
+rep_histo <- make_replication_analysis_histogram(repication_data_file, replication_name, original_tissue, replicating_tissue, "Whole Blood (subsampled)")
+output_file = paste0(visualize_tgfm_dir, replication_name, "_replication_histogram.pdf")
+ggsave(rep_histo, file=output_file, width=7.2, height=4.1, units="in")
 
 
 ##################################################
@@ -3027,6 +3100,7 @@ ggsave(fig_6, file=output_file, width=7.2, height=6.9, units="in")
 ##########################################################
 # Make Figure 6 alt
 ##########################################################
+if (FALSE) {
 # Make heatmap-barplot showing expected number of causal gene-tissue pairs
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 single_cell_cell_types <- c("B", "NK", "Prolif", "T4", "T8", "cDC", "cM", "ncM", "pDC")
@@ -3061,7 +3135,7 @@ fig_6 <- plot_grid(fig_6ab, fig_6cf, ncol=1, rel_heights=c(.7,.65))
 output_file <- paste0(visualize_tgfm_dir, "figure6_alt.pdf")
 
 ggsave(fig_6, file=output_file, width=7.2, height=5.5, units="in")
-
+}
 
 
 

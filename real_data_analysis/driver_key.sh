@@ -22,11 +22,18 @@ liftover_directory="/n/groups/price/ben/tools/liftOver_x86/"
 # Individual names: /n/groups/price/tiffany/subpheno/AllGTExTissues_restore/Downsampled_Ind
 gtex_pseudotissue_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_info.txt"
 gtex_pseudotissue_whole_blood_subsampled_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_whole_blood_subsampled_info.txt"
+gtex_pseudotissue_plus_cell_type_group_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_info_plus_cell_type_group.txt"
+
+
+
 
 # File containing gtex pseudotissues and their assigned tissue category
 gtex_pseudotissue_category_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_categories.txt"
+# File containing gtex pseudotissues and their assigned tissue category
+gtex_pseudotissue_category_whole_blood_subsampled_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/pseudotissue_categories_whole_blood_subsampled.txt"
 # File containing gtex tissue info
 gtex_tissue_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_sample_names/tissue_info.txt"
+
 
 # File containing gtex genes
 xt_gene_list_file="/n/groups/price/ben/eqtl_informed_prs/gtex_v8_meta_analysis_eqtl_calling/pseudotissue_expression/cross_tissue_gene_list.txt"
@@ -67,6 +74,9 @@ tcsc_results_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/SingleTraitTC
 # Genotype data from 1KG
 ref_1kg_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/plink_files/"
 
+# LDSC 1KG genotype files (hg19)
+ref_1kg_hg19_genotype_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/plink_files/"
+
 # Gtex tissue colors file
 gtex_tissue_colors_file="/n/groups/price/ben/causal_eqtl_gwas/gtex_v8_causal_eqtl_gwas_38_tissues/input_data/gtex_tissue_colors.txt"
 
@@ -78,8 +88,10 @@ ukbb_in_sample_ld_dir="/n/groups/price/UKBiobank/insample_ld/ld_files/"
 ukbb_in_sample_genotype_dir="/n/groups/price/UKBiobank/insample_ld/pvar_files/"
 
 # LDSC baseline LD Dir
-ldsc_baseline_ld_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/baselineLD_v2.2/"
-ldsc_baseline_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/baseline_v1.2/"
+ldsc_baseline_ld_hg19_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/baselineLD_v2.2/"
+
+# LDSC cell type group annotation dir
+ldsc_cell_type_group_hg19_annotation_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/1000G_Phase3_cell_type_groups/"
 
 # Ldscore regression code
 ldsc_code_dir="/n/groups/price/ben/tools/ldsc/"
@@ -95,7 +107,7 @@ mod_ldsc_code_dir=$curr_dir"/modified_sldsc/"
 full_sumstat_dir="/n/groups/price/ldsc/sumstats_formatted_2021/"
 
 # hg38 sldsc weights
-sldsc_h38_weights_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3_hg38/weights/"
+sldsc_h19_weights_dir="/n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/weights/"
 
 # Directory containing quasi-independent ld bllocks
 quasi_independent_dir="/n/groups/price/ben/quasi_independent_ld_blocks/"
@@ -222,6 +234,9 @@ sc_pb_tgfm_results_dir=$output_root"sc_pb_tgfm_results/"
 # Directory containing organized TGFM results
 sc_tgfm_organized_results_dir=$perm_output_root"sc_tgfm_organized_results/"
 
+# Directory containing organized TGFM results
+sc_pb_tgfm_organized_results_dir=$perm_output_root"sc_pb_tgfm_organized_results/"
+
 # Directory containing TGFM iterative prior results
 iterative_sc_tgfm_prior_results_dir=$perm_output_root"iterative_sc_tgfm_prior/"
 
@@ -242,6 +257,10 @@ visualize_specific_sc_tgfm_examples_dir=$perm_output_root"visualize_specific_sc_
 
 visualize_held_out_tissue_comparison_dir=$perm_output_root"visualize_held_out_tissue_comparison/"
 
+tissue_replication_results_dir=$perm_output_root"tissue_replication_results/"
+
+# Directory containing chromatin cell type group ldsc
+chromatin_cell_type_group_ldsc_dir=$perm_output_root"chromatin_cell_type_group_ldsc/"
 
 supp_data_dir=$perm_output_root"supp_data_dir/"
 
@@ -257,8 +276,6 @@ supp_data_dir=$perm_output_root"supp_data_dir/"
 if false; then
 sbatch liftover_ukbb_summary_statistics_from_hg19_to_hg38.sh $liftover_directory $ukbb_sumstats_hg19_dir $ukbb_sumstats_hg38_dir
 fi
-
-
 
 
 ########################################
@@ -546,37 +563,35 @@ done
 fi
 
 
-if false; then
-trait_name="body_HEIGHTz"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_tgfm_data_whole_blood_subsampled_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_wb_subsamp_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_whole_blood_subsampled_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
-
-trait_name="blood_MEAN_CORPUSCULAR_HEMOGLOBIN"
-job_number="4"
-tgfm_input_summary_file=${preprocessed_tgfm_data_whole_blood_subsampled_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_wb_subsamp_"${trait_name}"_"${gene_type}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_whole_blood_subsampled_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
-fi
-
 
 #################################
 # Organize TGFM Results across parallel runs
 #################################
 gene_type="component_gene"
+tgfm_result_file_stem="tgfm_results"
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
-	sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file $trait_name
+	sh organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file $trait_name $tgfm_result_file_stem
 done
 fi
 
 gene_type="all_non_zero_gene"
+tgfm_result_file_stem="tgfm_results"
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
-	sbatch organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file $trait_name
+	sbatch organize_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file $trait_name $tgfm_result_file_stem
 done
 fi
+
+# WB subsample
+if false; then
+gene_type="component_gene"
+tgfm_result_file_stem="tgfm_results_wb_subsamp"
+sh organize_wb_subsample_tgfm_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" $gtex_pseudotissue_whole_blood_subsampled_file $gtex_pseudotissue_category_whole_blood_subsampled_file ${preprocessed_tgfm_data_whole_blood_subsampled_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file $tgfm_result_file_stem
+fi
+
+
+
 
 #################################
 # Run TGFM-pmces when holding out some of the presumed causal tissues
@@ -667,38 +682,11 @@ done
 fi
 
 
-if false; then
-trait_name="blood_MEAN_PLATELET_VOL"
-job_number="6"
-ignore_tissues="Whole_Blood"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
-
-trait_name="body_HEIGHTz"
-job_number="6"
-ignore_tissues="Cells_Cultured_fibroblasts"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
-
-trait_name="bp_DIASTOLICadjMEDz"
-job_number="6"
-ignore_tissues="Artery_Aorta"
-tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
-fi
-
 #################################
 # Organize TGFM-held-out tissue results across parallel runs
 #################################
 if false; then
 sh organize_tgfm_held_out_tissue_results_across_parallel_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $gtex_pseudotissue_file $gtex_pseudotissue_category_file ${preprocessed_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_organized_results_dir $gene_annotation_file
-fi
-
-if false; then
-Rscript visualize_held_out_tissue_comparision.R $tgfm_organized_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $visualize_held_out_tissue_comparison_dir
 fi
 
 
@@ -764,6 +752,30 @@ fi
 
 
 #################################
+# Run comparison of TGFM-WHole blood PIPs to TGFM-Whole blood subsampled
+#################################
+if false; then
+sh tgfm_tissue_replication_analysis.sh $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" $tgfm_organized_results_dir"tgfm_results" $tgfm_organized_results_dir"tgfm_results_wb_subsamp" $gtex_pseudotissue_file $gtex_pseudotissue_whole_blood_subsampled_file "Whole_Blood" $tissue_replication_results_dir"Whole_Blood_Whole_Blood_subsampled_replication" "component_gene" "component_gene"
+fi
+
+
+
+
+########################################
+# Run S-LDSC in each trait for chromatin cell type enrichment
+########################################
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
+	sbatch run_sldsc_in_single_trait_for_chromatin_cell_type_enrichment.sh $trait_name $ldsc_code_dir $full_sumstat_dir $ldsc_baseline_ld_hg19_annotation_dir $ldsc_cell_type_group_hg19_annotation_dir $ref_1kg_hg19_genotype_dir $sldsc_h19_weights_dir $chromatin_cell_type_group_ldsc_dir
+done
+fi
+tgfm_trait_tissue_significance_file=$visualize_gtex_tgfm_dir"trait_tissue_prior_bonferronni_corrected_significance.txt"
+if false; then
+python3 organize_tgfm_chromatin_sldsc_enrichment_results.py $tgfm_trait_tissue_significance_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $chromatin_cell_type_group_ldsc_dir $gtex_pseudotissue_plus_cell_type_group_file
+fi
+
+
+#################################
 # Visualize TGFM results
 #################################
 if false; then
@@ -771,8 +783,7 @@ source ~/.bash_profile
 module load R/3.5.1
 fi
 if false; then
-echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt"
-Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_results_dir $tgfm_organized_results_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir $tissue_tissue_correlation_file $gtex_pseudotissue_file
+Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_results_dir $tgfm_organized_results_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir $tissue_tissue_correlation_file $gtex_pseudotissue_file $chromatin_cell_type_group_ldsc_dir
 fi
 
 
@@ -948,7 +959,6 @@ fi
 
 
 
-echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt"
 #PBMC
 ignore_tissues="Whole_Blood"
 job_number="0"
@@ -1020,32 +1030,26 @@ done
 done
 fi
 
-trait_name="body_HEIGHTz"
-job_number="6"
-tgfm_input_summary_file=${preprocessed_sc_pb_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
-tgfm_output_stem=${sc_pb_tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}"_ignore_"${ignore_tissues}
-if false; then
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_PBMC_file $iterative_sc_pb_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
-fi
-
-trait_name="blood_MEAN_CORPUSCULAR_HEMOGLOBIN"
-job_number="6"
-if false; then
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_PBMC_file $iterative_sc_pb_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
-fi
-
-trait_name="blood_MEAN_CORPUSCULAR_HEMOGLOBIN"
-job_number="4"
-if false; then
-sbatch run_tgfm_with_iterative_prior_shell_already_started.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $merged_tissue_PBMC_file $iterative_sc_pb_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
-fi
-
 
 #################################
 # Organize TGFM Results across parallel runs
 #################################
 if false; then
-sh organize_sc_tgfm_results_across_parallel_runs.sh $sc_tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $merged_tissue_cell_type_file $gtex_pseudotissue_category_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $tgfm_sldsc_results_dir $sc_tgfm_organized_results_dir $gene_annotation_file $tgfm_organized_results_dir
+sh organize_sc_tgfm_results_across_parallel_runs.sh $sc_tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $merged_tissue_cell_type_file $gtex_pseudotissue_category_file ${preprocessed_sc_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $sc_tgfm_organized_results_dir $gene_annotation_file $tgfm_organized_results_dir
+fi
+
+if false; then
+sh organize_sc_pb_tgfm_results_across_parallel_runs.sh $sc_pb_tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" $merged_tissue_PBMC_file $gtex_pseudotissue_category_file ${preprocessed_sc_pb_tgfm_data_dir}${gene_type} $ukbb_preprocessed_for_genome_wide_susie_dir $sc_pb_tgfm_organized_results_dir $gene_annotation_file $tgfm_organized_results_dir
+fi
+
+
+
+
+#################################
+# Run comparison of TGFM-WHole blood PIPs to TGFM-Whole blood subsampled
+#################################
+if false; then
+sh tgfm_tissue_replication_analysis.sh $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" $tgfm_organized_results_dir"tgfm_results" ${sc_pb_tgfm_organized_results_dir}"tgfm_results" $gtex_pseudotissue_file $merged_tissue_PBMC_file "Whole_Blood" $tissue_replication_results_dir"Whole_Blood_PBMC_replication" "component_gene" "component_gene_ignore_Whole_Blood"
 fi
 
 #################################
@@ -1070,6 +1074,13 @@ fi
 
 
 
+
+
+
+
+
+
+
 #################################
 # Visualize TGFM results
 #################################
@@ -1078,8 +1089,15 @@ source ~/.bash_profile
 module load R/3.5.1
 fi
 if false; then
-Rscript visualize_sc_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $sc_tgfm_results_dir $sc_tgfm_organized_results_dir $iterative_sc_tgfm_prior_results_dir $visualize_sc_tgfm_dir $tissue_tissue_ct_ct_correlation_file
+Rscript visualize_sc_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $sc_tgfm_results_dir $sc_tgfm_organized_results_dir $iterative_sc_tgfm_prior_results_dir $visualize_sc_tgfm_dir $tissue_tissue_ct_ct_correlation_file $tissue_replication_results_dir
 fi
+
+
+#################################
+# Visualize held out tissue analyses
+#################################
+Rscript visualize_held_out_tissue_comparision.R $tgfm_organized_results_dir $sc_pb_tgfm_organized_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" $visualize_held_out_tissue_comparison_dir
+
 
 
 #################################
@@ -1088,6 +1106,7 @@ fi
 if false; then
 sh prepare_misc_supp_data.sh $supp_data_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $gtex_pseudotissue_file $gtex_covariate_dir $tgfm_organized_results_dir $gtex_susie_gene_models_dir $sc_pbmc_susie_gene_models_dir $sc_pseudobulk_expression_dir $sc_tgfm_organized_results_dir
 fi
+
 
 
 

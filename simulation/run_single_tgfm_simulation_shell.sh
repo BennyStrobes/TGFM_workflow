@@ -110,6 +110,7 @@ python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_met
 fi
 
 
+if false; then
 echo "Part 3: iterative prior w prior"
 # Iterative prior (PMCES)
 version="pmces"
@@ -123,7 +124,7 @@ version="pmces"
 ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_w_prior_pip_level_bootstrapped"
 tgfm_output_stem=${simulated_tgfm_results_dir}${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $tgfm_tissues $gene_type
-
+fi
 
 
 

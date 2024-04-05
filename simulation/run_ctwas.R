@@ -68,8 +68,3 @@ ctwas_rss(z_gene = z_gene,
           thin = thin,
           max_snp_region = max_snp_region,
           ncore = ncore)
-
-
-
-
-
