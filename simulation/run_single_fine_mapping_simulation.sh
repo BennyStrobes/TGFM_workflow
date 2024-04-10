@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-45:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-41:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
-#SBATCH --mem=40GB                         # Memory total in MiB (for all cores)
+#SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
 
 
 
@@ -54,40 +54,24 @@ simulated_learned_gene_models_dir=${simulated_learned_gene_models_base_dir}"simu
 global_window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_3_mb.txt"
 
 
-
-#######################################################
-# Step 1: Fit gene models
-#######################################################
-echo "Simulation Step 1"
-if false; then
-python3 fit_gene_models.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture $eqtl_sample_size
-fi
-
-
-
-
 #######################################################
 # Step 2: Preprocess data for TGFM
 #######################################################
-if false; then
 source /home/bes710/.bash_profile
-fi
 echo "Simulation Step 2"
+date
 eqtl_type="susie"
 n_bootstraps="100"
 annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
-if false; then
 python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir $n_bootstraps
-fi
+
 
 #######################################################
 # Step 3: Preprocess data for TGFM-LASSO
 #######################################################
 echo "Simulation Step 3"
-if false; then
+date
 python3 preprocess_data_for_tgfm_lasso_gene_model.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir
-fi
-
 
 
 
@@ -95,24 +79,22 @@ fi
 # Step 4: Run coloc
 #######################################################
 echo "Simulation Step 4"
-if false; then
+date
 source /home/bes710/.bash_profile
 module load R/4.0.1
-fi
+
 merged_gwas_summary_stat_file=${simulated_gwas_dir}${simulation_name_string}"_merged_gwas_summary_stats.txt"
-if false; then
 python3 run_coloc_shell.py $merged_gwas_summary_stat_file $simulation_number $chrom_num $simulation_name_string $eqtl_sample_size $n_gwas_individuals $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_coloc_results_dir
-fi
+
 
 
 
 ##################################
 # TGFM 
 ##################################
-if false; then
 source /home/bes710/.bash_profile
 module load R/4.0.1
-fi
+
 # TGFM parameters
 init_method="best"
 est_resid_var="False"
@@ -133,68 +115,47 @@ tgfm_simulation_name_string=${simulation_name_string}"_nsamp_"${n_bootstraps}"_"
 
 
 echo "Part 5: TGFM with Uniform prior and only PMCES"
+date
 # Uniform (PMCES)
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${tgfm_simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
-if false; then
 python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $gene_type
-fi
+
 
 echo "Part 6: TGFM with Uniform prior and sampling"
+date
 # Uniform (sampler)
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${tgfm_simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
-if false; then
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $gene_type
-fi
+
 
 echo "Part 7: TGFM tissue specific prior"
+date
 # Iterative prior (PMCES)
 version="pmces"
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${tgfm_simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}
-if false; then
 python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $tgfm_input_summary_file $tgfm_output_stem $version $n_bootstraps
-fi
+
 
 echo "Part 8: TGFM with tissue-specific prior and sampling"
+date
 version="pmces"
 ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstrapped"
 tgfm_output_stem=${simulated_tgfm_results_dir}${tgfm_simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
-if false; then
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $gene_type
-fi
+
 
 echo "Part 9: TGFM with Uniform prior and only LASSO-PMCES"
+date
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${tgfm_simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_lasso_"${ln_pi_method}
-if false; then
 python3 run_tgfm_pmces.py $tgfm_lasso_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method "lasso"
-fi
 
 
-
-
-##################################
-# FOCUS
-##################################
-echo "Part 10: FOCUS"
-gene_type="component_gene"
-if false; then
-sh run_single_focus_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $eqtl_sample_size $simulated_focus_input_dir $simulated_focus_results_dir $gene_type
-fi
-
-
-##################################
-# cTWAS
-##################################
-echo "Part 11: cTWAS"
-sh run_single_causal_twas_simulation_shell.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_causal_twas_input_data_dir $simulated_causal_twas_gene_models_dir $simulated_causal_twas_results_dir $eqtl_sample_size $processed_ctwas_genotype_data_dir
-
-
-
-
-
+echo "Part 10: Delete unnessary gene models"
+python3 delete_unnessary_learned_gene_model_files.py $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $eqtl_sample_size
 
 
 

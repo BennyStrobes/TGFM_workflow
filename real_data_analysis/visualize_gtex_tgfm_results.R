@@ -1728,10 +1728,8 @@ make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_
   		labs(x="",y="", fill="Proportion of fine-mapped gene-tissue pairs")
 
   	if (significance_bool == TRUE) {
-  		pp = pp + geom_text(aes(label=significance))
+  		pp = pp + geom_text(aes(label=significance),vjust=.8)
   	}
-
-
 
   	return(pp)	
 }
@@ -3196,7 +3194,96 @@ make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot <- fu
 
 
 }
+make_trait_tissue_chromatin_overlap_density <- function(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=FALSE) {
+	# Load in data
+	df <- read.table(trait_tissue_chromatin_overlap_barplot, header=TRUE, sep="\t")
 
+
+	df$sldsc_p = -log10(df$sldsc_p)
+
+	# Potentially filter to independent traits
+	if (independent_traits) {
+		df <- df[as.character(df$trait_type) == "independent", ]
+	}
+
+	arr = rep("FDR > 0.05", length(df$tgfm_sig))
+	arr[as.character(df$tgfm_sig) == "True"] = "FDR <= 0.05"
+	df$tgfm_fdr = arr
+	df$tgfm_fdr = factor(df$tgfm_fdr, levels=c("FDR <= 0.05", "FDR > 0.05"))
+	red_color =brewer.pal(n = 9, name = "Reds")[6]
+
+	pp <- ggplot(df, aes(x=sldsc_p,  fill=tgfm_fdr,colour = tgfm_fdr)) +
+  		geom_density(alpha = 0.2) +
+    	scale_fill_manual(values=c(red_color, "black")) +
+  		scale_colour_manual(values=c(red_color, "grey")) +
+  		figure_theme() + 
+    	theme(legend.position="top") + 
+  		labs(x="SLDSC -log10(p-value)",fill="Tissue-trait pairs (TGFM tissue-specific prior)",colour="Tissue-trait pairs (TGFM tissue-specific prior)")
+
+  	return(pp)
+
+}
+
+make_trait_tissue_chromatin_overlap_cdf <- function(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=FALSE) {
+	# Load in data
+	df <- read.table(trait_tissue_chromatin_overlap_barplot, header=TRUE, sep="\t")
+
+
+	df$sldsc_p = -log10(df$sldsc_p)
+
+	# Potentially filter to independent traits
+	if (independent_traits) {
+		df <- df[as.character(df$trait_type) == "independent", ]
+	}
+
+	arr = rep("FDR > 0.05", length(df$tgfm_sig))
+	arr[as.character(df$tgfm_sig) == "True"] = "FDR <= 0.05"
+	df$tgfm_fdr = arr
+	df$tgfm_fdr = factor(df$tgfm_fdr, levels=c("FDR <= 0.05", "FDR > 0.05"))
+	red_color =brewer.pal(n = 9, name = "Reds")[6]
+
+	pp <- ggplot(df, aes(x=sldsc_p,  fill=tgfm_fdr,colour = tgfm_fdr, y= 1-..y..)) +
+  		stat_ecdf() +
+  		figure_theme() + 
+     	scale_fill_manual(values=c(red_color, "black")) +
+  		scale_colour_manual(values=c(red_color, "grey30")) +
+  		theme(legend.position="top") + 
+  		labs(x="SLDSC -log10(p-value)",y="Replication rate", fill="Tissue-trait pairs (TGFM tissue-specific prior)",colour="Tissue-trait pairs (TGFM tissue-specific prior)" )
+
+  	return(pp)
+
+}
+
+
+make_trait_tissue_chromatin_overlap_histogram <- function(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=FALSE) {
+	# Load in data
+	df <- read.table(trait_tissue_chromatin_overlap_barplot, header=TRUE, sep="\t")
+
+	df$sldsc_p = -log10(df$sldsc_p)
+
+	# Potentially filter to independent traits
+	if (independent_traits) {
+		df <- df[as.character(df$trait_type) == "independent", ]
+	}
+
+	
+	arr = rep("FDR > 0.05", length(df$tgfm_sig))
+	arr[as.character(df$tgfm_sig) == "True"] = "FDR <= 0.05"
+	df$tgfm_fdr = arr
+	df$tgfm_fdr = factor(df$tgfm_fdr, levels=c("FDR <= 0.05", "FDR > 0.05"))
+	red_color =brewer.pal(n = 9, name = "Reds")[6]
+
+	pp <- ggplot(df, aes(x=sldsc_p, colour = tgfm_fdr,fill=tgfm_fdr)) +
+  		geom_histogram(aes(y=..density..),alpha = 0.2, position='identity') +
+  		figure_theme() + 
+  		scale_fill_manual(values=c(red_color, "black")) +
+  		scale_colour_manual(values=c(red_color, "grey")) +
+  		theme(legend.position="top") +
+  		labs(x="SLDSC -log10(p-value)", colour="Tissue-trait pairs (TGFM tissue-specific prior)", fill="Tissue-trait pairs (TGFM tissue-specific prior)") 
+  	return(pp)
+
+
+}
 
 make_trait_tissue_chromatin_overlap_barplot <- function(trait_tissue_chromatin_overlap_barplot, independent_traits=TRUE) {
 	# Load in data
@@ -3669,16 +3756,19 @@ ggsave(gene_tissue_heatmap_t_barplot, file=output_file_pdf, width=7.2, height=6.
 
 
 
-if (FALSE) {
 ##########################################################
 # Make heatmap (with significance stars) showing expected number of causal genes in each tissue-trait pair for selected traits
 ##########################################################
+if (FALSE) {
 pip_thresh <- "0.5"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 selected_traits <- c("disease_AID_ALL", "biochemistry_VitaminD", "body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled")
 heatmap <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, selected_traits,trait_tissue_prior_significance_file, significance_bool=TRUE, only_fdr_05=TRUE)
 output_file <- paste0(visualize_tgfm_dir, "expected_num_causal_genes_", pip_thresh, "_", method_version,"_selected_traits_heatmap_with_significance.pdf")
 ggsave(heatmap, file=output_file, width=7.2, height=6.0, units="in")
+}
+
+if (FALSE) {
 
 ##########################################################
 # Make heatmap showing expected number of causal genes in each tissue-trait pair for selected traits
@@ -3728,17 +3818,104 @@ ggsave(barplot, file=output_file, width=7.2, height=4.7, units="in")
 ##########################################################
 # Make trait-tissue pair chromatin overlap bar plot for a range of thresholds
 ##########################################################
+if (FALSE) {
 fdr <- "0.05"
 trait_tissue_chromatin_overlap_barplot <- paste0(chromatin_cell_type_group_ldsc_dir, "tgfm_sldsc_chromatin_overlap_summary_", fdr, ".txt")
 barplot_05 <- make_trait_tissue_chromatin_overlap_barplot_multiple_thresh(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=TRUE)
 output_file <- paste0(visualize_tgfm_dir, "trait_tissue_pair_chromatin_overlap_tgfm_multiple_thresh.pdf")
 ggsave(barplot_05, file=output_file, width=7.2, height=4.7, units="in")
+}
 
+if (FALSE) {
+##########################################################
+# Make trait-tissue pair chromatin overlap histogram plot
+##########################################################
+fdr <- "0.05"
+trait_tissue_chromatin_overlap_barplot <- paste0(chromatin_cell_type_group_ldsc_dir, "tgfm_sldsc_chromatin_overlap_summary_", fdr, ".txt")
+barplot_05 <- make_trait_tissue_chromatin_overlap_histogram(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=FALSE)
+output_file <- paste0(visualize_tgfm_dir, "trait_tissue_pair_chromatin_overlap_tgfm_histogram_", fdr, ".pdf")
+ggsave(barplot_05, file=output_file, width=7.2, height=4.7, units="in")
+
+##########################################################
+# Make trait-tissue pair chromatin overlap densityp plot
+##########################################################
+fdr <- "0.05"
+trait_tissue_chromatin_overlap_barplot <- paste0(chromatin_cell_type_group_ldsc_dir, "tgfm_sldsc_chromatin_overlap_summary_", fdr, ".txt")
+barplot_05 <- make_trait_tissue_chromatin_overlap_density(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=FALSE)
+output_file <- paste0(visualize_tgfm_dir, "trait_tissue_pair_chromatin_overlap_tgfm_density_", fdr, ".pdf")
+ggsave(barplot_05, file=output_file, width=7.2, height=4.7, units="in")
 
 
 ##########################################################
-# Make Figure 4
+# Make trait-tissue pair chromatin overlap cdf plot
 ##########################################################
+fdr <- "0.05"
+trait_tissue_chromatin_overlap_barplot <- paste0(chromatin_cell_type_group_ldsc_dir, "tgfm_sldsc_chromatin_overlap_summary_", fdr, ".txt")
+barplot_05 <- make_trait_tissue_chromatin_overlap_cdf(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=FALSE)
+output_file <- paste0(visualize_tgfm_dir, "trait_tissue_pair_chromatin_overlap_tgfm_cdf_", fdr, ".pdf")
+ggsave(barplot_05, file=output_file, width=7.2, height=4.7, units="in")
+}
+
+
+##########################################################
+# Make Figure 4 (alt)
+##########################################################
+# FIG 4A
+pip_thresh <- "0.5"
+method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
+selected_traits <- c("disease_AID_ALL", "biochemistry_VitaminD", "body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled")
+fig_4a <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, selected_traits,trait_tissue_prior_significance_file, significance_bool=TRUE, only_fdr_05=TRUE)
+
+# FIG 4B
+fdr <- "0.05"
+trait_tissue_chromatin_overlap_barplot <- paste0(chromatin_cell_type_group_ldsc_dir, "tgfm_sldsc_chromatin_overlap_summary_", fdr, ".txt")
+fig_4b <- make_trait_tissue_chromatin_overlap_cdf(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=FALSE) + theme(legend.position="bottom") + guides(fill = guide_legend(title.position = "top")) + labs(fill="TGFM tissue-specific prior", colour="TGFM tissue-specific prior")
+fig_4b <- plot_grid(fig_4b, NULL, ncol=1, rel_heights=c(1,.01))
+
+
+# FIG 4c
+pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
+fig_4c <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits) +theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points"))
+
+# MAke joint plot
+fig_4bc = plot_grid(fig_4b, fig_4c, ncol=2, rel_widths=c(.5, .5), labels=c("b", "c"))
+fig_4 <- plot_grid(fig_4a + theme(legend.position="top") + theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points")), fig_4bc, ncol=1, rel_heights=c(.6,.4), labels=c("a", ""))
+output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
+ggsave(fig_4, file=output_file, width=7.2, height=6.8, units="in")
+
+
+##########################################################
+# Make Figure 4 (alt)
+##########################################################
+if (FALSE) {
+# FIG 4A
+pip_thresh <- "0.5"
+method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
+selected_traits <- c("disease_AID_ALL", "biochemistry_VitaminD", "body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSCOREz", "blood_MEAN_CORPUSCULAR_HEMOGLOBIN", "blood_MONOCYTE_COUNT", "blood_HIGH_LIGHT_SCATTER_RETICULOCYTE_COUNT", "lung_FEV1FVCzSMOKE", "body_BALDING1", "biochemistry_Cholesterol", "bp_DIASTOLICadjMEDz", "lung_FVCzSMOKE", "repro_MENARCHE_AGE", "disease_ALLERGY_ECZEMA_DIAGNOSED", "other_MORNINGPERSON", "repro_NumberChildrenEverBorn_Pooled")
+fig_4a <- make_heatmap_showing_expected_number_of_causal_gene_tissue_pairs_cross_selected_traits(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, tissue_names, pip_thresh, selected_traits,trait_tissue_prior_significance_file, significance_bool=TRUE, only_fdr_05=TRUE)
+
+# FIG 4B
+fdr <- "0.05"
+trait_tissue_chromatin_overlap_barplot <- paste0(chromatin_cell_type_group_ldsc_dir, "tgfm_sldsc_chromatin_overlap_summary_", fdr, ".txt")
+fig_4b <- make_trait_tissue_chromatin_overlap_density(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=FALSE) + theme(legend.position="bottom") + guides(fill = guide_legend(title.position = "top")) + labs(fill="TGFM tissue-specific prior", colour="TGFM tissue-specific prior")
+fig_4b <- plot_grid(fig_4b, NULL, ncol=1, rel_heights=c(1,.01))
+
+
+# FIG 4c
+pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
+fig_4c <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits) +theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points"))
+
+# MAke joint plot
+fig_4bc = plot_grid(fig_4b, fig_4c, ncol=2, rel_widths=c(.5, .5), labels=c("b", "c"))
+fig_4 <- plot_grid(fig_4a + theme(legend.position="top") + theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points")), fig_4bc, ncol=1, rel_heights=c(.6,.4), labels=c("a", ""))
+output_file <- paste0(visualize_tgfm_dir, "figure4_alt_a.pdf")
+ggsave(fig_4, file=output_file, width=7.2, height=6.8, units="in")
+}
+
+##########################################################
+# Make Figure 4 (alt)
+##########################################################
+if (FALSE) {
 # FIG 4A
 pip_thresh <- "0.5"
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
@@ -3760,9 +3937,9 @@ fig_4bc_null = plot_grid(NULL, NULL, ncol=2, rel_widths=c(.35, .6), labels=c("b"
 fig_4bc = plot_grid(fig_4b, fig_4c, ncol=2, rel_widths=c(.35, .6))
 fig_4bc = plot_grid(fig_4bc_null, fig_4bc, ncol=1, rel_heights=c(.1,1))
 fig_4 <- plot_grid(fig_4a + theme(legend.position="top") + theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points")), fig_4bc, ncol=1, rel_heights=c(.65,.4), labels=c("a", ""))
-output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
+output_file <- paste0(visualize_tgfm_dir, "figure4_alt_b.pdf")
 ggsave(fig_4, file=output_file, width=7.2, height=6.7, units="in")
-
+}
 
 ##########################################################
 # Make Figure 4 (old)

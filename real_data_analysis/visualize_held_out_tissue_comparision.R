@@ -8,6 +8,7 @@ library(stringr)
 library(reshape2)
 library(ggbeeswarm)
 library(RColorBrewer)
+library(ggrepel)
 options(warn=1)
 options(bitmapType='cairo')
 
@@ -147,6 +148,82 @@ make_ablated_hit_summary_scatterplot_cross_trait <- function(df, title="") {
 	return(pp)
 }
 
+
+replication_gene_tissue_level_se_barplot_at_single_pip_thresholds <- function(organized_results_dir, pip_threshold) {
+	pip_thresholds <- rev(c(pip_threshold))
+	
+	category_vec <- c()
+	count_vec <- c()
+	pip_thresh_vec <- c()
+
+	for (pip_iter in 1:length(pip_thresholds)) {
+
+		pip_threshold <- pip_thresholds[pip_iter]
+
+		input_file <- paste0(organized_results_dir, "tgfm_results_hold_out_tissue_summary_", pip_threshold, ".txt")
+
+		raw_df <- read.table(input_file, header=TRUE,sep="\t")
+
+
+		category <- "no gene-tissue"
+		formal_category <- "no gene-tissue"
+		counts = sum(as.character(raw_df$gene_tissue_level_description) == category)
+		category_vec <- c(category_vec, formal_category)
+		count_vec <- c(count_vec, counts)
+		pip_thresh_vec <- c(pip_thresh_vec, rep(pip_threshold, length(counts)))
+
+
+		category <- "same gene, proxy tissue"
+		formal_category <- "same gene\n(Spleen)"
+		counts = sum(as.character(raw_df$gene_tissue_level_description) == category)
+		category_vec <- c(category_vec, formal_category)
+		count_vec <- c(count_vec, counts)
+		pip_thresh_vec <- c(pip_thresh_vec, rep(pip_threshold, length(counts)))
+
+		category <- "same gene, non-proxy tissue"
+		formal_category <- "same gene\n(other tissue)"
+		counts = sum(as.character(raw_df$gene_tissue_level_description) == category)
+		category_vec <- c(category_vec, formal_category)
+		count_vec <- c(count_vec, counts)
+		pip_thresh_vec <- c(pip_thresh_vec, rep(pip_threshold, length(counts)))
+
+		category <- "different gene, tissue"
+		formal_category <- "different gene-tissue"
+		counts = sum(as.character(raw_df$gene_tissue_level_description) == category)
+		category_vec <- c(category_vec, formal_category)
+		count_vec <- c(count_vec, counts)
+		pip_thresh_vec <- c(pip_thresh_vec, rep(pip_threshold, length(counts)))
+	}
+
+	red_color=brewer.pal(n = 9, name = "Reds")[6]
+	red_color1=brewer.pal(n = 9, name = "Reds")[3]
+	red_color2=brewer.pal(n = 9, name = "Reds")[5]
+
+
+
+	ordered_categories <- c("no gene-tissue", "same gene\n(Spleen)", "same gene\n(other tissue)", "different gene-tissue")
+
+
+	df <- data.frame(counts=count_vec, PIP=factor(pip_thresh_vec,levels=pip_thresholds), gene_category=factor(category_vec, levels=ordered_categories))
+
+	max_count = max(count_vec)
+	p <- ggplot(data=df, aes(x=gene_category, y=counts, fill=PIP)) +
+  		geom_bar(stat="identity", position="dodge")+
+  		figure_theme() +
+  		labs(y="\nNo. fine-mapped (PIP > 0.5)\ngene-tissue pairs", x="") +
+  		theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  		scale_fill_manual(values=rev(c(red_color)))+
+  		geom_text(aes(label=counts), position=position_dodge(width=0.9), vjust=-0.25) +
+  		ylim(0.0,max_count+5) +
+  		theme(plot.title = element_text(hjust = 0.5)) + 
+  		theme(legend.position="none")
+
+  	return(p)
+
+
+}
+
+
 replication_gene_tissue_level_se_barplot_at_various_pip_thresholds <- function(organized_results_dir, version="replication") {
 	pip_thresholds <- rev(c("0.3", "0.4", "0.5"))
 	
@@ -236,6 +313,70 @@ replication_gene_tissue_level_se_barplot_at_various_pip_thresholds <- function(o
 
 
 }
+
+gene_tissue_level_se_barplot_at_single_pip_threshold <- function(tgfm_organized_results_dir, pip_threshold) {
+	pip_thresholds <- rev(c(pip_threshold))
+	
+	category_vec <- c()
+	count_vec <- c()
+	pip_thresh_vec <- c()
+
+	for (pip_iter in 1:length(pip_thresholds)) {
+
+	pip_threshold <- pip_thresholds[pip_iter]
+
+	input_file <- paste0(tgfm_organized_results_dir, "tgfm_results_hold_out_tissue_summary_", pip_threshold, ".txt")
+	raw_df <- read.table(input_file, header=TRUE,sep="\t")
+
+	category <- "no gene-tissue"
+	counts = sum(as.character(raw_df$gene_tissue_level_description) == category)
+	category_vec <- c(category_vec, category)
+	count_vec <- c(count_vec, counts)
+	pip_thresh_vec <- c(pip_thresh_vec, rep(pip_threshold, length(counts)))
+
+	category <- "same gene, proxy tissue"
+	formal_category <- "same gene\n(proxy tissue)"
+	counts = sum(as.character(raw_df$gene_tissue_level_description) == category)
+	category_vec <- c(category_vec, formal_category)
+	count_vec <- c(count_vec, counts)
+	pip_thresh_vec <- c(pip_thresh_vec, rep(pip_threshold, length(counts)))
+
+	category <- "same gene, non-proxy tissue"
+	formal_category <- "same gene\n(non-proxy tissue)"
+	counts = sum(as.character(raw_df$gene_tissue_level_description) == category)
+	category_vec <- c(category_vec, formal_category)
+	count_vec <- c(count_vec, counts)
+	pip_thresh_vec <- c(pip_thresh_vec, rep(pip_threshold, length(counts)))
+
+	category <- "different gene, tissue"
+	counts = sum(as.character(raw_df$gene_tissue_level_description) == category)
+	category_vec <- c(category_vec, category)
+	count_vec <- c(count_vec, counts)
+	pip_thresh_vec <- c(pip_thresh_vec, rep(pip_threshold, length(counts)))
+
+	}
+
+	red_color=brewer.pal(n = 9, name = "Reds")[7]
+	red_color1=brewer.pal(n = 9, name = "Reds")[3]
+	red_color2=brewer.pal(n = 9, name = "Reds")[5]
+
+
+	df <- data.frame(counts=count_vec, PIP=factor(pip_thresh_vec,levels=pip_thresholds), gene_category=factor(category_vec, levels=c("no gene-tissue", "same gene\n(proxy tissue)", "same gene\n(non-proxy tissue)", "different gene, tissue")))
+
+	p <- ggplot(data=df, aes(x=gene_category, y=counts, fill=PIP)) +
+  		geom_bar(stat="identity", position="dodge")+
+  		figure_theme() +
+  		labs(y="\nNo. fine-mapped\ngene-tissue pairs", x="") +
+  		theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  		scale_fill_manual(values=rev(c(red_color)))+
+  		geom_text(aes(label=counts), position=position_dodge(width=0.9), vjust=-0.25) +
+  		ylim(0.0,105.0) + 
+  		theme(legend.position="none")
+
+  	return(p)
+}
+
+
 
 gene_tissue_level_se_barplot_at_various_pip_thresholds <- function(tgfm_organized_results_dir) {
 	pip_thresholds <- rev(c("0.3", "0.4", "0.5"))
@@ -419,6 +560,50 @@ make_ablated_hit_summary_delta_pip_stack_barplot_cross_trait_tagging_tissue_stra
 
 }
 
+make_replication_analysis_histogram <- function(repication_data_file, replication_name, original_tissue, replicating_tissue, replicating_tissue_name_readable, titler) {
+	df <- read.table(repication_data_file, header=TRUE, sep="\t")
+
+	all_tissue_names <- as.character(unique(df$new_tissue))
+
+	# Remore replicating tissue
+	other_tissue_names <- all_tissue_names[all_tissue_names!=replicating_tissue]
+
+
+	tissue_names_arr <- c()
+	avg_pip_arr <- c()
+
+
+	# loop Through tissues
+	for (tissue_iter in 1:length(other_tissue_names)) {
+		tissue_name <- other_tissue_names[tissue_iter]
+		avg_pip = mean(df$new_tissue_pip[as.character(df$new_tissue) == tissue_name])
+
+		tissue_names_arr <- c(tissue_names_arr, tissue_name)
+		avg_pip_arr <- c(avg_pip_arr, avg_pip)
+
+	}
+
+	df2 <- data.frame(PIP=avg_pip_arr, tissue=tissue_names_arr)
+
+
+	replication_avg_pip = mean(df$new_tissue_pip[as.character(df$new_tissue) == replicating_tissue])
+
+	df3 <- data.frame(PIPPY=c(replication_avg_pip), labeler=c(replicating_tissue_name_readable), density=c(10))
+
+		red_color=brewer.pal(n = 9, name = "Reds")[7]
+
+
+	p <- ggplot(df2, aes(PIP)) +
+  		geom_density(fill="skyblue", alpha=0.6) +
+  		figure_theme() +
+  		geom_vline(xintercept = replication_avg_pip,color = red_color, size=1.5) + 
+  		xlim(0, .35) +
+		geom_text_repel(data=df3, aes(x=PIPPY, y=density, label=labeler), color=red_color,size=4.4, nudge_x=-.02) +
+		labs(y="", x="Average Gene-Tissue PIP / Tissue") +
+		theme(plot.title = element_text(hjust = 0.5))
+
+  	return(p)
+}
 
 
 tgfm_organized_results_dir <- args[1]
@@ -426,6 +611,10 @@ sc_pb_tgfm_organized_results_dir <- args[2]
 trait_names_file <- args[3]
 trait_names_file2 <- args[4]
 output_dir <- args[5]
+tissue_replication_results_dir <- args[6]
+
+
+print(tissue_replication_results_dir)
 
 
 trait_df <- read.table(trait_names_file, header=TRUE,sep="\t")
@@ -444,11 +633,53 @@ ablated_hit_df <- read.table(ablated_hit_summary_file,header=TRUE,sep="\t")
 
 
 
+
+
+##################################################
+# Make replication analysis histogram
+##################################################
+# PBMC replication
+replication_name="Whole_Blood_PBMC"
+original_tissue="Whole_Blood"
+replicating_tissue="PBMC"
+repication_data_file <- paste0(tissue_replication_results_dir, replication_name, "_replication_pip_0.5_raw_replication_results.txt")
+rep_histo <- make_replication_analysis_histogram(repication_data_file, replication_name, original_tissue, replicating_tissue , "PBMC", "Whole Blood replication")
+output_file = paste0(output_dir, replication_name, "_replication_histogram.pdf")
+ggsave(rep_histo, file=output_file, width=7.2, height=4.1, units="in")
+
+# Whole blood subsampled replication
+replication_name="Whole_Blood_Whole_Blood_subsampled"
+original_tissue="Whole_Blood"
+replicating_tissue="Whole_Blood_subsampled"
+repication_data_file <- paste0(tissue_replication_results_dir, replication_name, "_replication_pip_0.5_raw_replication_results.txt")
+subsampled_histo <- make_replication_analysis_histogram(repication_data_file, replication_name, original_tissue, replicating_tissue, "Whole Blood\n(subsampled)", "Whole Blood subsampling")
+output_file = paste0(output_dir, replication_name, "_replication_histogram.pdf")
+ggsave(subsampled_histo, file=output_file, width=7.2, height=4.1, units="in")
+
+
+#######################
+# Make se barplot showing number of gene-tissue pairs discovered in the ablated analyisis (for loci where PIP > 0.5 in the original analysis)
+# at single pip threshold
+#######################
+pip_threshold = 0.5
+n_ablation_hits_bar <- gene_tissue_level_se_barplot_at_single_pip_threshold(tgfm_organized_results_dir, pip_threshold) + theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points"))
+output_file <- paste0(output_dir, "held_out_tissue_gene_tissue_level_summary_barplot_pip_", pip_threshold, ".pdf")
+ggsave(n_ablation_hits_bar, file=output_file, width=7.2, height=4.6, units="in")
+
+###########################
+# Make figure 5 with cowplot
+##########################
+fig_5bc <- plot_grid(subsampled_histo, rep_histo, ncol=2, labels=c("b", "c"))
+fig_5 <- plot_grid(n_ablation_hits_bar, fig_5bc, ncol=1, rel_heights=c(1.5,1), labels=c("a",""))
+output_file <- paste0(output_dir, "figure5.pdf")
+ggsave(fig_5, file=output_file, width=7.2, height=4.5, units="in")
+
+
 #######################
 # Make se barplot showing number of gene-tissue pairs discovered in the replication analyisis (for loci where PIP > 0.5 in the original analysis)
 # for various pip thresholds
 #######################
-print(sc_pb_tgfm_organized_results_dir)
+if (FALSE) {
 pp <- replication_gene_tissue_level_se_barplot_at_various_pip_thresholds(sc_pb_tgfm_organized_results_dir, version="replication")
 output_file <- paste0(output_dir, "replication_tissue_gene_tissue_level_summary_barplot_various_pip.pdf")
 ggsave(pp, file=output_file, width=7.2, height=4.6, units="in")
@@ -457,7 +688,7 @@ print(sc_pb_tgfm_organized_results_dir)
 pp <- replication_gene_tissue_level_se_barplot_at_various_pip_thresholds(tgfm_organized_results_dir, version="subsampling")
 output_file <- paste0(output_dir, "subsampling_tissue_gene_tissue_level_summary_barplot_various_pip.pdf")
 ggsave(pp, file=output_file, width=7.2, height=4.6, units="in")
-
+}
 #####################
 #Make stacked bar plot showing delta nm variant and delta gene after ablation
 ####################

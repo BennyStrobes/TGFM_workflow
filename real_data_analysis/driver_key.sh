@@ -382,6 +382,10 @@ for job_number in $(seq 0 $(($num_jobs-1))); do
 	sbatch preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type
 done
 fi
+
+
+
+
 gene_type="component_gene"
 # Organize preprocessed TGFM results across parallel jobs
 if false; then
@@ -743,12 +747,6 @@ if false; then
 sh run_non_disease_specific_gene_set_enrichment_analysis.sh $tgfm_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $tgfm_organized_results_dir $non_disease_specific_gene_sets_file $em_gene_set_file $non_disease_specific_gene_set_enrichment_dir $gene_type
 fi
 
-#################################
-# Run comparison of TGFM tissue-trait associations with TCSC tissue-trait associations
-#################################
-if false; then
-sh comparison_of_TGFM_and_TCSC_tissue_trait_associations.sh $iterative_tgfm_prior_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tcsc_results_file $tcsc_comparison_dir
-fi
 
 
 #################################
@@ -769,7 +767,7 @@ sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_rea
 	sbatch run_sldsc_in_single_trait_for_chromatin_cell_type_enrichment.sh $trait_name $ldsc_code_dir $full_sumstat_dir $ldsc_baseline_ld_hg19_annotation_dir $ldsc_cell_type_group_hg19_annotation_dir $ref_1kg_hg19_genotype_dir $sldsc_h19_weights_dir $chromatin_cell_type_group_ldsc_dir
 done
 fi
-tgfm_trait_tissue_significance_file=$visualize_gtex_tgfm_dir"trait_tissue_prior_bonferronni_corrected_significance.txt"
+tgfm_trait_tissue_significance_file=$visualize_gtex_tgfm_dir"component_gene_trait_tissue_prior_bonferronni_corrected_significance.txt"
 if false; then
 python3 organize_tgfm_chromatin_sldsc_enrichment_results.py $tgfm_trait_tissue_significance_file $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $chromatin_cell_type_group_ldsc_dir $gtex_pseudotissue_plus_cell_type_group_file
 fi
@@ -1096,8 +1094,9 @@ fi
 #################################
 # Visualize held out tissue analyses
 #################################
-Rscript visualize_held_out_tissue_comparision.R $tgfm_organized_results_dir $sc_pb_tgfm_organized_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" $visualize_held_out_tissue_comparison_dir
-
+if false; then
+Rscript visualize_held_out_tissue_comparision.R $tgfm_organized_results_dir $sc_pb_tgfm_organized_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" $visualize_held_out_tissue_comparison_dir $tissue_replication_results_dir
+fi
 
 
 #################################

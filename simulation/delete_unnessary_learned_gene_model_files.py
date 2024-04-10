@@ -16,10 +16,9 @@ import pdb
 simulated_gene_expression_dir = sys.argv[1]
 simulated_learned_gene_models_dir = sys.argv[2]
 simulation_name_string = sys.argv[3]
+eqtl_ss = sys.argv[4]
 
 gene_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
-
-eqtl_sss = ['100', '300', '500', '1000']
 
 n_tiss = 10
 
@@ -39,31 +38,29 @@ for line in f:
 	cis_snp_indices_file = data[5]
 	total_n_genome_snps = int(data[6])
 
-	for eqtl_ss in eqtl_sss:
-		fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_ss) + '_gene_model_pmces.npy'
-		gene_model_mat = np.load(fitted_gene_file)
+	#fitted_gene_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_ss) + '_gene_model_pmces.npy'
+	#gene_model_mat = np.load(fitted_gene_file)
 				
-		# Relevent info
-		n_tiss = gene_model_mat.shape[0]
-		n_cis_snps = gene_model_mat.shape[1]
+	# Relevent info
+	#n_tiss = gene_model_mat.shape[0]
+	#n_cis_snps = gene_model_mat.shape[1]
+	n_tiss = 10
 
-		# Remove marginal beta and beta var files
-		marginal_beta_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_ss) + '_marginal_beta.npy'
-		marginal_betavar_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_ss) + '_marginal_beta_var.npy'
-		os.system('rm ' + marginal_beta_file)
-		os.system('rm ' + marginal_betavar_file)
+	# Remove marginal beta and beta var files
+	marginal_beta_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_ss) + '_marginal_beta.npy'
+	marginal_betavar_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_ss) + '_marginal_beta_var.npy'
+	os.system('rm ' + marginal_beta_file)
+	os.system('rm ' + marginal_betavar_file)
 
-		# Loop through tissues
-		for tiss_iter in range(n_tiss):
-			susie_stem = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_ss) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_'
-			susie_alpha_file = susie_stem + 'alpha.npy'
-			susie_mu_file = susie_stem + 'mu.npy'
-			susie_mu_var_file = susie_stem + 'mu_var.npy'
+	# Loop through tissues
+	for tiss_iter in range(n_tiss):
+		susie_stem = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_ss) + '_tissue_' + str(tiss_iter) + '_gene_model_susie_'
+		susie_alpha_file = susie_stem + 'alpha.npy'
+		susie_mu_file = susie_stem + 'mu.npy'
+		susie_mu_var_file = susie_stem + 'mu_var.npy'
 
-			# Delete files
-			os.system('rm ' + susie_alpha_file)
-			os.system('rm ' + susie_mu_file)
-			os.system('rm ' + susie_mu_var_file)
-
-
+		# Delete files
+		os.system('rm ' + susie_alpha_file)
+		os.system('rm ' + susie_mu_file)
+		os.system('rm ' + susie_mu_var_file)
 f.close()

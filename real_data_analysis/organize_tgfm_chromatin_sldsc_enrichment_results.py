@@ -71,7 +71,7 @@ def create_tgfm_sldsc_chromatin_overlap_summary_file(tgfm_trait_tissue_significa
 			trait_type = 'independent'
 		valid_traits[trait_name] = 1
 		sldsc_z = trait_cell_type_to_sldsc_z[trait_name + ':' + str(cell_type_group_num)]
-		sldsc_p = scipy.stats.norm.sf(abs(sldsc_z))*2 #twosided
+		sldsc_p = scipy.stats.norm.sf(sldsc_z) #onesided
 		t.write(trait_name + '\t' + trait_type + '\t' + tissue_name + '\t' + cell_type_group + '\t' + str(cell_type_group_num) + '\t' + 'True' + '\t' + str(tgfm_sig) + '\t' + str(sldsc_z) + '\t' + str(sldsc_p) + '\n')
 		used_trait_tissues[trait_name + ':' + tissue_name] =1
 		if trait_type == 'non_independent':

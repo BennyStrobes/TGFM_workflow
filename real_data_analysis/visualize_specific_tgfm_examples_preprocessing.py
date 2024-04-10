@@ -50,6 +50,7 @@ def generate_snp_df_input_data(trait_name, window_name, tgfm_input_summary_file,
 	window_trait_input_data = pickle.load(f)
 	f.close()
 
+
 	# Load in TGFM results data
 	tgfm_res_file = tgfm_results_dir + 'tgfm_results_' + trait_name + '_component_gene_susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler_' + window_name + '_results.pkl'
 	f = open(tgfm_res_file, "rb")
@@ -338,7 +339,7 @@ for line in f:
 	window_name = data[5]
 
 	# Output root
-	example_output_root = visualize_specific_tgfm_examples_dir + trait_name + '_' + window_name
+	example_output_root = visualize_specific_tgfm_examples_dir + trait_name + '_' + window_name + 'tmp'
 
 	# Generate input data for this window
 	generate_visualization_input_data_for_specific_example(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, tgfm_organized_results_dir, gtex_susie_gene_models_dir, ensamble_id_to_gene_id,snp_id_to_rsid, example_output_root)
