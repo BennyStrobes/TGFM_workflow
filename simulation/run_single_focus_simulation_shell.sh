@@ -116,7 +116,6 @@ for tissue_number in $(seq 0 9); do
 done
 
 
-
 # cross tissue version with intercept
 sum_stats_file=${focus_cleaned_gwas_summary_stat_stem}".sumstats.gz"
 genotype_file=${processed_genotype_data_dir}"simulated_gwas_data_"${chrom_num}

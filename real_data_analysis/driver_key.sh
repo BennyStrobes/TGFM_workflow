@@ -66,6 +66,9 @@ non_disease_specific_gene_sets_file="/n/groups/price/martin/LDSPEC_data/gene_ann
 # Epigenetic modifier gene sets
 em_gene_set_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/EM_genes.csv"
 
+# LDL silver standard gene sets
+ldl_silver_standard_gene_set_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/silver_standard_ldl_cholesterol_genes.csv"
+
 # TCSC results
 # Downloaded from https://github.com/TiffanyAmariuta/TCSC/tree/main/results on 2/9/24
 tcsc_results_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/SingleTraitTCSC_March2023_Primaryanalysis.txt"
@@ -247,6 +250,8 @@ iterative_sc_pb_tgfm_prior_results_dir=$perm_output_root"iterative_sc_pb_tgfm_pr
 visualize_specific_tgfm_examples_dir=$perm_output_root"visualize_specific_examples/"
 
 non_disease_specific_gene_set_enrichment_dir=$perm_output_root"non_disease_specific_gene_set_enrichment/"
+
+ldl_silver_standard_gene_set_enrichment_dir=$perm_output_root"ldl_silver_standard_gene_set_enrichment/"
 
 tcsc_comparison_dir=$perm_output_root"tcsc_comparison/"
 
@@ -747,6 +752,12 @@ if false; then
 sh run_non_disease_specific_gene_set_enrichment_analysis.sh $tgfm_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable.txt" $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $tgfm_organized_results_dir $non_disease_specific_gene_sets_file $em_gene_set_file $non_disease_specific_gene_set_enrichment_dir $gene_type
 fi
 
+#################################
+# Run LDL silver standardard gene set enrichment analysis
+#################################
+if false; then
+sh run_ldl_silver_standard_gene_set_enrichment_analysis.sh $tgfm_organized_results_dir $gtex_susie_gene_models_dir $gene_annotation_file $ldl_silver_standard_gene_set_file $ldl_silver_standard_gene_set_enrichment_dir
+fi
 
 
 #################################
@@ -781,9 +792,8 @@ source ~/.bash_profile
 module load R/3.5.1
 fi
 if false; then
-Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_results_dir $tgfm_organized_results_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir $tissue_tissue_correlation_file $gtex_pseudotissue_file $chromatin_cell_type_group_ldsc_dir
+Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_results_dir $tgfm_organized_results_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir $tissue_tissue_correlation_file $gtex_pseudotissue_file $chromatin_cell_type_group_ldsc_dir $ldl_silver_standard_gene_set_enrichment_dir
 fi
-
 
 
 
@@ -1094,9 +1104,8 @@ fi
 #################################
 # Visualize held out tissue analyses
 #################################
-if false; then
 Rscript visualize_held_out_tissue_comparision.R $tgfm_organized_results_dir $sc_pb_tgfm_organized_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" $visualize_held_out_tissue_comparison_dir $tissue_replication_results_dir
-fi
+
 
 
 #################################

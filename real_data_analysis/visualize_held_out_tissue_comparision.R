@@ -367,7 +367,7 @@ gene_tissue_level_se_barplot_at_single_pip_threshold <- function(tgfm_organized_
   		geom_bar(stat="identity", position="dodge")+
   		figure_theme() +
   		labs(y="\nNo. fine-mapped\ngene-tissue pairs", x="") +
-  		theme(axis.text.x = element_text(angle = 45, hjust=1)) +
+  		theme(axis.text.x = element_text(angle = 30, hjust=1)) +
   		scale_fill_manual(values=rev(c(red_color)))+
   		geom_text(aes(label=counts), position=position_dodge(width=0.9), vjust=-0.25) +
   		ylim(0.0,105.0) + 
@@ -599,7 +599,7 @@ make_replication_analysis_histogram <- function(repication_data_file, replicatio
   		geom_vline(xintercept = replication_avg_pip,color = red_color, size=1.5) + 
   		xlim(0, .35) +
 		geom_text_repel(data=df3, aes(x=PIPPY, y=density, label=labeler), color=red_color,size=4.4, nudge_x=-.02) +
-		labs(y="", x="Average Gene-Tissue PIP / Tissue") +
+		labs(y="\n\nNo. tissues", x="Average gene-tissue PIP / tissue") +
 		theme(plot.title = element_text(hjust = 0.5))
 
   	return(p)
@@ -669,10 +669,13 @@ ggsave(n_ablation_hits_bar, file=output_file, width=7.2, height=4.6, units="in")
 ###########################
 # Make figure 5 with cowplot
 ##########################
-fig_5bc <- plot_grid(subsampled_histo, rep_histo, ncol=2, labels=c("b", "c"))
-fig_5 <- plot_grid(n_ablation_hits_bar, fig_5bc, ncol=1, rel_heights=c(1.5,1), labels=c("a",""))
+#fig_5bc <- plot_grid(subsampled_histo, rep_histo, ncol=2, labels=c("b", "c"))
+#rep_histo <- rep_histo + labs(x="Average replicating gene−tissue PIP / tissue", y="\nNo. tissues")
+n_ablation_hits_bar = n_ablation_hits_bar + theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points")) + labs(x=NULL)
+rep_histo <- plot_grid(NULL, rep_histo, ncol=2, rel_widths=c(.012, 1.0))
+fig_5 <- plot_grid(n_ablation_hits_bar, rep_histo, ncol=1, rel_heights=c(1.5,1), labels=c("a","b"))
 output_file <- paste0(output_dir, "figure5.pdf")
-ggsave(fig_5, file=output_file, width=7.2, height=4.5, units="in")
+ggsave(fig_5, file=output_file, width=7.2, height=4.0, units="in")
 
 
 #######################

@@ -467,6 +467,7 @@ make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot <- fu
 	total_hits_vec <- c()
 	mid_point_vec <- c()
 	tissue_names_vec2 <- c()
+	sig_vec <- c()
 
 	for (cell_type_iter in 1:length(cell_type_names)) {
 		cell_type_name <- cell_type_names[cell_type_iter]
@@ -495,6 +496,16 @@ make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot <- fu
 		tissue_names_vec2 <- c(tissue_names_vec2, cell_type_name)
 		mid_point_vec <- c(mid_point_vec, sum(tmp_data$n_elements[tmp_data$PIP_threshold >= .5]))
 
+		if (trait_name == "blood_MONOCYTE_COUNT") {
+			if (cell_type_name == "ncM") {
+				sig_vec <- c(sig_vec, "*")
+			} else {
+				sig_vec <- c(sig_vec, "")
+			}
+		} else {
+			sig_vec <- c(sig_vec, "")
+		}
+
 
 	}
 
@@ -504,7 +515,7 @@ make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot <- fu
 
 
 	df$trait = factor(df$trait, levels=as.character(tissue_names_vec2)[indices])
-	df2 <- data.frame(trait=factor(as.character(tissue_names_vec2), levels=as.character(tissue_names_vec2)[indices]), midpoint=mid_point_vec)
+	df2 <- data.frame(trait=factor(as.character(tissue_names_vec2), levels=as.character(tissue_names_vec2)[indices]), midpoint=mid_point_vec, significance=sig_vec, total_hits=total_hits_vec)
 	df2$trait = factor(df2$trait, levels=as.character(tissue_names_vec2)[indices])
 
 
@@ -513,6 +524,7 @@ make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot <- fu
    p <- ggplot() +
   	geom_bar(data=df, aes(x = trait,y = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
   	figure_theme() +
+  	geom_text(data=df2,aes(x=trait, y=total_hits,label=significance), size=8) +
   	#scale_y_continuous(breaks=c(0.0,sqrt(5), sqrt(20), sqrt(50), sqrt(100), sqrt(200), sqrt(400), sqrt(600)), labels=c(0, 5, 20, 50, 100, 200, 400,600)) +
   	scale_y_continuous(breaks=c(0.0,sqrt(1), sqrt(5), sqrt(10), sqrt(20)), labels=c("0", "1", "5", "10", "20"), limits=c(0.0, sqrt(upper_bound))) +
   	theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
@@ -2535,6 +2547,33 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip <- function(df_full, independen
 
 
 }
+bh_fdr_correction <- function(p_values, alpha=0.05) {
+  # Get the number of p-values
+  m <- length(p_values)
+  
+  # Create an index vector for sorting
+  index <- order(p_values)
+  
+  # Sort the p-values in ascending order
+  sorted_p_values <- p_values[index]
+  
+  # Calculate the Benjamini-Hochberg critical values
+  critical_values <- (1:m) * (alpha / m)
+  
+  # Create a vector of corrected p-values
+  adjusted_p_values <- rep(NA, m)
+
+  if (sum(sorted_p_values <= critical_values) > 0) {
+
+ 	 # Identify the largest k such that p_k <= critical_values[k]
+ 	 k <- max(which(sorted_p_values <= critical_values))
+
+ 	 adjusted_p_values[index[1:k]] <- sorted_p_values[1:k]
+	}
+  
+  return(adjusted_p_values)
+}
+
 
 count_up_number_of_genetic_elements <- function(trait_names,tgfm_organized_results_dir, pip_threshold) {
 	gts = 0
@@ -2665,6 +2704,7 @@ make_trait_cell_type_heatmap <- function(trait_names, trait_names_readable, pip_
 	trait_names_vec <- c()
 	ct_name_vec <- c()
 	hits_vec <- c()
+	sig_vec <- c()
 
 	for (trait_iter in 1:length(trait_names)) {
 		trait_name <- trait_names[trait_iter]
@@ -2682,11 +2722,22 @@ make_trait_cell_type_heatmap <- function(trait_names, trait_names_readable, pip_
 			trait_names_vec <- c(trait_names_vec, trait_name_readable)
 			ct_name_vec <- c(ct_name_vec, ct)
 			hits_vec <- c(hits_vec, nhits)
+
+			if (trait_name == "blood_MONOCYTE_COUNT") {
+				if (ct == "ncM") {
+					sig_vec <- c(sig_vec, "**")
+				} else{
+					sig_vec <- c(sig_vec, "")
+				}
+			} else {
+				sig_vec <- c(sig_vec, "")
+			}
+
 		}
 	}
 
 
-	df = data.frame(trait=trait_names_vec, cell_type=ct_name_vec, hits=hits_vec)
+	df = data.frame(trait=trait_names_vec, cell_type=ct_name_vec, hits=hits_vec,significance=sig_vec)
 
 	df$cell_type = recode(df$cell_type, T4="CD4", T8="CD8")
 
@@ -2712,21 +2763,26 @@ make_trait_cell_type_heatmap <- function(trait_names, trait_names_readable, pip_
   		figure_theme() +
   		labs(title=paste0("No. gene-ct pairs\nPIP > ", pip_threshold),fill="",x="", y="") +
   		theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  		geom_text(aes(label=significance), vjust=0.8) +
   		theme(legend.position="bottom") +
   		scale_fill_gradient(low = "white", high = "red")
   	return(pp)
 
 }
 
-generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior <- function(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file) {
+
+generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior <- function(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file, gene_type) {
 	trait_vec <- c()
 	tissue_vec <- c()
 	sig_vec <- c()
 	nom_vec <- c()
+	fdr_sig_vec <- c()
+	mean_prob_vec <- c()
+	se_prob_vec <- c()
 
 	for (trait_iter in 1:length(trait_names)) {
 		trait_name = trait_names[trait_iter]
-		iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_name, "_component_gene_", method_version, "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
+		iterative_prior_file <- paste0(iterative_tgfm_prior_dir, "tgfm_results_", trait_name, "_", gene_type, "_", method_version, "_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt")
 	
 		df <- read.table(iterative_prior_file, header=TRUE)
 		# Skip variants
@@ -2737,7 +2793,8 @@ generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_it
 
 		n_tissues = length(unique(df$tissue))
 
-
+		trait_nom_vec <- c()
+		trait_mean_prob_vec <- c()
 		for (tissue_iter in 1:length(df$tissue)) {
 			tissue_name <- as.character(df$tissue[tissue_iter])
 			prob_string = as.character(df$prior_distribution[tissue_iter])
@@ -2757,13 +2814,37 @@ generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_it
 			tissue_vec <- c(tissue_vec, tissue_name)
 			sig_vec <- c(sig_vec, bonf_pvalue)
 			nom_vec <- c(nom_vec, pvalue)
+			trait_nom_vec <- c(trait_nom_vec, pvalue)
+			mean_prob_vec <- c(mean_prob_vec, mean(prob_vec))
+			se_prob_vec <- c(se_prob_vec, sd(prob_vec))
+			trait_mean_prob_vec <- c(trait_mean_prob_vec,mean(prob_vec) )
 		}
+		bh_corrected_pvalues_05 = bh_fdr_correction(trait_nom_vec, alpha=0.05)
+		bh_corrected_pvalues_2 = bh_fdr_correction(trait_nom_vec, alpha=0.2)
+
+
+		for (tissue_iter in 1:length(bh_corrected_pvalues_05)) {
+			if (is.na(bh_corrected_pvalues_05[tissue_iter]) == FALSE) {
+				if (trait_mean_prob_vec[tissue_iter] > 1e-14) {
+					fdr_sig_vec <- c(fdr_sig_vec, "**")
+				} else {
+					fdr_sig_vec <- c(fdr_sig_vec, "null")
+				}
+			} else if (is.na(bh_corrected_pvalues_2[tissue_iter]) == FALSE) {
+				if (trait_mean_prob_vec[tissue_iter] > 1e-14) {
+					fdr_sig_vec <- c(fdr_sig_vec, "*")
+				} else {
+					fdr_sig_vec <- c(fdr_sig_vec, "null")
+				}
+			} else {
+				fdr_sig_vec <- c(fdr_sig_vec, "null")
+			}
+		}
+
 
 	}
 
-	df <- data.frame(tissue=tissue_vec, trait=trait_vec, bonferonni_pvalue=sig_vec, pvalue=nom_vec)
-
-
+	df <- data.frame(tissue=tissue_vec, trait=trait_vec, mean_prob=mean_prob_vec, se_prob=se_prob_vec, pvalue=nom_vec, fdr_significance=fdr_sig_vec)
 	write.table(df, file=trait_tissue_prior_significance_file, quote=FALSE, sep="\t", row.names = FALSE)
 }
 
@@ -2862,6 +2943,7 @@ independent_traits <- c("body_HEIGHTz", "blood_MEAN_PLATELET_VOL", "bmd_HEEL_TSC
 ##################################################
 # Make replication analysis histogram
 ##################################################
+if (FALSE) {
 # PBMC replication
 replication_name="Whole_Blood_PBMC"
 original_tissue="Whole_Blood"
@@ -2879,7 +2961,7 @@ repication_data_file <- paste0(tissue_replication_results_dir, replication_name,
 rep_histo <- make_replication_analysis_histogram(repication_data_file, replication_name, original_tissue, replicating_tissue, "Whole Blood (subsampled)")
 output_file = paste0(visualize_tgfm_dir, replication_name, "_replication_histogram.pdf")
 ggsave(rep_histo, file=output_file, width=7.2, height=4.1, units="in")
-
+}
 
 ##################################################
 # Make ct-ct correlation heatmap
@@ -2905,7 +2987,7 @@ ggsave(ct_tissue_corr_heatmap, file=output_file, width=7.2, height=5.5, units="i
 method_version="susie_pmces_uniform"
 trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, "trait_cell_type_tissue_prior_bonferronni_corrected_significance.txt")
 if (FALSE) {
-generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file)
+generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file, "component_gene")
 }
 
 
@@ -2932,7 +3014,6 @@ output_file <- paste0(visualize_tgfm_dir, "trait_ct_heatmap_joint.pdf")
 joint_plot <- plot_grid(trait_ct_heatmap_2, trait_ct_heatmap_5, ncol=2, labels=c("a","b"))
 ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
 }
-
 
 
 ##################################################
@@ -3063,7 +3144,6 @@ for (trait_iter in 1:length(trait_names)) {
 ##########################################################
 # Make Figure 6
 ##########################################################
-if (FALSE) {
 # Make heatmap-barplot showing expected number of causal gene-tissue pairs
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 single_cell_cell_types <- c("B", "NK", "Prolif", "T4", "T8", "cDC", "cM", "ncM", "pDC")
@@ -3095,8 +3175,8 @@ fig_6 <- plot_grid(fig_6ab, fig_6cf, ncol=1, rel_heights=c(.7,1))
 output_file <- paste0(visualize_tgfm_dir, "figure6.pdf")
 
 ggsave(fig_6, file=output_file, width=7.2, height=6.9, units="in")
-}
 
+print("DONE")
 ##########################################################
 # Make Figure 6 alt
 ##########################################################

@@ -435,7 +435,7 @@ def learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_l
 		old_tissue_probs = np.copy(tissue_probs_distr)
 		variant_prob_distr, tissue_probs_distr = update_prior_prob_for_variant_gene_tissue_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_name_to_position, variant_prob_distr, tissue_probs_distr, tissue_names, window_to_class_to_indices, window_to_class_to_middle_indices, n_bootstraps, bs_indices, bs_mapping, window_names, window_to_bootstraps, version)
 		diff=tissue_probs_distr - old_tissue_probs
-		print(np.sort(np.mean(diff,axis=1)))
+		#print(np.sort(np.mean(diff,axis=1)))
 		t2 = time.time()
 		print(t2-t1)
 
@@ -777,12 +777,10 @@ per_window_abf_output_stem = new_tgfm_stem + '_iterative_prior_pip_level_per_win
 generate_component_level_abf_summary_data(tgfm_input_summary_file, component_level_abf_summary_file, tissue_names, new_tgfm_stem, tgfm_version, per_window_abf_output_stem, version='v2')
 
 
-
 ###################################################
 # Learn iterative distribution variant-gene-tissue prior (doing non-distribution based prior)
 ###################################################
 variant_prob_emperical_distr, tissue_probs_emperical_distr = learn_iterative_variant_gene_tissue_prior_pip_level_bootstrapped(component_level_abf_summary_file, tgfm_version, tissue_names, per_window_abf_output_stem, max_iter=400, n_bootstraps=n_bootstraps)
-
 
 
 
@@ -794,9 +792,28 @@ t.write('variant\t' + str(np.mean(variant_prob_emperical_distr)) + '\t' + str(np
 for tiss_iter, tissue_name in enumerate(tissue_names):
 	t.write(tissue_name + '\t' + str(np.mean(tissue_probs_emperical_distr[tiss_iter,:])) + '\t' + str(np.exp(np.mean(np.log(tissue_probs_emperical_distr[tiss_iter,:])))) + '\t' + ';'.join(tissue_probs_emperical_distr[tiss_iter,:].astype(str)) + '\n')
 t.close()
-
 print(variant_gene_distr_prior_output_file)
+
+
+
 # Delete unneccessary files
+print('start')
+f = open(component_level_abf_summary_file)
+head_count = 0
+files_to_remove = []
+for line in f:
+	line = line.rstrip()
+	data = line.split('\t')
+	if head_count == 0:
+		head_count = head_count + 1
+		continue
+	files_to_remove.append(data[5])
+	files_to_remove.append(data[6])
+f.close()
+for file_name in np.unique(files_to_remove):
+	os.system('rm ' + file_name)
+
 os.system('rm ' + component_level_abf_summary_file)
-os.system('rm ' + per_window_abf_output_stem + '*')
+#os.system('rm ' + per_window_abf_output_stem + '*')
+
 
