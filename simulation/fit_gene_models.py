@@ -594,7 +594,7 @@ def run_greml_no_covariate_h2_analysis_and_FUSION(chrom_num, gene_tss, expr_vec,
 	#os.system('rm ' + tmp_output_stem + '*')
 	return hsq, hsq_se, hsq_p, causal_effects
 
-def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num):
+def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sample_size, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num, run_lasso_identifier):
 	# Load in genotype data across chromosome for eQTL data set
 	genotype_stem = processed_genotype_data_dir + 'simulated_eqtl_' + str(eqtl_sample_size) + '_data_' + chrom_num
 	G_obj = read_plink1_bin(genotype_stem + '.bed', genotype_stem + '.bim', genotype_stem + '.fam', verbose=False)
@@ -723,16 +723,15 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 			marginal_beta_cross_tissues.append(marginal_effects)
 			marginal_beta_var_cross_tissues.append(np.square(marginal_effects_se))
 
-			try:
-				hsq, hsq_se, hsq_p, fusion_causal_effects = run_greml_no_covariate_h2_analysis_and_FUSION(str(chrom_num), gene_tss, sim_stand_expr, genotype_stem, 100000, G_obj_sample_names, tmp_fusion_output_stem, cis_rsids, gene_geno)
-			except:
-				fusion_causal_effects = np.zeros(len(cis_rsids))
-				hsq = 'nan'
-				hsq_se = 'nan'
-				hsq_p = 'nan'
-			#greml_h2_cross_tissues.append(str(hsq))
-			#greml_h2_se_cross_tissues.append(str(hsq_se))
-			fusion_pmces_cross_tissues.append(fusion_causal_effects)
+			if run_lasso_identifier == 'run_lasso':
+				try:
+					hsq, hsq_se, hsq_p, fusion_causal_effects = run_greml_no_covariate_h2_analysis_and_FUSION(str(chrom_num), gene_tss, sim_stand_expr, genotype_stem, 100000, G_obj_sample_names, tmp_fusion_output_stem, cis_rsids, gene_geno)
+				except:
+					fusion_causal_effects = np.zeros(len(cis_rsids))
+					hsq = 'nan'
+					hsq_se = 'nan'
+					hsq_p = 'nan'
+				fusion_pmces_cross_tissues.append(fusion_causal_effects)
 
 
 
@@ -742,7 +741,6 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 		marginal_beta_var_cross_tissues = np.asarray(marginal_beta_var_cross_tissues)
 		valid_components = np.asarray(valid_components)
 		best_to_worst_pi_ratios = np.asarray(best_to_worst_pi_ratios)
-		fusion_pmces_cross_tissues = np.asarray(fusion_pmces_cross_tissues)
 
 		# Save gene-model valid components across tissues to output
 		valid_components_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_gene_valid_susie_comp.npy'
@@ -762,14 +760,17 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_ca
 		marginal_beta_var_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size) + '_marginal_beta_var.npy'
 		np.save(marginal_beta_var_output_file, marginal_beta_var_cross_tissues)
 
-		# Save lasso gene-model PMCES across tissues to output
-		lasso_gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size)+ '_lasso_gene_model_pmces.npy'
-		np.save(lasso_gene_model_output_file, fusion_pmces_cross_tissues)
+		if run_lasso_identifier == 'run_lasso':
+			fusion_pmces_cross_tissues = np.asarray(fusion_pmces_cross_tissues)
+
+			# Save lasso gene-model PMCES across tissues to output
+			lasso_gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size)+ '_lasso_gene_model_pmces.npy'
+			np.save(lasso_gene_model_output_file, fusion_pmces_cross_tissues)
 
 	f.close()
 	return
 
-def simulate_gene_expression_and_fit_gene_model_for_all_genes_w_variable_eqtl_ss_shell(simulated_causal_eqtl_effect_summary_file, realistic_eqtl_sss, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num, eqtl_sample_size_name):
+def simulate_gene_expression_and_fit_gene_model_for_all_genes_w_variable_eqtl_ss_shell(simulated_causal_eqtl_effect_summary_file, realistic_eqtl_sss, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num, eqtl_sample_size_name, run_lasso_identifier):
 	# Load in genotype data across chromosome for eQTL data set
 	genotype_stem = processed_genotype_data_dir + 'simulated_eqtl_' + str(500) + '_data_' + chrom_num
 	G_obj = read_plink1_bin(genotype_stem + '.bed', genotype_stem + '.bim', genotype_stem + '.fam', verbose=False)
@@ -917,17 +918,15 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_w_variable_eqtl_ss
 
 
 			# Run greml and FUSION
-			#hsq, hsq_se, hsq_p, fusion_causal_effects = run_greml_no_covariate_h2_analysis_and_FUSION(str(chrom_num), gene_tss, sim_stand_expr, genotype_stem, 100000, G_obj_sample_names_arr[tissue_iter], tmp_fusion_output_stem, cis_rsids, gene_geno)
-			try:
-				hsq, hsq_se, hsq_p, fusion_causal_effects = run_greml_no_covariate_h2_analysis_and_FUSION(str(chrom_num), gene_tss, sim_stand_expr, genotype_stem, 100000, G_obj_sample_names_arr[tissue_iter], tmp_fusion_output_stem, cis_rsids, gene_geno)
-			except:
-				fusion_causal_effects = np.zeros(len(cis_rsids))
-				hsq = 'nan'
-				hsq_se = 'nan'
-				hsq_p = 'nan'
-			#greml_h2_cross_tissues.append(str(hsq))
-			#greml_h2_se_cross_tissues.append(str(hsq_se))
-			fusion_pmces_cross_tissues.append(fusion_causal_effects)
+			if run_lasso_identifier == 'run_lasso':
+				try:
+					hsq, hsq_se, hsq_p, fusion_causal_effects = run_greml_no_covariate_h2_analysis_and_FUSION(str(chrom_num), gene_tss, sim_stand_expr, genotype_stem, 100000, G_obj_sample_names_arr[tissue_iter], tmp_fusion_output_stem, cis_rsids, gene_geno)
+				except:
+					fusion_causal_effects = np.zeros(len(cis_rsids))
+					hsq = 'nan'
+					hsq_se = 'nan'
+					hsq_p = 'nan'
+				fusion_pmces_cross_tissues.append(fusion_causal_effects)
 
 
 		# Convert pmces to numpy array
@@ -936,7 +935,6 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_w_variable_eqtl_ss
 		marginal_beta_var_cross_tissues = np.asarray(marginal_beta_var_cross_tissues)
 		valid_components = np.asarray(valid_components)
 		best_to_worst_pi_ratios = np.asarray(best_to_worst_pi_ratios)
-		fusion_pmces_cross_tissues = np.asarray(fusion_pmces_cross_tissues)
 
 		# Save gene-model valid components across tissues to output
 		valid_components_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size_name) + '_gene_valid_susie_comp.npy'
@@ -950,15 +948,17 @@ def simulate_gene_expression_and_fit_gene_model_for_all_genes_w_variable_eqtl_ss
 		gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size_name) + '_gene_model_pmces.npy'
 		np.save(gene_model_output_file, pmces_cross_tissues)
 
-		# Save lasso gene-model PMCES across tissues to output
-		lasso_gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size_name) + '_lasso_gene_model_pmces.npy'
-		np.save(lasso_gene_model_output_file, fusion_pmces_cross_tissues)
-
 		# Save marginal pvalue across tissues to output
 		marginal_beta_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id+ '_eqtlss_' + str(eqtl_sample_size_name) + '_marginal_beta.npy'
 		np.save(marginal_beta_output_file, marginal_beta_cross_tissues)
 		marginal_beta_var_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size_name) + '_marginal_beta_var.npy'
 		np.save(marginal_beta_var_output_file, marginal_beta_var_cross_tissues)
+
+		if run_lasso_identifier == 'run_lasso':
+			fusion_pmces_cross_tissues = np.asarray(fusion_pmces_cross_tissues)
+			# Save lasso gene-model PMCES across tissues to output
+			lasso_gene_model_output_file = simulated_learned_gene_models_dir + simulation_name_string + '_' + ensamble_id + '_eqtlss_' + str(eqtl_sample_size_name) + '_lasso_gene_model_pmces.npy'
+			np.save(lasso_gene_model_output_file, fusion_pmces_cross_tissues)
 
 	f.close()
 	return
@@ -983,7 +983,7 @@ total_trait_heritability = float(sys.argv[12])
 fraction_expression_mediated_heritability = float(sys.argv[13])
 gene_trait_architecture = sys.argv[14]
 eqtl_sample_size = sys.argv[15]
-
+run_lasso_identifier = sys.argv[16]
 
 
 # Get true gene expression h2
@@ -1019,7 +1019,7 @@ if eqtl_sample_size == 'realistic':
 	eqtl_sss = [320, 320, 320, 320, 320, 101, 115, 116, 108, 122]
 	eqtl_sample_size_name = 'realistic'
 	print(eqtl_sample_size_name)
-	simulate_gene_expression_and_fit_gene_model_for_all_genes_w_variable_eqtl_ss_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sss, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num, eqtl_sample_size_name)
+	simulate_gene_expression_and_fit_gene_model_for_all_genes_w_variable_eqtl_ss_shell(simulated_causal_eqtl_effect_summary_file, eqtl_sss, simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num, eqtl_sample_size_name, run_lasso_identifier)
 else:
-	simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_causal_eqtl_effect_summary_file, int(eqtl_sample_size), simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num)
+	simulate_gene_expression_and_fit_gene_model_for_all_genes_shell(simulated_causal_eqtl_effect_summary_file, int(eqtl_sample_size), simulation_name_string, processed_genotype_data_dir, simulated_learned_gene_models_dir, chrom_num, run_lasso_identifier)
 

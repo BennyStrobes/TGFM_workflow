@@ -37,7 +37,11 @@ make_power_med_h2_se_barplot_across_thresholds <- function(df) {
 
 
 make_power_med_h2_se_barplot_gaussian_approximation <- function(df) {
- 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
+	df$eqtl_sample_size = as.character(df$eqtl_sample_size)
+	df$eqtl_sample_size = gsub("realistic","100+300", as.character(df$eqtl_sample_size))
+ 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c("100", "100+300", "300", "500", "1000"))
+
+
  	#df = df[df$threshold==threshold_val,]
  	#df$threshold = factor(df$threshold)
 	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=power)) +
@@ -104,7 +108,10 @@ make_type_1_error_med_h2_se_barplot_at_single_threshold <- function(df, threshol
 }
 
 make_type_1_error_med_h2_se_barplot_gaussian_approximation <- function(df) {
- 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
+	df$eqtl_sample_size = as.character(df$eqtl_sample_size)
+	df$eqtl_sample_size = gsub("realistic","100+300", as.character(df$eqtl_sample_size))
+ 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c("100", "100+300", "300", "500", "1000"))
+
  	#df$threshold = factor(df$threshold)
  	#df = df[df$threshold==threshold_val,]
 	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=type_1_error)) +
@@ -179,7 +186,7 @@ make_avg_per_tissue_h2_se_barplot_for_single_class <- function(df, titler, sim_v
 }
 make_avg_per_tissue_fraction_causal_se_barplot_for_single_class <- function(df, titler, min_height, max_height) {
 	#df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(100,200,300,500,1000, "Inf"))
-	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c(300,500,1000))
+	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c("100","100+300","300","500","1000"))
 	df$tissue_number = factor(df$tissue_number)
 	p<-ggplot(data=df, aes(x=tissue_number, y=fraction_causal, fill=eqtl_sample_size)) +
   		geom_bar(stat="identity", position=position_dodge()) +
@@ -238,15 +245,67 @@ make_avg_per_tissue_tau_se_barplot <- function(df) {
 	return(joint_plot2)
 }
 
+make_avg_per_tissue_causal_status_fraction_causal_se_barplot <- function(df, sim_value=.03) {
+	df = df[as.character(df$genetic_element_type) == "gene_tissue",]
+
+	df$eqtl_sample_size = as.character(df$eqtl_sample_size)
+	df$eqtl_sample_size = gsub("realistic","100+300", as.character(df$eqtl_sample_size))
+
+	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c("100","100+300","300","500","1000"))
+
+
+	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=fraction_causal, fill=causal_status)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=fraction_causal_lb, ymax=fraction_causal_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="eQTL sample size", y="Fraction causal", fill="Tissue") +
+  		theme(legend.position="bottom") +
+  		geom_hline(yintercept=sim_value, linetype=2) +
+  		#ylim(min_height, max_height) +
+  		theme(plot.title = element_text(hjust = 0.5))
+
+
+
+}
+
+make_avg_per_nm_variant_fraction_causal_se_barplot <- function(df, sim_value=.001265) {
+	df = df[as.character(df$genetic_element_type) != "gene_tissue",]
+
+	df$eqtl_sample_size = as.character(df$eqtl_sample_size)
+	df$eqtl_sample_size = gsub("realistic","100+300", as.character(df$eqtl_sample_size))
+
+	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c("100","100+300","300","500","1000"))
+
+
+	p<-ggplot(data=df, aes(x=eqtl_sample_size, y=fraction_causal)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=fraction_causal_lb, ymax=fraction_causal_ub), width=.4, position=position_dodge(.9))  +
+  		figure_theme() +
+  		labs(x="eQTL sample size", y="Fraction causal") +
+  		theme(legend.position="bottom") +
+  		geom_hline(yintercept=sim_value, linetype=2) +
+  		#ylim(min_height, max_height) +
+  		theme(plot.title = element_text(hjust = 0.5))
+
+
+
+}
+
+
 make_avg_per_tissue_fraction_causal_se_barplot <- function(df) {
+	df$eqtl_sample_size = as.character(df$eqtl_sample_size)
+	df$eqtl_sample_size = gsub("realistic","100+300", as.character(df$eqtl_sample_size))
+
+
 	causal_df <- df[as.character(df$causal_status)=="causal",]
+	causal_df <- causal_df[as.character(causal_df$tissue_number) != "nm_variant",]
+
 	null_df <- df[as.character(df$causal_status)=="null",]
 
 	min_height = min(df$fraction_causal_lb)
 	min_height = min(c(min_height, 0.0))
 	max_height = max(df$fraction_causal_ub)
 	#max_height = max(c(max_height, .0152))
-
 
 
 	causal_plot <- make_avg_per_tissue_fraction_causal_se_barplot_for_single_class(causal_df, "Causal tissues", min_height, max_height)
@@ -1320,6 +1379,104 @@ make_gene_fdr_plot_data_across_methods_and_sample_sizes <- function(simulated_or
 	df2 <- data.frame(method=df$method, eQTL_sample_size=df$eQTL_sample_size,PIP_threshold=rep(pip_threshold, length(df$fdr_ub)), FDR=df$fdr, FDR_lb=df$fdr_lb, FDR_ub=df$fdr_ub)
   	return(df2)
 }
+
+
+make_gene_tissue_fdr_plot_comparing_tgfm_to_two_step_across_sample_sizes<- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold, include_100=FALSE, plot_expected_fdr=FALSE) {
+	# Initialize vectors for summary df
+	method_vec <- c()
+	n_detected_vec <- c()
+	eQTL_sample_size_vec <- c()
+	coverage_vec <- c()
+	coverage_lb_vec <- c()
+	coverage_ub_vec <- c()
+	expected_coverage_vec <- c()
+
+	# Load in TGFM data
+	tgfm_calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_calibration.txt")
+	tgfm_calibration_df <- read.table(tgfm_calibration_file, header=TRUE)
+	tgfm_calibration_df = tgfm_calibration_df[as.character(tgfm_calibration_df$genetic_element_class) == "gene",]
+
+
+	# Extract data for TGFM method
+	indices = (as.character(tgfm_calibration_df$twas_method) == "susie_sampler") & (as.character(tgfm_calibration_df$ln_pi_method) == "pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped")
+	tmp_df = tgfm_calibration_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep("TGFM", n_elements))
+	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+
+
+	# Load in two-step TGFM data
+	tgfm_two_step_calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_two_step_tgfm_pip_", pip_threshold, "_calibration.txt")
+	tgfm_two_step_calibration_df <- read.table(tgfm_two_step_calibration_file, header=TRUE)
+	tgfm_two_step_calibration_df = tgfm_two_step_calibration_df[as.character(tgfm_two_step_calibration_df$genetic_element_class) == "gene",]
+	tmp_df = tgfm_two_step_calibration_df[as.character(tgfm_two_step_calibration_df$two_step_tissue_method) == "best_tissue",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep("TGFM_two_step_best_tissue", n_elements))
+	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+
+	tmp_df = tgfm_two_step_calibration_df[as.character(tgfm_two_step_calibration_df$two_step_tissue_method) == "significant_tissues",]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep("TGFM_two_step_significant_tissues", n_elements))
+	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+
+
+
+	# Convert into clean data frame
+	df <- data.frame(method=factor(method_vec, levels=c("TGFM","TGFM_two_step_best_tissue", "TGFM_two_step_significant_tissues")), n_detected_elements=n_detected_vec, eQTL_sample_size=factor(as.character(eQTL_sample_size_vec), levels=c("realistic","100", "300", "500", "1000")), precision=coverage_vec, precision_ub=coverage_ub_vec, precision_lb=coverage_lb_vec, expected_fdr=1.0-expected_coverage_vec)
+	df$eQTL_sample_size = gsub("realistic","100+300", as.character(df$eQTL_sample_size))
+
+	if (include_100==TRUE) {
+		df$eQTL_sample_size = factor(as.character(df$eQTL_sample_size), levels=c("100", "100+300", "300", "500", "1000"))
+	} else{
+		df = df[as.character(df$eQTL_sample_size)!="100",]
+		df$eQTL_sample_size = factor(as.character(df$eQTL_sample_size), levels=c("100+300", "300", "500", "1000"))
+	}
+
+	df$fdr = 1.0 - df$precision
+	df$fdr_lb = 1.0 - df$precision_ub
+	df$fdr_ub = 1.0 - df$precision_lb
+
+	df$fdr_lb[df$fdr_lb < 0.0] = 0.0
+
+
+	red_color=brewer.pal(n = 9, name = "Reds")[6]
+	purple2_color=brewer.pal(n = 9, name = "Purples")[6]
+	purple1_color=brewer.pal(n = 9, name = "Purples")[4]
+
+
+
+	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=fdr, fill=method)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.3, position=position_dodge(.9), size=.5)  +
+  		#scale_fill_manual(values=c(brewer.pal(n = 9, name = "Reds")[6], brewer.pal(n = 9, name = "Reds")[5], brewer.pal(n = 9, name = "Reds")[4], brewer.pal(n = 9, name = "Reds")[2]))+
+  		scale_fill_manual(values=c(red_color, purple2_color, purple1_color))+
+  		figure_theme() +
+  		labs(x="eQTL sample size", y="FDR", fill="", title=paste0("PIP >= ", pip_threshold)) +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) +
+  		geom_hline(yintercept=1.0-as.numeric(pip_threshold), linetype=2) +
+  		theme(legend.position="top")
+  	if (plot_expected_fdr) {
+  		p = p + geom_errorbar(aes(ymin=expected_fdr, ymax=expected_fdr), width=.8, position=position_dodge(.9), linetype='dotted')
+  	}
+  	return(p)
+
+}
+
 
 
 make_gene_fdr_plot_across_methods_and_sample_sizes <- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold, include_100=FALSE, plot_expected_fdr=FALSE) {
@@ -3210,7 +3367,11 @@ make_expr_med_fraction_plot_with_standard_errors <- function(df) {
   	return(p)
 }
 make_expr_med_fraction_plot_with_standard_errors2 <- function(df) {
-	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(300,500,1000))
+
+	df$eQTL_sample_size = as.character(df$eQTL_sample_size)
+	df$eQTL_sample_size = gsub("realistic","100+300", as.character(df$eQTL_sample_size))
+ 	df$eQTL_sample_size <- factor(df$eQTL_sample_size, levels=c("100", "100+300", "300", "500", "1000"))
+
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=expression_mediated_fraction)) +
   		geom_bar(stat="identity", position=position_dodge()) +
   		geom_errorbar(aes(ymin=expression_mediated_fraction_lb, ymax=expression_mediated_fraction_ub), width=.4, position=position_dodge(.9))  +
@@ -3223,7 +3384,10 @@ make_expr_med_fraction_plot_with_standard_errors2 <- function(df) {
 
 
 make_fraction_high_pip_elements_from_gene_expression_plot_with_standard_errors <- function(df) {
-	df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c(300,500,1000))
+	df$eQTL_sample_size = as.character(df$eQTL_sample_size)
+	df$eQTL_sample_size = gsub("realistic","100+300", as.character(df$eQTL_sample_size))
+ 	df$eQTL_sample_size <- factor(df$eQTL_sample_size, levels=c("100", "100+300", "300", "500", "1000"))
+
 	df$PIP_threshold = factor(df$PIP_threshold, levels=c(0.1, 0.3, 0.5, 0.7, 0.9))
 	p<-ggplot(data=df, aes(x=eQTL_sample_size, y=expression_mediated_fraction, fill=PIP_threshold)) +
   		geom_bar(stat="identity", position=position_dodge()) +
@@ -3410,6 +3574,73 @@ make_tgfm_fdr_power_line_plot_across_eqtl_ss <- function(simulated_organized_res
 }
 
 
+make_fdr_power_line_plot_compared_to_two_step <- function(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss, limit_fdr_range=FALSE) {
+	# Generate global vectors
+	fdr_vec <- c()
+	power_vec <- c()
+	pip_vec <- c()
+	method_vec <- c()
+
+	# TGFM
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_", eqtl_ss, "_tgfm_gene_tissue_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("TGFM", length(df$power)))
+
+
+
+	# two-step best
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_best_tissue_", eqtl_ss, "_two_step_tgfm_gene_tissue_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("TGFM:two step", length(df$power)))	
+
+	# two-step significant
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_two_step_ctwas_lasso_ctwas_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("cTWAS:two step", length(df$power)))	
+
+
+	df <- data.frame(power=power_vec,fdr=fdr_vec, pip=pip_vec, method=factor(method_vec, levels=c("TGFM", "TGFM:two step", "cTWAS:two step")))
+
+	if (limit_fdr_range) {
+		#df <- df[df$fdr <= 0.5,]
+		df <- df[df$power <= 0.002,]
+	}
+
+
+	df<- df[seq(dim(df)[1],1),]
+
+
+	if (eqtl_ss == "realistic") {
+		eqtl_ss="100+300"
+	}
+
+
+	red_color=brewer.pal(n = 9, name = "Reds")[6]
+	purple2_color=brewer.pal(n = 9, name = "Purples")[6]
+	purple1_color=brewer.pal(n = 9, name = "Purples")[4]
+
+
+	p<-ggplot(df, aes(x=power, y=fdr, group=method)) +
+ 		geom_line(aes(color=method)) + 
+ 		scale_color_manual(values=c(red_color, purple2_color, purple1_color)) +
+ 		figure_theme() +
+ 		labs(title=paste0("eQTL SS= ",eqtl_ss), x="Power",y="FDR",color="")
+ 	print("DONE")
+
+ 	return(p)
+
+}
+
+
 make_fdr_power_line_plot <- function(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss, limit_fdr_range=FALSE) {
 	# Generate global vectors
 	fdr_vec <- c()
@@ -3555,90 +3786,64 @@ simulated_organized_results_dir = args[2]
 visualize_simulated_results_dir = args[3]
 
 
-if (FALSE) {
 #####################################################################
 #####################################################################
 # Genome-wide PRIOR
 #####################################################################
+local_simulation_name_string = paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default")
 #####################################################################
+#####################################################################
+# Make barplot with standard error showing AVG fraction-mediated per tissue according to prior
+#####################################################################
+if (FALSE) {
+version="pmces"
+# Load in data
+per_tissue_fraction_causal_file <- paste0(simulated_organized_results_dir, "organized_simulation_", local_simulation_name_string, "_susie_", version, "_uniform_iterative_variant_gene_prior_pip_level_avg_fraction_causal_by_tissue_causal_status.txt")
+per_tissue_fraction_causal_df <- read.table(per_tissue_fraction_causal_file, header=TRUE)
+# Make plot
+avg_per_tissue_status_fraction_causal_se_barplot <- make_avg_per_tissue_causal_status_fraction_causal_se_barplot(per_tissue_fraction_causal_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", local_simulation_name_string, "_iterative_susie_", version, "_avg_fraction_causal_per_tissue_causal_status.pdf")
+ggsave(avg_per_tissue_status_fraction_causal_se_barplot, file=output_file, width=7.2, height=3.5, units="in")
+
+#####################################################################
+# Make barplot with standard error showing AVG fraction non-mediated according to prior
+#####################################################################
+avg_nm_variant_fraction_causal_se_barplot <- make_avg_per_nm_variant_fraction_causal_se_barplot(per_tissue_fraction_causal_df)
+# Save to output
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", local_simulation_name_string, "_iterative_susie_", version, "_avg_fraction_causal_per_nm_variant.pdf")
+ggsave(avg_nm_variant_fraction_causal_se_barplot, file=output_file, width=7.2, height=3.5, units="in")
+
+
+joint <- plot_grid(avg_per_tissue_status_fraction_causal_se_barplot + theme(legend.position="top"), avg_nm_variant_fraction_causal_se_barplot, ncol=1, labels=c("a","b"))
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", local_simulation_name_string, "_iterative_susie_", version, "_avg_fraction_causal.pdf")
+ggsave(joint, file=output_file, width=7.2, height=5.5, units="in")
+}
+
+if (FALSE) {
 #####################################################################
 # Make barplot with standard error showing AVG fraction-mediated per tissue
 #####################################################################
 version="pmces"
 # Load in data
-per_tissue_fraction_causal_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_", version, "_uniform_iterative_variant_gene_prior_pip_level_avg_fraction_causal_by_tissue.txt")
+per_tissue_fraction_causal_file <- paste0(simulated_organized_results_dir, "organized_simulation_", local_simulation_name_string, "_susie_", version, "_uniform_iterative_variant_gene_prior_pip_level_avg_fraction_causal_by_tissue.txt")
 
 per_tissue_fraction_causal_df <- read.table(per_tissue_fraction_causal_file, header=TRUE)
 # Make plot
 avg_per_tissue_fraction_causal_se_barplot <- make_avg_per_tissue_fraction_causal_se_barplot(per_tissue_fraction_causal_df)
 # Save to output
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_iterative_susie_", version, "_avg_fraction_causal_per_tissue.pdf")
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", local_simulation_name_string, "_iterative_susie_", version, "_avg_fraction_causal_per_tissue.pdf")
 ggsave(avg_per_tissue_fraction_causal_se_barplot, file=output_file, width=7.2, height=3.5, units="in")
 
-#####################################################################
-# Make barplot with standard error showing Type 1 error across thresholds for bootstrapped iterative VGT PMCES
-#####################################################################
-# load in data
-t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_h2_type_1_error_across_thresholds.txt")
-t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
-# Make plot
-t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_across_thresholds(t1e_h2_df)
-# Save to output
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
-#ggsave(t1e_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
 
-#####################################################################
-# Make barplot with standard error showing Power across thresholds for bootstrapped iterative VGT PMCES
-#####################################################################
-# load in data
-power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_mediated_h2_power_across_thresholds.txt")
-power_h2_df <- read.table(power_h2_file, header=TRUE)
-# Make plot
-power_se_barplot <- make_power_med_h2_se_barplot_across_thresholds(power_h2_df)
-# Save to output
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_power_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
-#ggsave(power_se_barplot, file=output_file, width=7.2, height=4.5, units="in")
-
-# Make joint plot
-joint_plot <- plot_grid(t1e_se_barplot + theme(legend.position="none"), power_se_barplot, ncol=1, rel_heights=c(1, 1.4))
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_across_thresholds.pdf")
-ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
-
-
-#####################################################################
-# Make barplot with standard error showing Type 1 error for single threshold for bootstrapped iterative VGT PMCES
-#####################################################################
-threshold=1e-8
-# load in data
-t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_h2_type_1_error_across_thresholds.txt")
-t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
-# Make plot
-t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_at_single_threshold(t1e_h2_df, threshold)
-
-
-#####################################################################
-# Make barplot with standard error showing Power for single threshold for bootstrapped iterative VGT PMCES
-#####################################################################
-# load in data
-power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_mediated_h2_power_across_thresholds.txt")
-power_h2_df <- read.table(power_h2_file, header=TRUE)
-# Make plot
-power_se_barplot <- make_power_med_h2_se_barplot_at_single_threshold(power_h2_df, threshold)
-
-
-# Make joint plot
-joint_plot <- plot_grid(t1e_se_barplot + theme(legend.position="none"), power_se_barplot+ theme(legend.position="none"), ncol=1, rel_heights=c(1, 1), labels=c("a","b"))
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_at_", threshold, ".pdf")
-ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
 
 #####################################################################
 # Make barplot with standard error showing Type 1 error using gaussian approximation of bootstrapped iterative VGT PMCES
 #####################################################################
 # load in data
-t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_h2_type_1_error_gaussian_approximation.txt")
+t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", local_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_h2_type_1_error_gaussian_approximation.txt")
 t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
 # Make plot
-#t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_at_single_threshold(t1e_h2_df, threshold)
 t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_gaussian_approximation(t1e_h2_df)
 
 
@@ -3646,17 +3851,16 @@ t1e_se_barplot <- make_type_1_error_med_h2_se_barplot_gaussian_approximation(t1e
 # Make barplot with standard error showing Power for single threshold for bootstrapped iterative VGT PMCES
 #####################################################################
 # load in data
-power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_mediated_h2_power_gaussian_approximation.txt")
+power_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", local_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_mediated_h2_power_gaussian_approximation.txt")
 power_h2_df <- read.table(power_h2_file, header=TRUE)
 # Make plot
-#power_se_barplot <- make_power_med_h2_se_barplot_at_single_threshold(power_h2_df, threshold)
 power_se_barplot <- make_power_med_h2_se_barplot_gaussian_approximation(power_h2_df)
 
 # Make joint plot
 joint_plot <- plot_grid(t1e_se_barplot + theme(legend.position="none"), power_se_barplot+ theme(legend.position="none"), ncol=1, rel_heights=c(1, 1), labels=c("a","b"))
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_gaussian_approximation.pdf")
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", local_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_gaussian_approximation.pdf")
 ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
-
+print(output_file)
 }
 
 
@@ -3667,17 +3871,17 @@ ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
 #####################################################################
 #####################################################################
 
-if (FALSE) {
 #####################################################################
 # TGFM Expected fraction of elements mediated by gene expression
 #####################################################################
+if (FALSE) {
 # load in data
-expr_med_frac_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_expected_fraction_elements_mediated_by_gene_expresssion.txt")
+expr_med_frac_file <- paste0(simulated_organized_results_dir, "organized_simulation_", local_simulation_name_string, "_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_expected_fraction_elements_mediated_by_gene_expresssion.txt")
 expr_med_frac_df <- read.table(expr_med_frac_file, header=TRUE)
 # Make plot
 expr_med_frac_se_plot1 <- make_expr_med_fraction_plot_with_standard_errors2(expr_med_frac_df)
 # Save to output
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_expected_fraction_TGFM_PIP_mediated_by_expression.pdf")
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", local_simulation_name_string, "_expected_fraction_TGFM_PIP_mediated_by_expression.pdf")
 ggsave(expr_med_frac_se_plot1, file=output_file, width=7.2, height=4.0, units="in")
 
 
@@ -3685,22 +3889,22 @@ ggsave(expr_med_frac_se_plot1, file=output_file, width=7.2, height=4.0, units="i
 # TGFM fraction of high PIP elements mediated by gene expression
 #####################################################################
 # load in data
-expr_med_frac_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_fraction_high_pip_elements_mediated_by_gene_expresssion.txt")
+expr_med_frac_file <- paste0(simulated_organized_results_dir, "organized_simulation_", local_simulation_name_string, "_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_fraction_high_pip_elements_mediated_by_gene_expresssion.txt")
 expr_med_frac_df <- read.table(expr_med_frac_file, header=TRUE)
 # Make plot
 expr_med_frac_se_plot2 <- make_fraction_high_pip_elements_from_gene_expression_plot_with_standard_errors(expr_med_frac_df)
 # Save to output
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_fraction_TGFM_high_PIP_mediated_by_expression.pdf")
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", local_simulation_name_string, "_fraction_TGFM_high_PIP_mediated_by_expression.pdf")
 ggsave(expr_med_frac_se_plot2, file=output_file, width=7.2, height=4.0, units="in")
 
 
 # Joint plot
 # Save to output
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_suppfig_estimated_fraction_mediated_by_expression.pdf")
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", local_simulation_name_string, "_suppfig_estimated_fraction_mediated_by_expression.pdf")
 joint_plot <- plot_grid(expr_med_frac_se_plot2, expr_med_frac_se_plot1, ncol=1, labels=c("a","b"))
 ggsave(joint_plot, file=output_file, width=7.2, height=7.5, units="in")
+print(output_file)
 }
-
 
 #####################################################################
 # Make Figure 1
@@ -4091,6 +4295,7 @@ ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
 #####################################################################
 # Make FDR-Power curve across different tissue gene fine-mapping methods
 #####################################################################
+if (FALSE) {
 eqtl_sss <- c("realistic", "100", "300", "500", "1000")
 for (ss_iter in 1:length(eqtl_sss)) {
 	eqtl_ss <- eqtl_sss[ss_iter]
@@ -4106,6 +4311,58 @@ eqtl_sss <- c("100","realistic", "300", "500", "1000")
 fdr_power_plot <- make_tgfm_fdr_power_line_plot_across_eqtl_ss(simulated_organized_results_dir, paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default"), eqtl_sss)
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default"), "_tgfm_fdr_power_line_plot.pdf")
 ggsave(fdr_power_plot, file=output_file, width=7.2, height=4.0, units="in")
+
+}
+
+
+if (FALSE) {
+#####################################################################
+# Make gene-tissue FDR plot comparing TGFM to two step approach
+#####################################################################
+local_simulation_name_string = paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default")
+# Precision plots
+
+pip_threshold <- "0.3"
+fdr_plot_3 <- make_gene_tissue_fdr_plot_comparing_tgfm_to_two_step_across_sample_sizes(simulated_organized_results_dir, local_simulation_name_string, pip_threshold, include_100=TRUE)
+pip_threshold <- "0.5"
+fdr_plot_5 <- make_gene_tissue_fdr_plot_comparing_tgfm_to_two_step_across_sample_sizes(simulated_organized_results_dir, local_simulation_name_string, pip_threshold, include_100=TRUE)
+pip_threshold <- "0.7"
+fdr_plot_7 <- make_gene_tissue_fdr_plot_comparing_tgfm_to_two_step_across_sample_sizes(simulated_organized_results_dir, local_simulation_name_string, pip_threshold, include_100=TRUE)
+pip_threshold <- "0.9"
+fdr_plot_9 <- make_gene_tissue_fdr_plot_comparing_tgfm_to_two_step_across_sample_sizes(simulated_organized_results_dir, local_simulation_name_string, pip_threshold, include_100=TRUE)
+pip_threshold <- "0.95"
+fdr_plot_95 <- make_gene_tissue_fdr_plot_comparing_tgfm_to_two_step_across_sample_sizes(simulated_organized_results_dir, local_simulation_name_string, pip_threshold, include_100=TRUE)
+pip_threshold <- "0.99"
+fdr_plot_99 <- make_gene_tissue_fdr_plot_comparing_tgfm_to_two_step_across_sample_sizes(simulated_organized_results_dir, local_simulation_name_string, pip_threshold, include_100=TRUE)
+
+# Extract legend 
+legender = get_legend(fdr_plot_99)
+
+# Make joint plot with cowplot
+figure <- plot_grid(legender, plot_grid(fdr_plot_3+theme(legend.position="none"), fdr_plot_5+theme(legend.position="none"), fdr_plot_7+theme(legend.position="none"), fdr_plot_9+theme(legend.position="none"), fdr_plot_95+theme(legend.position="none"), fdr_plot_99+theme(legend.position="none"),ncol=2, labels=c("a", "b", "c","d", "e", "f")),ncol=1, rel_heights=c(.05,1))
+
+# Make joint plot
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_gene_tissue_precision_tgfm_cmp_to_two_step_pip_range.pdf")
+ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
+}
+
+
+#####################################################################
+# Make FDR-Power curve comparing TGFM to two-step
+#####################################################################
+eqtl_sss <- c("realistic", "100", "300", "500", "1000")
+if (FALSE) {
+for (ss_iter in 1:length(eqtl_sss)) {
+	eqtl_ss <- eqtl_sss[ss_iter]
+	fdr_power_plot <- make_fdr_power_line_plot_compared_to_two_step(simulated_organized_results_dir, paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default"), eqtl_ss)
+	output_file <- paste0(visualize_simulated_results_dir, "simulation_", paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default"), "_eqtl_ss_", eqtl_ss,"_cmp_tgfm_to_two_step_fdr_power_line_plot.pdf")
+	ggsave(fdr_power_plot, file=output_file, width=7.2, height=4.0, units="in")
+}
+}
+
+
+
+
 
 
 

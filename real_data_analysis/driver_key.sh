@@ -1074,9 +1074,8 @@ fi
 # Visualize specific TGFM examples
 #################################
 sc_specific_examples_input_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/sc_specific_examples.txt"
-if false; then
 sh visualize_specific_tgfm_examples.sh $sc_specific_examples_input_file $tgfm_input_summary_file $sc_tgfm_results_dir $sc_tgfm_organized_results_dir $gtex_susie_gene_models_dir $gene_annotation_file $visualize_specific_sc_tgfm_examples_dir $ukbb_sumstats_hg38_dir
-fi
+
 
 
 
@@ -1104,8 +1103,9 @@ fi
 #################################
 # Visualize held out tissue analyses
 #################################
+if false; then
 Rscript visualize_held_out_tissue_comparision.R $tgfm_organized_results_dir $sc_pb_tgfm_organized_results_dir $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_throw_out_tissue.txt" $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable4.txt" $visualize_held_out_tissue_comparison_dir $tissue_replication_results_dir
-
+fi
 
 
 #################################

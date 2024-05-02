@@ -234,6 +234,9 @@ def simulate_causal_eqtl_effect_sizes_with_selection(cis_window, simulated_gene_
 		gene_cis_snp_indices_file = simulated_gene_expression_dir + simulation_name_string + '_' + ensamble_id + '_cis_snp_indices.npy'
 		np.save(gene_cis_snp_indices_file, np.where(cis_snp_indices==True)[0])
 
+
+		
+
 		# Write to output file
 		t.write(ensamble_id + '\t' + chrom_num + '\t' + str(tss) + '\t' + gene_causal_effect_file + '\t' + gene_cis_snpid_file + '\t' + gene_cis_snp_indices_file + '\t' + str(len(cis_snp_indices)) + '\n')
 		gene_counter = gene_counter + 1

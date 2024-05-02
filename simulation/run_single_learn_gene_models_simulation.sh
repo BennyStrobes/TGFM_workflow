@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-20:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-15:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=13GB                         # Memory total in MiB (for all cores)
 
@@ -34,6 +34,7 @@ simulated_causal_twas_input_data_dir="${25}"
 simulated_causal_twas_gene_models_dir="${26}"
 simulated_causal_twas_results_dir="${27}"
 processed_ctwas_genotype_data_dir="${28}"
+run_lasso_identifier="${29}"
 
 
 
@@ -59,7 +60,7 @@ global_window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_wind
 # Step 1: Fit gene models
 #######################################################
 echo "Simulation Step 1"
-python3 fit_gene_models.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture $eqtl_sample_size
+python3 fit_gene_models.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture $eqtl_sample_size $run_lasso_identifier
 
 
 

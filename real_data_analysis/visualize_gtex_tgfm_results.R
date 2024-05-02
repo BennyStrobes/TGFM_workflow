@@ -3617,6 +3617,61 @@ make_ldl_silver_standard_stratefied_gene_pip_one_minus_emperical_fdr_plot <- fun
 
 }
 
+make_ldl_silver_standard_stratefied_gene_tissue_pip_emperical_fdr_plot <- function(ldl_enrichment_file, pip_lb=0.01, color='red', method_name="TGFM") {
+	df <- read.table(ldl_enrichment_file, header=TRUE, sep="\t")
+
+	unique_gene_pips <- sort(unique(df$gene_tissue_pip))
+	unique_gene_pips = unique_gene_pips[unique_gene_pips > pip_lb]
+
+	pip_vec <- c()
+	efdr_vec <- c()
+	efdr_lb_vec <- c()
+	efdr_ub_vec <- c()
+
+	for (pip_iter in 1:length(unique_gene_pips)) {
+		pip_val = unique_gene_pips[pip_iter]
+		tmp_df <- df[df$gene_tissue_pip >= pip_val,]
+
+		n_silver = sum(as.character(tmp_df$silver_standard) == "silver standard")
+		n_background = sum(as.character(tmp_df$silver_standard) == "background")
+
+		efdr = n_background/(n_silver + n_background)
+
+		efdr_variance = (efdr*(1.0-efdr))/(n_silver + n_background)
+		efdr_se = sqrt(efdr_variance)
+
+		pip_vec <- c(pip_vec, pip_val)
+		efdr_vec <- c(efdr_vec, efdr)
+
+		efdr_lb_vec <- c(efdr_lb_vec, efdr - (1.96*efdr_se))
+		efdr_ub_vec <- c(efdr_ub_vec, efdr + (1.96*efdr_se))
+	}
+
+	efdr_lb_vec[efdr_lb_vec < 0.0] = 0.0
+	efdr_ub_vec[efdr_lb_vec > 1.0] = 0.0
+
+	if (color == "red") {
+		color_choice=brewer.pal(n = 9, name = "Reds")[6]
+	}
+	if (color == "green") {
+		color_choice=brewer.pal(n = 9, name = "Greens")[6]
+	}
+	if (color == "orange") {
+		color_choice=brewer.pal(n = 9, name = "Oranges")[6]
+	}
+	df2 <- data.frame(PIP=pip_vec, efdr=efdr_vec, efdr_lb = efdr_lb_vec, efdr_ub=efdr_ub_vec)
+	pp <- ggplot(df2, aes(x = PIP, y = efdr, ymin=efdr_lb, ymax=efdr_ub)) +
+	 geom_line(color=color_choice, size=2.0) +
+	 geom_ribbon(alpha=0.2, fill=color_choice) +
+	 figure_theme() + 
+	 geom_abline(slope=-1, intercept=1, size=.3) +
+	 labs(x=paste0(method_name," (Gene-Tissue) PIP"), y="FDR (Silver standard gene-tissue set)")
+
+	 return(pp) 
+
+
+}
+
 make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot <- function(ldl_enrichment_file, pip_lb=0.01, color='green', method_name="TGFM") {
 	df <- read.table(ldl_enrichment_file, header=TRUE, sep="\t")
 
@@ -3659,10 +3714,10 @@ make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot <- function(ldl_
 	df2 <- data.frame(PIP=pip_vec, efdr=efdr_vec, efdr_lb = efdr_lb_vec, efdr_ub=efdr_ub_vec)
 	pp <- ggplot(df2, aes(x = PIP, y = efdr, ymin=efdr_lb, ymax=efdr_ub)) +
 	 geom_line(color=color_choice, size=2.0) +
-	 geom_ribbon(alpha=0.5, fill=color_choice) +
+	 geom_ribbon(alpha=0.2, fill=color_choice) +
 	 figure_theme() + 
 	 geom_abline(slope=-1, intercept=1, size=.3) +
-	 labs(x=paste0(method_name," (Gene) PIP"), y="eFDR\n(Silver standard gene set)")
+	 labs(x=paste0(method_name," (Gene) PIP"), y="FDR (Silver standard gene set)")
 
 	 return(pp) 
 
@@ -4124,7 +4179,6 @@ print(output_file)
 # Make LDL silver standard emperical FDR plot
 ##########################################################
 # TGFM
-if (FALSE) {
 ldl_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_enrichment_summary.txt")
 tgfm_eFDR_plot <- make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot(ldl_enrichment_file)
 output_file <- paste0(visualize_tgfm_dir, "ldl_silver_standard_tgfm_gene_set_tgfm_empirical_FDR.pdf")
@@ -4140,7 +4194,14 @@ ggsave(ctwas_eFDR_plot, file=output_file, width=7.2, height=4.7, units="in")
 joint_eFDR_plot <- plot_grid(tgfm_eFDR_plot, ctwas_eFDR_plot, ncol=2)
 output_file <- paste0(visualize_tgfm_dir, "ldl_silver_standard_gene_set_tgfm_empirical_FDR.pdf")
 ggsave(joint_eFDR_plot, file=output_file, width=7.2, height=3.5, units="in")
-}
+
+# TGFM gene-tissue
+ldl_gt_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_gene_tissue_enrichment_summary.txt")
+tgfm_gt_eFDR_plot <- make_ldl_silver_standard_stratefied_gene_tissue_pip_emperical_fdr_plot(ldl_gt_enrichment_file)
+output_file <- paste0(visualize_tgfm_dir, "ldl_silver_standard_tgfm_gene_tissue_set_tgfm_empirical_FDR.pdf")
+ggsave(tgfm_gt_eFDR_plot, file=output_file, width=7.2, height=4.7, units="in")
+
+
 
 ##########################################################
 # Make LDL silver standard 1-eFDR plot
@@ -4209,7 +4270,6 @@ ggsave(barplot_05, file=output_file, width=7.2, height=4.7, units="in")
 ##########################################################
 # Make Figure 4 
 ##########################################################
-if (FALSE) {
 red_color =brewer.pal(n = 9, name = "Reds")[7]
 # FIG 4A
 pip_thresh <- "0.5"
@@ -4227,7 +4287,7 @@ fig_4b <- make_trait_tissue_chromatin_overlap_cdf(trait_tissue_chromatin_overlap
           theme(legend.position="top") + guides(fill = guide_legend(title.position = "top")) + labs(fill="TGFM tissue-specific prior", colour="TGFM tissue-specific prior") +
           theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points"))
 
-fig_4b <- plot_grid(fig_4b, NULL, ncol=1,rel_heights=c(1,.15))
+fig_4b <- plot_grid(fig_4b, NULL, ncol=1,rel_heights=c(1,.16))
 
 
 # FIG 4c
@@ -4240,7 +4300,8 @@ fig_4c <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, inde
 
 # Fig 4D
 ldl_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_enrichment_summary.txt")
-fig_4d <- make_ldl_silver_standard_stratefied_gene_pip_one_minus_emperical_fdr_plot(ldl_enrichment_file) +
+fig_4d <- make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot(ldl_enrichment_file) +
+		  labs(y="FDR") +
 	      theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points")) 
 fig_4d <- plot_grid(fig_4d, NULL, ncol=1,rel_heights=c(1,.247))
 
@@ -4251,7 +4312,6 @@ fig_4cd = plot_grid(fig_4c, NULL, fig_4d, ncol=3, rel_widths=c(.6,.02,.45), labe
 fig_4 <- plot_grid(fig_4ab, fig_4cd, ncol=1, rel_heights=c(.6,.43))
 output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
 ggsave(fig_4, file=output_file, width=7.2, height=6.2, units="in")
-}
 
 
 ##########################################################
