@@ -63,18 +63,16 @@ date
 eqtl_type="susie"
 n_bootstraps="100"
 annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
-if false; then
 python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir $n_bootstraps
-fi
+
 
 #######################################################
 # Step 3: Preprocess data for TGFM-LASSO
 #######################################################
 echo "Simulation Step 3"
 date
-if false; then
 python3 preprocess_data_for_tgfm_lasso_gene_model.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir
-fi
+
 
 
 #######################################################
