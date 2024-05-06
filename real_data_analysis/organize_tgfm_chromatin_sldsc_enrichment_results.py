@@ -205,10 +205,24 @@ trait_cell_type_to_sldsc_z =  get_mapping_from_trait_cell_type_pair_to_sldsc_z_s
 
 
 # Extract TGFM trait-tissue pairs with corresponding cell type p-value
+
+print(tgfm_trait_tissue_significance_file)
 tgfm_fdr  = .05
 output_file = chromatin_cell_type_group_ldsc_dir + 'tgfm_sldsc_chromatin_overlap_summary_' + str(tgfm_fdr) + '.txt'
 create_tgfm_sldsc_chromatin_overlap_summary_file(tgfm_trait_tissue_significance_file, tissue_name_to_cell_type_group, cell_type_group_to_num, tgfm_fdr,output_file, independent_traits)
 tgfm_fdr  = .2
+output_file = chromatin_cell_type_group_ldsc_dir + 'tgfm_sldsc_chromatin_overlap_summary_' + str(tgfm_fdr) + '.txt'
+create_tgfm_sldsc_chromatin_overlap_summary_file(tgfm_trait_tissue_significance_file, tissue_name_to_cell_type_group, cell_type_group_to_num, tgfm_fdr,output_file, independent_traits)
+tgfm_fdr  = .5
+output_file = chromatin_cell_type_group_ldsc_dir + 'tgfm_sldsc_chromatin_overlap_summary_' + str(tgfm_fdr) + '.txt'
+create_tgfm_sldsc_chromatin_overlap_summary_file(tgfm_trait_tissue_significance_file, tissue_name_to_cell_type_group, cell_type_group_to_num, tgfm_fdr,output_file, independent_traits)
+tgfm_fdr  = .75
+output_file = chromatin_cell_type_group_ldsc_dir + 'tgfm_sldsc_chromatin_overlap_summary_' + str(tgfm_fdr) + '.txt'
+create_tgfm_sldsc_chromatin_overlap_summary_file(tgfm_trait_tissue_significance_file, tissue_name_to_cell_type_group, cell_type_group_to_num, tgfm_fdr,output_file, independent_traits)
+tgfm_fdr  = .9
+output_file = chromatin_cell_type_group_ldsc_dir + 'tgfm_sldsc_chromatin_overlap_summary_' + str(tgfm_fdr) + '.txt'
+create_tgfm_sldsc_chromatin_overlap_summary_file(tgfm_trait_tissue_significance_file, tissue_name_to_cell_type_group, cell_type_group_to_num, tgfm_fdr,output_file, independent_traits)
+tgfm_fdr  = .95
 output_file = chromatin_cell_type_group_ldsc_dir + 'tgfm_sldsc_chromatin_overlap_summary_' + str(tgfm_fdr) + '.txt'
 create_tgfm_sldsc_chromatin_overlap_summary_file(tgfm_trait_tissue_significance_file, tissue_name_to_cell_type_group, cell_type_group_to_num, tgfm_fdr,output_file, independent_traits)
 

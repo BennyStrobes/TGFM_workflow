@@ -114,15 +114,13 @@ window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_"${
 python3 create_chromosome_windows.py $window_size_mb $reference_bim $window_file ${chrom_num}
 
 python3 generate_gwas_in_sample_ld_for_all_windows.py $chrom_num $window_file ${processed_genotype_data_dir}
-
-
+echo "Done with TGFM windows"
 
 
 
 #########################
 # Create LD windows for c-TWAS
 ##########################
-if false; then
 module load gcc/9.2.0
 module load R/4.3.1
 ctwas_regions_file=${processed_ctwas_genotype_data_dir}"ctwas_quasi_independent_regions.bed"
@@ -131,6 +129,6 @@ Rscript generate_quasi_independent_ld_windows_for_ctwas.R $chrom_num $processed_
 
 source ~/.bash_profile
 python3 generate_gwas_in_sample_ld_for_all_ctwas_windows.py $chrom_num $ctwas_regions_file $processed_genotype_data_dir $processed_ctwas_genotype_data_dir
-fi
+
 
 
