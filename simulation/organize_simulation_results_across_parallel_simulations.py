@@ -8977,7 +8977,6 @@ for pip_threshold in pip_thresholds:
 # TGFM Coverage/Calibration to detect snps with PIP > threshold
 # Non-mediated variants also include expression-mediated variants
 ##################################
-'''
 simulation_runs = np.arange(1,51)
 pip_thresholds = [.3, .5, .7, .9, .95, .99]
 
@@ -8989,7 +8988,8 @@ twas_methods = np.asarray(['susie_sampler'])
 eqtl_sample_sizes = np.asarray(['500' ])
 
 # (nm variant prior scale, non-causal gt prior scale)
-scaling_factors = [('0.5', '1.0'), ('2.0', '1.0')]
+scaling_factors = [('0.5', '1.0'), ('2.0', '1.0'), ('1.0', '0.5'), ('1.0', '2.0')]
+'''
 for pip_threshold in pip_thresholds:
 	for scaling_factor in scaling_factors:
 		print(scaling_factor)
@@ -9020,7 +9020,9 @@ twas_methods = np.asarray(['susie_sampler'])
 eqtl_sample_sizes = np.asarray(['500' ])
 
 # (nm variant prior scale, non-causal gt prior scale)
-scaling_factors = [('0.5', '1.0'), ('2.0', '1.0')]
+scaling_factors = [('0.5', '1.0'), ('2.0', '1.0'), ('1.0', '0.5'), ('1.0', '2.0')]
+scaling_factors = [('1.0', '0.5'), ('1.0', '2.0')]
+
 for pip_threshold in pip_thresholds:
 	for scaling_factor in scaling_factors:
 		# Extract scaling factors
@@ -9052,7 +9054,8 @@ twas_methods = np.asarray(['susie_sampler'])
 eqtl_sample_sizes = np.asarray(['500' ])
 
 # (nm variant prior scale, non-causal gt prior scale)
-scaling_factors = [('0.5', '1.0'), ('2.0', '1.0')]
+scaling_factors = [('0.5', '1.0'), ('2.0', '1.0'), ('1.0', '0.5'), ('1.0', '2.0')]
+scaling_factors = [('1.0', '0.5'), ('1.0', '2.0')]
 
 for pip_threshold in pip_thresholds:
 	for scaling_factor in scaling_factors:
@@ -9084,7 +9087,8 @@ twas_methods = np.asarray(['susie_sampler'])
 eqtl_sample_sizes = np.asarray(['500' ])
 
 # (nm variant prior scale, non-causal gt prior scale)
-scaling_factors = [('0.5', '1.0'), ('2.0', '1.0')]
+scaling_factors = [('0.5', '1.0'), ('2.0', '1.0'), ('1.0', '0.5'), ('1.0', '2.0')]
+scaling_factors = [('1.0', '0.5'), ('1.0', '2.0')]
 
 for pip_threshold in pip_thresholds:
 	for scaling_factor in scaling_factors:
@@ -9100,8 +9104,6 @@ for pip_threshold in pip_thresholds:
 		create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods,twas_methods)
 		print(cs_power_output_file)
 '''
-
-
 
 
 
@@ -9181,7 +9183,7 @@ for eqtl_ss in eqtl_sample_sizes:
 		print(fdr_power_curve_data_output_file)
 '''
 
-print('cTWAS')
+
 # Simulation runs
 # Currently hacky because had some failed simulations
 tmp_simulation_runs = np.arange(1,101)
@@ -9193,10 +9195,12 @@ for sim_run in tmp_simulation_runs:
 	if sim_run not in bads:
 		simulation_runs.append(sim_run)
 simulation_runs = np.asarray(simulation_runs)
+
+'''
+print('cTWAS')
 ##################################
 # cTWAS Coverage/Calibration to detect snps with PIP > threshold
 ##################################
-'''
 gene_type='component_gene'
 pip_thresholds = [.3, .5, .7, .9, .95, .99]
 # Vary ln_pi_method
@@ -9646,6 +9650,271 @@ for eqtl_ss in eqtl_sample_sizes:
 	create_file_containing_two_step_coloc_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_two_step_tgfm_results_dir, simulated_coloc_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, global_window_file, simulated_learned_gene_models_dir)
 	print(fdr_power_curve_data_output_file)
 '''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#############################################################
+# Selection Fine-mapping simulation
+#############################################################
+'''
+
+gene_trait_architecture = '2_caus_t'
+eqtl_architecture = 'selection_1'
+local_simulation_name_string = global_simulation_name_string + '_gt_arch_' + gene_trait_architecture + '_qtl_arch_' + eqtl_architecture
+
+
+# Used eQTL sample sizes
+eqtl_sample_sizes = np.asarray(['300', '500' ])
+
+# Simulation runs
+# Currently hacky because had some failed simulations
+tmp_simulation_runs = np.arange(1,101)
+bads = {}
+bads[55] = 1
+bads[73] = 1
+simulation_runs = []
+for sim_run in tmp_simulation_runs:
+	if sim_run not in bads:
+		simulation_runs.append(sim_run)
+simulation_runs = np.asarray(simulation_runs)
+
+
+# ln_pi methods used
+ln_pi_methods = np.asarray(['uniform', 'pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped'])
+
+# twas method
+twas_methods = np.asarray(['susie_pmces', 'susie_sampler'])
+
+
+#Bim file
+bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + chrom_num + '.bim'
+
+# Windows
+global_window_file = processed_genotype_data_dir + 'chromosome_' + str(chrom_num) + '_windows_3_mb.txt'
+
+print('TGFM')
+##################################
+# TGFM Coverage/Calibration to detect snps with PIP > threshold
+# Non-mediated variants also include expression-mediated variants
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per cs (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, component_num, boolean_causal_variant_in_cs)
+	cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_nm_variant_alt_calibration_per_component.txt'
+	create_file_containing_tgfm_cs_calibration_per_high_pip_snp_non_mediated_variants_include_gene_variants(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, twas_methods, simulated_trait_dir, simulated_tgfm_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file, simulated_gene_expression_dir)
+	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_nm_variant_alt_calibration.txt'
+	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ln_pi_methods, twas_methods)
+	print(cs_high_pip_coverage_output_file)
+
+	print(pip_threshold)
+	# Create file with one line per cs (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, component_num, boolean_causal_variant_in_cs)
+	cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_calibration_per_component.txt'
+	create_file_containing_tgfm_cs_calibration_per_high_pip_snp(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, twas_methods, simulated_trait_dir, simulated_tgfm_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file)
+	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_calibration.txt'
+	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ln_pi_methods, twas_methods)
+	print(cs_high_pip_coverage_output_file)
+
+##################################
+# TGFM Power to detect snps with PIP > threshold
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+# Used eQTL sample sizes
+eqtl_sample_sizes = np.asarray(['300', '500' ])
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per causal element (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, gene_or_variant, causal_element_name, boolean_causal_element_in_cs)
+	cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_power_per_component.txt'
+	create_file_containing_tgfm_high_pip_snp_power_per_component(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, simulated_trait_dir, simulated_tgfm_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, cs_power_per_component_output_file, pip_threshold, twas_methods, global_window_file)
+
+	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_power.txt'
+	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods,twas_methods)
+
+
+# Simulation runs
+# Currently hacky because had some failed simulations
+tmp_simulation_runs = np.arange(1,101)
+bads = {}
+bads[55] = 1
+bads[73] = 1
+simulation_runs = []
+for sim_run in tmp_simulation_runs:
+	if sim_run not in bads:
+		simulation_runs.append(sim_run)
+simulation_runs = np.asarray(simulation_runs)
+
+print('cTWAS')
+##################################
+# cTWAS Coverage/Calibration to detect snps with PIP > threshold
+##################################
+gene_type='component_gene'
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	# Create file with one line per cs (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, component_num, boolean_causal_variant_in_cs)
+	cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_pip_' + str(pip_threshold) + '_calibration_per_component.txt'
+	create_file_containing_ctwas_cs_calibration_per_high_pip_snp(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_causal_twas_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file, simulated_learned_gene_models_dir)
+	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_pip_' + str(pip_threshold) + '_calibration.txt'
+	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ['ctwas'], ['lasso'], agg_eqtl_ss=False)
+	print(cs_high_pip_coverage_output_file)
+
+##################################
+# cTWAS Power to detect snps with PIP > threshold
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+gene_type='component_gene'
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per causal element (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, gene_or_variant, causal_element_name, boolean_causal_element_in_cs)
+	cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_pip_' + str(pip_threshold) + '_power_per_component.txt'
+	create_file_containing_ctwas_high_pip_snp_power_per_component(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_causal_twas_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, cs_power_per_component_output_file, pip_threshold, global_window_file,simulated_learned_gene_models_dir)
+	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_pip_' + str(pip_threshold) + '_power.txt'
+	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ['ctwas'],['lasso'], agg_eqtl_ss=False)
+
+##################################
+# cTWAS-TG Coverage/Calibration to detect snps with PIP > threshold
+##################################
+gene_type='component_gene'
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+pip_thresholds = [.5, .9,]
+
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per cs (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, component_num, boolean_causal_variant_in_cs)
+	cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_tg_pip_' + str(pip_threshold) + '_calibration_per_component.txt'
+	create_file_containing_ctwas_tg_cs_calibration_per_high_pip_snp(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_causal_twas_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file, simulated_learned_gene_models_dir)
+	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_tg_pip_' + str(pip_threshold) + '_calibration.txt'
+	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ['ctwas'], ['lasso'], agg_eqtl_ss=False)
+	print(cs_high_pip_coverage_output_file)
+
+##################################
+# cTWAS-TG Power to detect snps with PIP > threshold
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+gene_type='component_gene'
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per causal element (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, gene_or_variant, causal_element_name, boolean_causal_element_in_cs)
+	cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_tg_pip_' + str(pip_threshold) + '_power_per_component.txt'
+	create_file_containing_ctwas_tg_high_pip_snp_power_per_component(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_causal_twas_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, cs_power_per_component_output_file, pip_threshold, global_window_file,simulated_learned_gene_models_dir)
+	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_tg_pip_' + str(pip_threshold) + '_power.txt'
+	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ['ctwas'],['lasso'], agg_eqtl_ss=False)
+
+
+print('FOCUS')
+##################################
+# FOCUS Coverage/Calibration to detect snps with PIP > threshold
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Calibration to detect causal gene-tissue pairs (no genotype intercept)
+	focus_cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_pip_' + str(pip_threshold) + '_calibration_per_component.txt'
+	create_file_containing_focus_cs_calibration_per_high_pip_snp(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, pip_threshold, focus_cs_coverage_per_high_pip_snp_output_file)
+	focus_cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_pip_' + str(pip_threshold) + '_calibration.txt'
+	create_file_containing_averaged_focus_high_pip_calibration(focus_cs_coverage_per_high_pip_snp_output_file, focus_cs_high_pip_coverage_output_file, eqtl_sample_sizes)
+	
+##################################
+# FOCUS Power to detect snps with PIP > threshold
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Power to detect causal gene-tissue pairs (no genotype intercept)
+	focus_cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_pip_' + str(pip_threshold) + '_power_per_component.txt'
+	create_file_containing_focus_high_pip_snp_power_per_component(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, focus_cs_power_per_component_output_file, pip_threshold, global_window_file)
+	focus_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_pip_' + str(pip_threshold) + '_power.txt'
+	create_file_containing_averaged_focus_cs_power(focus_cs_power_per_component_output_file, focus_cs_power_output_file, eqtl_sample_sizes)
+
+##################################
+# FOCUS-TG Coverage/Calibration to detect snps with PIP > threshold
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Calibration to detect causal gene-tissue pairs (no genotype intercept)
+	# Create file with one line per cs (columns: eQTL_sample_size, simulation_num, window_num, boolean_causal_variant_in_cs)
+	focus_cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_tg_pip_' + str(pip_threshold) + '_calibration_per_component.txt'
+	create_file_containing_focus_tg_cs_calibration_per_high_pip_snp(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, pip_threshold, focus_cs_coverage_per_high_pip_snp_output_file)
+	focus_cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_tg_pip_' + str(pip_threshold) + '_calibration.txt'
+	create_file_containing_averaged_focus_high_pip_calibration(focus_cs_coverage_per_high_pip_snp_output_file, focus_cs_high_pip_coverage_output_file, eqtl_sample_sizes)
+	print(focus_cs_high_pip_coverage_output_file)
+
+##################################
+# FOCUS-TG Power to detect snps with PIP > threshold
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Power to detect causal gene-tissue pairs (no genotype intercept)
+	# Create file with one line per causal element (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, gene_or_variant, causal_element_name, boolean_causal_element_in_cs)
+	focus_cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_tg_pip_' + str(pip_threshold) + '_power_per_component.txt'
+	create_file_containing_focus_tg_high_pip_snp_power_per_component(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, focus_cs_power_per_component_output_file, pip_threshold, global_window_file)
+	focus_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_tg_pip_' + str(pip_threshold) + '_power.txt'
+	create_file_containing_averaged_focus_cs_power(focus_cs_power_per_component_output_file, focus_cs_power_output_file, eqtl_sample_sizes)
+
+print('coloc')
+##################################
+# coloc Coverage/Calibration to detect snps with PIP > threshold
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per cs (columns: eQTL_sample_size, simulation_num, window_num, boolean_causal_variant_in_cs)
+	coloc_cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_calibration_per_component.txt'
+	create_file_containing_coloc_cs_calibration_per_high_pip_snp(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_coloc_results_dir, pip_threshold, coloc_cs_coverage_per_high_pip_snp_output_file)
+	coloc_cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_calibration.txt'
+	create_file_containing_averaged_focus_high_pip_calibration(coloc_cs_coverage_per_high_pip_snp_output_file, coloc_cs_high_pip_coverage_output_file, eqtl_sample_sizes)
+	print(coloc_cs_high_pip_coverage_output_file)
+
+
+##################################
+# coloc Power to detect snps with PIP > threshold
+##################################
+pip_thresholds = [.3, .5, .7, .9, .95, .99]
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per causal element (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, gene_or_variant, causal_element_name, boolean_causal_element_in_cs)
+	coloc_cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_power_per_component.txt'
+	create_file_containing_coloc_high_pip_snp_power_per_component(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_coloc_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, coloc_cs_power_per_component_output_file, pip_threshold, global_window_file)
+	coloc_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_power.txt'
+	create_file_containing_averaged_focus_cs_power(coloc_cs_power_per_component_output_file, coloc_cs_power_output_file, eqtl_sample_sizes)
+'''
+
+
+
+
+
+
+
+
+
 
 
 '''

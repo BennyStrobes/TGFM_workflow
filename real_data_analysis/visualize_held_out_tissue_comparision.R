@@ -643,7 +643,50 @@ get_replication_analysis_histogram_data <-  function(repication_data_file, repli
 
 }
 
+make_replication_analysis_histogram2 <- function(repication_data_file, replication_name, original_tissue, replicating_tissue, replicating_tissue_name_readable, titler) {
+	df <- read.table(repication_data_file, header=TRUE, sep="\t")
 
+	all_tissue_names <- as.character(unique(df$new_tissue))
+
+	# Remore replicating tissue
+	other_tissue_names <- all_tissue_names[all_tissue_names!=replicating_tissue]
+
+
+	tissue_names_arr <- c()
+	avg_pip_arr <- c()
+
+
+	# loop Through tissues
+	for (tissue_iter in 1:length(other_tissue_names)) {
+		tissue_name <- other_tissue_names[tissue_iter]
+		avg_pip = mean(df$new_tissue_pip[as.character(df$new_tissue) == tissue_name])
+
+		tissue_names_arr <- c(tissue_names_arr, tissue_name)
+		avg_pip_arr <- c(avg_pip_arr, avg_pip)
+
+	}
+
+	df2 <- data.frame(PIP=avg_pip_arr, tissue=tissue_names_arr)
+
+
+	replication_avg_pip = mean(df$new_tissue_pip[as.character(df$new_tissue) == replicating_tissue])
+
+	df3 <- data.frame(PIPPY=c(replication_avg_pip), labeler=c(replicating_tissue_name_readable), density=c(10))
+
+	red_color=brewer.pal(n = 9, name = "Reds")[7]
+
+
+	p <- ggplot(df2, aes(PIP)) +
+		geom_histogram(fill="skyblue",color="grey15", alpha=0.9, binwidth=0.02, boundary = 0) + 
+  		figure_theme() +
+  		geom_vline(xintercept = replication_avg_pip,color = red_color, size=1.5) + 
+  		#xlim(-.05, .35) +
+		geom_text_repel(data=df3, aes(x=PIPPY, y=density, label=labeler), color=red_color,size=4.4, nudge_x=-.02) +
+		labs(y="\n\nNo. tissues", x="Average gene-tissue PIP / tissue") +
+		theme(plot.title = element_text(hjust = 0.5))
+
+  	return(p)
+}
 
 make_replication_analysis_histogram <- function(repication_data_file, replication_name, original_tissue, replicating_tissue, replicating_tissue_name_readable, titler) {
 	df <- read.table(repication_data_file, header=TRUE, sep="\t")
@@ -729,8 +772,18 @@ original_tissue="Whole_Blood"
 replicating_tissue="PBMC"
 repication_data_file <- paste0(tissue_replication_results_dir, replication_name, "_replication_pip_0.5_raw_replication_results.txt")
 rep_histo <- make_replication_analysis_histogram(repication_data_file, replication_name, original_tissue, replicating_tissue , "PBMC", "Whole Blood replication")
-output_file = paste0(output_dir, replication_name, "_replication_histogram.pdf")
+output_file = paste0(output_dir, replication_name, "_replication_density.pdf")
 ggsave(rep_histo, file=output_file, width=7.2, height=4.1, units="in")
+
+# PBMC replication
+replication_name="Whole_Blood_PBMC"
+original_tissue="Whole_Blood"
+replicating_tissue="PBMC"
+repication_data_file <- paste0(tissue_replication_results_dir, replication_name, "_replication_pip_0.5_raw_replication_results.txt")
+rep_histo2 <- make_replication_analysis_histogram2(repication_data_file, replication_name, original_tissue, replicating_tissue , "PBMC", "Whole Blood replication")
+output_file = paste0(output_dir, replication_name, "_replication_histogram.pdf")
+ggsave(rep_histo2, file=output_file, width=7.2, height=4.1, units="in")
+
 
 # Whole blood subsampled replication
 replication_name="Whole_Blood_Whole_Blood_subsampled"
@@ -740,7 +793,6 @@ repication_data_file <- paste0(tissue_replication_results_dir, replication_name,
 subsampled_histo <- make_replication_analysis_histogram(repication_data_file, replication_name, original_tissue, replicating_tissue, "Whole Blood\n(subsampled)", "Whole Blood subsampling")
 output_file = paste0(output_dir, replication_name, "_replication_histogram.pdf")
 ggsave(subsampled_histo, file=output_file, width=7.2, height=4.1, units="in")
-
 
 #######################
 # Make se barplot showing number of gene-tissue pairs discovered in the ablated analyisis (for loci where PIP > 0.5 in the original analysis)
@@ -757,7 +809,7 @@ ggsave(n_ablation_hits_bar, file=output_file, width=7.2, height=4.6, units="in")
 #fig_5bc <- plot_grid(subsampled_histo, rep_histo, ncol=2, labels=c("b", "c"))
 #rep_histo <- rep_histo + labs(x="Average replicating gene−tissue PIP / tissue", y="\nNo. tissues")
 n_ablation_hits_bar = n_ablation_hits_bar + theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points")) + labs(x=NULL)
-rep_histo <- plot_grid(NULL, rep_histo, ncol=2, rel_widths=c(.012, 1.0))
+rep_histo <- plot_grid(NULL, rep_histo2, ncol=2, rel_widths=c(.012, 1.0))
 fig_5 <- plot_grid(n_ablation_hits_bar, rep_histo, ncol=1, rel_heights=c(1.5,1), labels=c("a","b"))
 output_file <- paste0(output_dir, "figure5.pdf")
 ggsave(fig_5, file=output_file, width=7.2, height=4.0, units="in")

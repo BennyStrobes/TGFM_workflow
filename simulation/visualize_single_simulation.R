@@ -36,10 +36,16 @@ make_power_med_h2_se_barplot_across_thresholds <- function(df) {
 }
 
 
-make_power_med_h2_se_barplot_gaussian_approximation <- function(df) {
+make_power_med_h2_se_barplot_gaussian_approximation <- function(df, include_100=FALSE) {
 	df$eqtl_sample_size = as.character(df$eqtl_sample_size)
-	df$eqtl_sample_size = gsub("realistic","100+300", as.character(df$eqtl_sample_size))
- 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c("100", "100+300", "300", "500", "1000"))
+	df$eqtl_sample_size = gsub("realistic","100-300", as.character(df$eqtl_sample_size))
+
+ 	if (include_100==TRUE) {
+		df$eqtl_sample_size = factor(as.character(df$eqtl_sample_size), levels=c("100", "100-300", "300", "500", "1000"))
+	} else{
+		df = df[as.character(df$eqtl_sample_size)!="100",]
+		df$eqtl_sample_size = factor(as.character(df$eqtl_sample_size), levels=c("100-300", "300", "500", "1000"))
+	}
 
 
  	#df = df[df$threshold==threshold_val,]
@@ -107,10 +113,17 @@ make_type_1_error_med_h2_se_barplot_at_single_threshold <- function(df, threshol
   	return(p)
 }
 
-make_type_1_error_med_h2_se_barplot_gaussian_approximation <- function(df) {
+make_type_1_error_med_h2_se_barplot_gaussian_approximation <- function(df, include_100=FALSE) {
 	df$eqtl_sample_size = as.character(df$eqtl_sample_size)
-	df$eqtl_sample_size = gsub("realistic","100+300", as.character(df$eqtl_sample_size))
- 	df$eqtl_sample_size <- factor(df$eqtl_sample_size, levels=c("100", "100+300", "300", "500", "1000"))
+	df$eqtl_sample_size = gsub("realistic","100-300", as.character(df$eqtl_sample_size))
+
+	if (include_100==TRUE) {
+		df$eqtl_sample_size = factor(as.character(df$eqtl_sample_size), levels=c("100", "100-300", "300", "500", "1000"))
+	} else{
+		df = df[as.character(df$eqtl_sample_size)!="100",]
+		df$eqtl_sample_size = factor(as.character(df$eqtl_sample_size), levels=c("100-300", "300", "500", "1000"))
+	}
+
 
  	#df$threshold = factor(df$threshold)
  	#df = df[df$threshold==threshold_val,]
@@ -906,7 +919,7 @@ make_tgfm_alt_variant_gene_fdr_plot_across_prior_variant_scaling <- function(sim
   		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.3, position=position_dodge(.9), size=.5)  +
   		scale_fill_manual(values=c(red_color, green_color, blue_color))+
   		figure_theme() +
-  		labs(x="Non-mediated variant prior scaling factor", y="FDR", fill="", title=paste0("PIP >= ", pip_threshold)) +
+  		labs(x="Non-mediated variant prior\ncausal probability scaling factor", y="FDR", fill="", title=paste0("PIP >= ", pip_threshold)) +
   		theme(plot.title = element_text(hjust = 0.5,size=12)) +
   		geom_hline(yintercept=1.0-as.numeric(pip_threshold), linetype=2) +
   		theme(legend.position="top")
@@ -919,6 +932,167 @@ make_tgfm_alt_variant_gene_fdr_plot_across_prior_variant_scaling <- function(sim
 }
 
 
+make_tgfm_alt_variant_gene_fdr_plot_across_prior_null_gene_tissue_scaling <- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold, plot_expected_fdr=FALSE) {
+	# Initialize vectors for summary df
+	method_vec <- c()
+	n_detected_vec <- c()
+	eQTL_sample_size_vec <- c()
+	coverage_vec <- c()
+	coverage_lb_vec <- c()
+	coverage_ub_vec <- c()
+	expected_coverage_vec <- c()
+	nm_var_scale_factor_vec <- c()
+
+	######################
+	# 0.5 nm variant scale factor
+	#######################
+	# Load in variant and gene-tissue TGFM data
+	nm_var_scale_factor="1.0"
+	gt_scale_factor="0.5"
+	tgfm_calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_eqtl_ss_500_scaled_nm_", nm_var_scale_factor, "_gt_", gt_scale_factor, "_nm_variant_alt_calibration.txt")
+	tgfm_calibration_df <- read.table(tgfm_calibration_file, header=TRUE)
+	tgfm_calibration_df$genetic_element_class = as.character(tgfm_calibration_df$genetic_element_class)
+	indices = (as.character(tgfm_calibration_df$genetic_element_class) != "all") & (as.character(tgfm_calibration_df$twas_method) == "susie_sampler") 
+	tmp_df = tgfm_calibration_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, as.character(tmp_df$genetic_element_class))
+	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, tmp_df$eQTL_sample_size)
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, length(tmp_df$expected_coverage)))
+
+	# Load in gene TGFM data
+	tgfm_calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_eqtl_ss_500_scaled_nm_", nm_var_scale_factor, "_gt_", gt_scale_factor, "_gene_calibration.txt")
+	tgfm_calibration_df <- read.table(tgfm_calibration_file, header=TRUE)
+	indices = (as.character(tgfm_calibration_df$genetic_element_class) == "gene")
+	tmp_df = tgfm_calibration_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep("gene_only",n_elements ))
+	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, tmp_df$eQTL_sample_size)
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, length(tmp_df$expected_coverage)))
+
+
+	######################
+	# 2.0 nm variant scale factor
+	#######################
+	# Load in variant and gene-tissue TGFM data
+	nm_var_scale_factor="1.0"
+	gt_scale_factor="2.0"
+	tgfm_calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_eqtl_ss_500_scaled_nm_", nm_var_scale_factor, "_gt_", gt_scale_factor, "_nm_variant_alt_calibration.txt")
+	tgfm_calibration_df <- read.table(tgfm_calibration_file, header=TRUE)
+	tgfm_calibration_df$genetic_element_class = as.character(tgfm_calibration_df$genetic_element_class)
+	indices = (as.character(tgfm_calibration_df$genetic_element_class) != "all") & (as.character(tgfm_calibration_df$twas_method) == "susie_sampler")
+	tmp_df = tgfm_calibration_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, as.character(tmp_df$genetic_element_class))
+	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, tmp_df$eQTL_sample_size)
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, length(tmp_df$expected_coverage)))
+
+	# Load in gene TGFM data
+	tgfm_calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_eqtl_ss_500_scaled_nm_", nm_var_scale_factor, "_gt_", gt_scale_factor, "_gene_calibration.txt")
+	tgfm_calibration_df <- read.table(tgfm_calibration_file, header=TRUE)
+	indices = (as.character(tgfm_calibration_df$genetic_element_class) == "gene")
+	tmp_df = tgfm_calibration_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep("gene_only",n_elements ))
+	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, tmp_df$eQTL_sample_size)
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, length(tmp_df$expected_coverage)))
+
+
+	######################
+	# 1.0 nm variant scale factor
+	# Slightly different because didn't rerun (cause it was already run)
+	#######################
+	# Load in variant and gene-tissue TGFM data
+	nm_var_scale_factor="1.0"
+	gt_scale_factor="1.0"
+	tgfm_calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_nm_variant_alt_calibration.txt")
+	tgfm_calibration_df <- read.table(tgfm_calibration_file, header=TRUE)
+	tgfm_calibration_df = tgfm_calibration_df[as.character(tgfm_calibration_df$eQTL_sample_size) == "500",]
+	tgfm_calibration_df$genetic_element_class = as.character(tgfm_calibration_df$genetic_element_class)
+	indices = (as.character(tgfm_calibration_df$genetic_element_class) != "all") & (as.character(tgfm_calibration_df$twas_method) == "susie_sampler") & (as.character(tgfm_calibration_df$ln_pi_method) == "pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped") 
+	tmp_df = tgfm_calibration_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, as.character(tmp_df$genetic_element_class))
+	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, tmp_df$eQTL_sample_size)
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, length(tmp_df$expected_coverage)))
+
+
+	# Load in gene TGFM data
+	tgfm_calibration_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_gene_calibration.txt")
+	tgfm_calibration_df <- read.table(tgfm_calibration_file, header=TRUE)
+	tgfm_calibration_df = tgfm_calibration_df[as.character(tgfm_calibration_df$eQTL_sample_size) == "500",]
+	indices = (as.character(tgfm_calibration_df$genetic_element_class) == "gene")
+	tmp_df = tgfm_calibration_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep("gene_only",n_elements ))
+	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, tmp_df$eQTL_sample_size)
+	coverage_vec <- c(coverage_vec, tmp_df$coverage)
+	coverage_lb_vec <- c(coverage_lb_vec, tmp_df$coverage_lb)
+	coverage_ub_vec <- c(coverage_ub_vec, tmp_df$coverage_ub)
+	expected_coverage_vec <- c(expected_coverage_vec, tmp_df$expected_coverage)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, length(tmp_df$expected_coverage)))
+
+
+	# Convert into clean data frame
+	df <- data.frame(method=factor(method_vec, levels=c("gene", "gene_only", "variant")), n_detected_elements=n_detected_vec, nm_var_scale_factor=factor(nm_var_scale_factor_vec, levels=c("0.5", "1.0", "2.0")), precision=coverage_vec, precision_ub=coverage_ub_vec, precision_lb=coverage_lb_vec, expected_fdr=1.0-expected_coverage_vec)
+
+
+	df$method = recode(df$method, variant="TGFM (Variant)", gene="TGFM (Gene-Tissue)", gene_only="TGFM (Gene)")
+	df$method = factor(df$method, levels=c("TGFM (Gene-Tissue)", "TGFM (Gene)", "TGFM (Variant)"))
+
+	df$fdr = 1.0 - df$precision
+	df$fdr_lb = 1.0 - df$precision_ub
+	df$fdr_ub = 1.0 - df$precision_lb
+
+	blue_color=brewer.pal(n = 9, name = "Blues")[7]
+	green_color=brewer.pal(n = 9, name = "Greens")[6]
+	red_color=brewer.pal(n = 9, name = "Reds")[6]
+
+	df$fdr_lb[df$fdr_lb < 0.0] = 0.0
+
+
+
+	p<-ggplot(data=df, aes(x=nm_var_scale_factor, y=fdr, fill=method)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=fdr_lb, ymax=fdr_ub), width=.3, position=position_dodge(.9), size=.5)  +
+  		scale_fill_manual(values=c(red_color, green_color, blue_color))+
+  		figure_theme() +
+  		labs(x="Null gene-tissue pair prior\ncausal probability scaling factor", y="FDR", fill="", title=paste0("PIP >= ", pip_threshold)) +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) +
+  		geom_hline(yintercept=1.0-as.numeric(pip_threshold), linetype=2) +
+  		theme(legend.position="top")
+
+  	if (plot_expected_fdr) {
+  		p = p + geom_errorbar(aes(ymin=expected_fdr, ymax=expected_fdr), width=.8, position=position_dodge(.9), linetype='dotted')
+  	}
+  	return(p)
+
+}
 
 
 make_tgfm_alt_variant_gene_fdr_plot_across_n_posterior_samples <- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold, plot_expected_fdr=FALSE) {
@@ -3098,6 +3272,153 @@ make_tgfm_gene_and_gene_tissue_power_plot_across_sample_sizes <- function(simula
 
 }
 
+make_tgfm_variant_gene_power_plot_across_prior_null_gene_tissue_scaling <- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) {
+	method_vec <- c()
+	eQTL_sample_size_vec <- c()
+	power_vec <- c()
+	power_lb_vec <- c()
+	power_ub_vec <- c()
+	nm_var_scale_factor_vec <- c()
+
+
+	#########################
+	# 0.5 null gene-tissue prior scaling
+	#########################
+	nm_var_scale_factor="1.0"
+	gt_scale_factor="0.5"
+	# Get gene-tissue and nm variant power
+	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_eqtl_ss_500_scaled_nm_", nm_var_scale_factor, "_gt_", gt_scale_factor, "_power.txt")
+	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
+	tgfm_power_df$genetic_element_class = as.character(tgfm_power_df$genetic_element_class)
+	# Extract data for TGFM method
+	indices = (as.character(tgfm_power_df$genetic_element_class) != "all") & (as.character(tgfm_power_df$twas_method) == "susie_sampler")
+	tmp_df = tgfm_power_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, as.character(tmp_df$genetic_element_class))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, n_elements))
+
+	# Get gene power
+	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_eqtl_ss_500_scaled_nm_", nm_var_scale_factor, "_gt_", gt_scale_factor, "_gene_power.txt")
+	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
+	tgfm_power_df$genetic_element_class = as.character(tgfm_power_df$genetic_element_class)
+	# Extract data for TGFM method
+	indices = (as.character(tgfm_power_df$genetic_element_class) == "gene") & (as.character(tgfm_power_df$twas_method) == "susie_sampler")
+	tmp_df = tgfm_power_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep("gene_only", n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, n_elements))
+
+
+	#########################
+	# 2.0 null gene-tissue prior scaling
+	#########################
+	nm_var_scale_factor="1.0"
+	gt_scale_factor="2.0"
+	# Get gene-tissue and nm variant power
+	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_eqtl_ss_500_scaled_nm_", nm_var_scale_factor, "_gt_", gt_scale_factor, "_power.txt")
+	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
+	tgfm_power_df$genetic_element_class = as.character(tgfm_power_df$genetic_element_class)
+	# Extract data for TGFM method
+	indices = (as.character(tgfm_power_df$genetic_element_class) != "all") & (as.character(tgfm_power_df$twas_method) == "susie_sampler")
+	tmp_df = tgfm_power_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, as.character(tmp_df$genetic_element_class))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, n_elements))
+
+	# Get gene power
+	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_eqtl_ss_500_scaled_nm_", nm_var_scale_factor, "_gt_", gt_scale_factor, "_gene_power.txt")
+	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
+	tgfm_power_df$genetic_element_class = as.character(tgfm_power_df$genetic_element_class)
+	# Extract data for TGFM method
+	indices = (as.character(tgfm_power_df$genetic_element_class) == "gene") & (as.character(tgfm_power_df$twas_method) == "susie_sampler")
+	tmp_df = tgfm_power_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep("gene_only", n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, n_elements))
+
+	#########################
+	# 1.0 null gene-tissue prior scaling
+	# A bit different b/c we did not need to re-run
+	#########################
+	nm_var_scale_factor="1.0"
+	gt_scale_factor="1.0"
+	# Get gene-tissue and nm variant power
+	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_power.txt")
+	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
+	tgfm_power_df <- tgfm_power_df[as.character(tgfm_power_df$eQTL_sample_size) == "500",]
+	tgfm_power_df$genetic_element_class = as.character(tgfm_power_df$genetic_element_class)
+	# Extract data for TGFM method
+	indices = (as.character(tgfm_power_df$genetic_element_class) != "all") & (as.character(tgfm_power_df$twas_method) == "susie_sampler") & (as.character(tgfm_power_df$ln_pi_method) == "pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped")
+	tmp_df = tgfm_power_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, as.character(tmp_df$genetic_element_class))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, n_elements))
+
+	# Get gene power
+	tgfm_power_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string,"_tgfm_pip_", pip_threshold, "_gene_power.txt")
+	tgfm_power_df <- read.table(tgfm_power_file, header=TRUE)
+	tgfm_power_df <- tgfm_power_df[as.character(tgfm_power_df$eQTL_sample_size) == "500",]
+	tgfm_power_df$genetic_element_class = as.character(tgfm_power_df$genetic_element_class)
+	# Extract data for TGFM method
+	indices = (as.character(tgfm_power_df$genetic_element_class) == "gene") & (as.character(tgfm_power_df$twas_method) == "susie_sampler") & (as.character(tgfm_power_df$ln_pi_method) == "pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped")
+	tmp_df = tgfm_power_df[indices,]
+	n_elements = dim(tmp_df)[1]
+	method_vec <- c(method_vec, rep("gene_only", n_elements))
+	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
+	power_vec <- c(power_vec, tmp_df$power)
+	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
+	power_ub_vec <- c(power_ub_vec, tmp_df$power_ub)
+	nm_var_scale_factor_vec <- c(nm_var_scale_factor_vec, rep(gt_scale_factor, n_elements))
+
+
+
+
+	# Convert into clean data frame
+	df <- data.frame(method=factor(method_vec, levels=c("variant", "gene", "gene_only")), nm_var_scale_factor=factor(nm_var_scale_factor_vec, levels=c("0.5", "1.0", "2.0")), power=power_vec, power_ub=power_ub_vec, power_lb=power_lb_vec)
+
+	df$method = recode(df$method, variant="TGFM (Variant)", gene="TGFM (Gene-Tissue)", gene_only="TGFM (Gene)")
+	df$method = factor(df$method, levels=c("TGFM (Gene-Tissue)", "TGFM (Gene)", "TGFM (Variant)"))
+
+	blue_color=brewer.pal(n = 9, name = "Blues")[7]
+	green_color=brewer.pal(n = 9, name = "Greens")[6]
+	red_color=brewer.pal(n = 9, name = "Reds")[6]
+
+
+	p<-ggplot(data=df, aes(x=nm_var_scale_factor, y=power, fill=method)) +
+  		geom_bar(stat="identity", position=position_dodge()) +
+  		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
+  		scale_fill_manual(values=c(red_color, green_color, blue_color))+
+  		figure_theme() +
+  		labs(x="Null gene-tissue pair prior\ncausal probability scaling factor", y="Power", fill="", title=paste0("PIP >= ", pip_threshold)) +
+  		theme(plot.title = element_text(hjust = 0.5,size=12)) +
+  		theme(legend.position="top")
+
+
+
+  	return(p)
+
+}
+
 
 make_tgfm_variant_gene_power_plot_across_prior_variant_scaling <- function(simulated_organized_results_dir, global_simulation_name_string, pip_threshold) {
 	method_vec <- c()
@@ -3236,7 +3557,7 @@ make_tgfm_variant_gene_power_plot_across_prior_variant_scaling <- function(simul
   		geom_errorbar(aes(ymin=power_lb, ymax=power_ub), width=.4, position=position_dodge(.9))  +
   		scale_fill_manual(values=c(red_color, green_color, blue_color))+
   		figure_theme() +
-  		labs(x="Non-mediated variant prior scaling factor", y="Power", fill="", title=paste0("PIP >= ", pip_threshold)) +
+  		labs(x="Non-mediated variant prior\ncausal probability scaling factor", y="Power", fill="", title=paste0("PIP >= ", pip_threshold)) +
   		theme(plot.title = element_text(hjust = 0.5,size=12)) +
   		theme(legend.position="top")
 
@@ -4226,6 +4547,8 @@ make_gene_power_plot_data_across_methods_and_sample_sizes <- function(simulated_
 		df$eQTL_sample_size = factor(df$eQTL_sample_size, levels=c("100-300", "300", "500", "1000"))
 	}
 
+	df$PIP_threshold=rep(pip_threshold, length(df$power_ub))
+
   	return(df)
 
 }
@@ -5104,11 +5427,10 @@ output_file <- paste0(visualize_simulated_results_dir, "simulation_", local_simu
 ggsave(avg_per_tissue_fraction_causal_se_barplot, file=output_file, width=7.2, height=3.5, units="in")
 }
 
-
+if (FALSE) {
 #####################################################################
 # Make barplot with standard error showing Type 1 error using gaussian approximation of bootstrapped iterative VGT PMCES
 #####################################################################
-if (FALSE) {
 # load in data
 t1e_h2_file <- paste0(simulated_organized_results_dir, "organized_simulation_", local_simulation_name_string, "_susie_pmces_uniform_iterative_variant_gene_prior_pip_level_h2_type_1_error_gaussian_approximation.txt")
 t1e_h2_df <- read.table(t1e_h2_file, header=TRUE)
@@ -5130,8 +5452,6 @@ joint_plot <- plot_grid(t1e_se_barplot + theme(legend.position="none"), power_se
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", local_simulation_name_string, "_type_1_error_and_power_iterative_VGT_PMCES_bootstrapped_med_h2_gaussian_approximation.pdf")
 ggsave(joint_plot, file=output_file, width=7.2, height=6.5, units="in")
 }
-
-
 
 #####################################################################
 #####################################################################
@@ -5176,7 +5496,6 @@ ggsave(joint_plot, file=output_file, width=7.2, height=7.5, units="in")
 #####################################################################
 # Make Figure 1
 #####################################################################
-if (FALSE) {
 local_simulation_name_string = paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default")
 # Precision plots
 pip_threshold <- "0.5"
@@ -5216,7 +5535,6 @@ write.table(fdr_plot_data, file=supp_table_file, quote=FALSE, sep="\t", row.name
 power_plot_data <- rbind(power_plot_data_5, power_plot_data_9)
 supp_table_file = paste0(visualize_simulated_results_dir, "suppTable_fig1cd.txt")
 write.table(power_plot_data, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
-}
 
 
 #####################################################################
@@ -5245,6 +5563,36 @@ figure1 <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.positio
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_figure1_include_100.pdf")
 ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
+}
+
+
+#####################################################################
+# Make Figure 1 (using selection simulation framework)
+#####################################################################
+if (FALSE) {
+local_simulation_name_string = paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_selection_1")
+# Precision plots
+pip_threshold <- "0.5"
+fdr_plot_5 <- make_gene_fdr_plot_across_methods_and_sample_sizes(simulated_organized_results_dir, local_simulation_name_string, pip_threshold)
+pip_threshold <- "0.9"
+fdr_plot_9 <- make_gene_fdr_plot_across_methods_and_sample_sizes(simulated_organized_results_dir, local_simulation_name_string, pip_threshold)
+
+# Power plots
+pip_threshold <- "0.5"
+power_plot_5 <- make_gene_power_plot_across_methods_and_sample_sizes(simulated_organized_results_dir, local_simulation_name_string, pip_threshold)
+pip_threshold <- "0.9"
+power_plot_9 <- make_gene_power_plot_across_methods_and_sample_sizes(simulated_organized_results_dir, local_simulation_name_string, pip_threshold)
+
+# Extract legend 
+legender = get_legend(power_plot_9 +guides(fill = guide_legend(byrow = TRUE)))
+
+# Make joint plot with cowplot
+figure1 <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.position="none"), fdr_plot_9 +theme(legend.position="none"), power_plot_5 +theme(legend.position="none"), power_plot_9 +theme(legend.position="none"), ncol=2, labels=c("a", "b", "c","d")), ncol=1, rel_heights=c(.13, .03, 1))
+
+# Make joint plot
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_figure1_selection_sim.pdf")
+ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
+local_simulation_name_string = paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default")
 }
 
 
@@ -5790,7 +6138,35 @@ joint_figure <- plot_grid( legender, NULL, plot_grid(precision_plot_5 +theme(leg
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_suppFig_Figure2_vary_nm_var_prior_scale.pdf")
 ggsave(joint_figure, file=output_file, width=7.2, height=5.5, units="in")
+
+#####################################################################
+# Make Supplementary Figure: Version of Figure 2 where we vary the scaling of null gene-tissue pair prior
+#####################################################################
+local_simulation_name_string = paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default")
+
+# Precision plots
+pip_threshold <- "0.5"
+precision_plot_5 <- make_tgfm_alt_variant_gene_fdr_plot_across_prior_null_gene_tissue_scaling(simulated_organized_results_dir, local_simulation_name_string, pip_threshold) + ylim(0, .55)
+pip_threshold <- "0.9"
+precision_plot_9 <- make_tgfm_alt_variant_gene_fdr_plot_across_prior_null_gene_tissue_scaling(simulated_organized_results_dir, local_simulation_name_string, pip_threshold) + ylim(0, .55)
+
+# Power plots
+pip_threshold <- "0.5"
+power_plot_5 <- make_tgfm_variant_gene_power_plot_across_prior_null_gene_tissue_scaling(simulated_organized_results_dir, local_simulation_name_string, pip_threshold)+ ylim(0, .2)
+pip_threshold <- "0.9"
+power_plot_9 <- make_tgfm_variant_gene_power_plot_across_prior_null_gene_tissue_scaling(simulated_organized_results_dir, local_simulation_name_string, pip_threshold) + ylim(0, .2)
+
+# Extract legend 
+legender = get_legend(precision_plot_9)
+
+# Make joint plot with cowplot
+joint_figure <- plot_grid( legender, NULL, plot_grid(precision_plot_5 +theme(legend.position="none"), precision_plot_9 +theme(legend.position="none"), power_plot_5 +theme(legend.position="none"), power_plot_9 +theme(legend.position="none"), ncol=2, labels=c("a", "b", "c","d")), ncol=1, rel_heights=c(.05, .03, 1))
+
+# Make joint plot
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_suppFig_Figure2_vary_null_gene_tissue_prior_scale.pdf")
+ggsave(joint_figure, file=output_file, width=7.2, height=5.5, units="in")
 }
+
 
 
 
@@ -5823,6 +6199,14 @@ figure1_supp <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.po
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_suppFig_Figure1_vary_FOCUS_parameters.pdf")
 ggsave(figure1_supp, file=output_file, width=7.2, height=5.5, units="in")
 }
+
+
+
+
+
+
+
+
 
 
 

@@ -25,6 +25,93 @@ def generate_tissue_covariance_structure_across_causal_effects(ge_h2):
 	np.fill_diagonal(cov_mat, ge_per_snp_h2)
 	return cov_mat
 
+def generate_tissue_gene_pair_covariance_structure_across_causal_effects(ge_h2):
+	ge_per_snp_h2 = ge_h2/5
+	cov_mat = np.zeros((20,20)) + 0.737*ge_per_snp_h2
+	cov_mat[:3,:3] = cov_mat[:3,:3]*0.0 + 0.789*ge_per_snp_h2
+	cov_mat[3:6,3:6] = cov_mat[3:6,3:6]*0.0 + 0.789*ge_per_snp_h2
+	cov_mat[6:10,6:10] = cov_mat[6:10,6:10]*0.0 + 0.789*ge_per_snp_h2
+	cov_mat[10:13,10:13] = cov_mat[10:13,10:13]*0.0 + 0.789*ge_per_snp_h2
+	cov_mat[13:16,13:16] = cov_mat[13:16,13:16]*0.0 + 0.789*ge_per_snp_h2
+	cov_mat[16:,16:] = cov_mat[16:,16:]*0.0 + 0.789*ge_per_snp_h2
+	np.fill_diagonal(cov_mat, ge_per_snp_h2)
+	return cov_mat
+
+
+def simulate_causal_eqtl_effect_sizes_across_tissues_and_across_gene_pair(cis_snp_indices1, cis_snp_indices2, ge_h2, n_tiss=10):
+	ge_per_snp_h2 = ge_h2/5
+	# Initialize matrix of causal eqtl effect sizes across tissues
+
+	# Initialize matrix of causal eqtl effect sizes across tissues
+	causal_effect_sizes1 = np.zeros((np.sum(cis_snp_indices1), n_tiss))
+	causal_effect_sizes2 = np.zeros((np.sum(cis_snp_indices2), n_tiss))
+
+	# Get indices corresponding to shared effects
+	shared_cis_snp_indices = cis_snp_indices1*cis_snp_indices2
+	shared_cis_snp_indices1 = shared_cis_snp_indices[cis_snp_indices1]
+	shared_cis_snp_indices2 = shared_cis_snp_indices[cis_snp_indices2]
+
+	# Generate cross tissue covariance structure matrix
+	tissue_covariance_mat = generate_tissue_covariance_structure_across_causal_effects(ge_h2)
+
+
+	# Generate cross tissue, gene pair covariance structure matrix
+	tissue_gene_pair_covariance_mat = generate_tissue_gene_pair_covariance_structure_across_causal_effects(ge_h2)
+
+	# First simulate 2 variants with shared effects across tissues and genes
+	tmp_causal_effects = np.random.multivariate_normal(np.zeros(20), tissue_gene_pair_covariance_mat ,size=2)
+	tmp_causal_effects1 = tmp_causal_effects[:,:10]
+	tmp_causal_effects2 = tmp_causal_effects[:,10:]
+	global_shared_indices = np.random.choice(np.where(shared_cis_snp_indices == True)[0], size=2, replace=False)
+	tmp_global_shared = np.asarray([False]*len(cis_snp_indices1))
+	tmp_global_shared[global_shared_indices] = True
+	if np.sum(tmp_global_shared) != 2:
+		print('assumption eororor')
+		pdb.set_trace()
+
+	############################
+	# Focus on first tissue
+	############################
+	g1_shared_effect_indices_bool = tmp_global_shared[cis_snp_indices1]
+	if np.sum(g1_shared_effect_indices_bool) != 2:
+		print('assumption erroror')
+		pdb.set_trace()
+	g1_shared_effect_indices = np.where(g1_shared_effect_indices_bool == True)[0]
+	causal_effect_sizes1[g1_shared_effect_indices, :] = tmp_causal_effects1
+	n_cis_snps1 = np.sum(cis_snp_indices1)
+	# now get 1 variant with shared effects across tissues
+	remaining_variant_indices1 = np.delete(np.arange(n_cis_snps1), g1_shared_effect_indices)
+	shared_variant_indices = np.random.choice(remaining_variant_indices1, size=1, replace=False, p=None)
+	causal_effect_sizes1[shared_variant_indices, :] =  np.random.multivariate_normal(np.zeros(10), tissue_covariance_mat,size=1)
+	# Now simulate 2 variants with tissue-specific effects
+	remaining_variant_indices1 = np.delete(np.arange(n_cis_snps1), np.hstack((g1_shared_effect_indices, shared_variant_indices)))
+	for tiss_iter in range(n_tiss):
+		tissue_specific_indices = np.random.choice(remaining_variant_indices1, size=2, replace=False, p=None)
+		causal_effect_sizes1[tissue_specific_indices, tiss_iter] = np.random.normal(loc=0.0, scale=np.sqrt(ge_per_snp_h2),size=2)
+
+
+	############################
+	# Focus on second tissue
+	############################
+	g2_shared_effect_indices_bool = tmp_global_shared[cis_snp_indices2]
+	if np.sum(g2_shared_effect_indices_bool) != 2:
+		print('assumption erroror')
+		pdb.set_trace()
+	g2_shared_effect_indices = np.where(g2_shared_effect_indices_bool == True)[0]
+	causal_effect_sizes2[g2_shared_effect_indices, :] = tmp_causal_effects2
+	n_cis_snps2 = np.sum(cis_snp_indices2)
+	# now get 1 variant with shared effects across tissues
+	remaining_variant_indices2 = np.delete(np.arange(n_cis_snps2), g2_shared_effect_indices)
+	shared_variant_indices = np.random.choice(remaining_variant_indices2, size=1, replace=False, p=None)
+	causal_effect_sizes2[shared_variant_indices, :] =  np.random.multivariate_normal(np.zeros(10), tissue_covariance_mat,size=1)
+	# Now simulate 2 variants with tissue-specific effects
+	remaining_variant_indices2 = np.delete(np.arange(n_cis_snps2), np.hstack((g2_shared_effect_indices, shared_variant_indices)))
+	for tiss_iter in range(n_tiss):
+		tissue_specific_indices = np.random.choice(remaining_variant_indices2, size=2, replace=False, p=None)
+		causal_effect_sizes2[tissue_specific_indices, tiss_iter] = np.random.normal(loc=0.0, scale=np.sqrt(ge_per_snp_h2),size=2)
+
+	return causal_effect_sizes1, causal_effect_sizes2
+
 
 def simulate_causal_eqtl_effect_sizes_across_tissues(n_cis_snps, ge_h2, n_tiss=10):
 	ge_per_snp_h2 = ge_h2/5
@@ -66,6 +153,26 @@ def simulate_causal_eqtl_effect_sizes_across_tissues_assuming_random_N_eqtl(n_ci
 		tissue_specific_indices = np.random.choice(remaining_variant_indices, size=n_tissue_specific_qtl, replace=False, p=None)
 		causal_effect_sizes[tissue_specific_indices, tiss_iter] = np.random.normal(loc=0.0, scale=np.sqrt(per_snp_h2),size=n_tissue_specific_qtl)
 	return causal_effect_sizes
+
+
+def simulate_causal_eqtl_effect_sizes_across_tissues_and_gene_pair_shell(cis_snp_indices1, cis_snp_indices2, fraction_genes_cis_h2, ge_h2):
+	min_h2 = 0
+	while min_h2 < .01:
+		causal_eqtl_effects1, causal_eqtl_effects2 = simulate_causal_eqtl_effect_sizes_across_tissues_and_across_gene_pair(cis_snp_indices1, cis_snp_indices2, ge_h2)
+		min_h2 = np.min([np.min(np.sum(np.square(causal_eqtl_effects1),axis=0)), np.min(np.sum(np.square(causal_eqtl_effects2),axis=0))])
+
+	gene_cis_h2_boolean = np.random.binomial(n=1, p=fraction_genes_cis_h2, size=causal_eqtl_effects1.shape[1])
+	for tiss_iter, boolean_value in enumerate(gene_cis_h2_boolean):
+		if boolean_value == 0:
+			causal_eqtl_effects1[:, tiss_iter] = (causal_eqtl_effects1[:, tiss_iter])*0.0
+
+	gene_cis_h2_boolean = np.random.binomial(n=1, p=fraction_genes_cis_h2, size=causal_eqtl_effects2.shape[1])
+	for tiss_iter, boolean_value in enumerate(gene_cis_h2_boolean):
+		if boolean_value == 0:
+			causal_eqtl_effects2[:, tiss_iter] = (causal_eqtl_effects2[:, tiss_iter])*0.0
+
+	return causal_eqtl_effects1, causal_eqtl_effects2
+
 
 
 
@@ -249,6 +356,251 @@ def simulate_causal_eqtl_effect_sizes_with_selection(cis_window, simulated_gene_
 
 	return
 
+
+def get_overlapping_gene_pairs(simulated_gene_position_file, cis_window, gene_pair_cis_window_overlap_thresh, G_obj_pos, n_overlapping_snps_thresh):
+	valid_gene_pairs = []
+	valid_gene_pair_nvar = []
+
+	used = {}
+	gene_pos_mat = np.loadtxt(simulated_gene_position_file, dtype=str, delimiter='\t')[1:]
+	ensamble_ids = gene_pos_mat[:,1]
+	gene_tsss = gene_pos_mat[:,2].astype(float)
+
+	# Create mapping from gene name to tss
+	gene_name_to_tss = {}
+	for ii, ensamble_id in enumerate(ensamble_ids):
+		gene_tss = gene_tsss[ii]
+		gene_name_to_tss[ensamble_id] = gene_tss
+
+	print('start')
+	# Loop through genes
+	for ii, ensamble_id in enumerate(ensamble_ids):
+		gene_tss = gene_tsss[ii]
+
+		# For this gene get all pairs of overlapping genes
+		# Compute distance between all other pairs of genes
+		distances = np.abs(gene_tss - gene_tsss)
+
+		distance_thresh = 2.0*cis_window - gene_pair_cis_window_overlap_thresh
+
+		# Get valid other genes
+		valid_genes = distances <= distance_thresh
+
+
+		for ensamble_id_2 in ensamble_ids[valid_genes]:
+			if ensamble_id_2 == ensamble_id:
+				continue
+			gene_pair = ensamble_id + ':' + ensamble_id_2
+			gene_pair2 = ensamble_id_2 + ':' + ensamble_id
+			if gene_pair in used:
+				continue
+
+			# Get number of variants overlapping gene pair
+			g1_tss = gene_name_to_tss[ensamble_id]
+			g2_tss = gene_name_to_tss[ensamble_id_2]
+
+
+			cis_window_start1 = g1_tss - cis_window
+			cis_window_end1 = g1_tss + cis_window
+			cis_snp_indices1 = (G_obj_pos >= cis_window_start1) & (G_obj_pos < cis_window_end1)
+
+			cis_window_start2 = g2_tss - cis_window
+			cis_window_end2 = g2_tss + cis_window
+			cis_snp_indices2 = (G_obj_pos >= cis_window_start2) & (G_obj_pos < cis_window_end2)
+
+			joint_cis_snp_indices = cis_snp_indices1*cis_snp_indices2
+			if np.sum(joint_cis_snp_indices) < n_overlapping_snps_thresh:
+				continue
+
+			valid_gene_pairs.append(gene_pair)
+			used[gene_pair] = 1
+			used[gene_pair2] = 1
+	
+	valid_gene_pairs = np.asarray(valid_gene_pairs)
+	unique_genes = {}
+	for valid_gene_pair in valid_gene_pairs:
+		g1 = valid_gene_pair.split(':')[0]
+		g2 = valid_gene_pair.split(':')[1]
+		unique_genes[g1] = 1
+		unique_genes[g2] = 1
+
+	return valid_gene_pairs, gene_name_to_tss
+
+def filter_available_gene_pairs(available_gene_pairs, g1_name, g2_name):
+	new_pairs = []
+	used = {}
+	used[g1_name] = 1
+	used[g2_name] = 1
+	for gene_pair in available_gene_pairs:
+		tmp_g1 = gene_pair.split(':')[0]
+		tmp_g2 = gene_pair.split(':')[1]
+		if tmp_g1 in used:
+			continue
+		if tmp_g2 in used:
+			continue
+		new_pairs.append(gene_pair)
+	return np.asarray(new_pairs)
+
+
+def randomly_select_gene_pairs(valid_overlapping_gene_pairs, n_gene_pairs):
+	randomly_selected_gene_pairs = []
+	used_genes = {}
+
+	available_gene_pairs = np.copy(valid_overlapping_gene_pairs)
+	for gene_pair_iter in range(n_gene_pairs):
+		gene_pair = np.random.choice(available_gene_pairs)
+		g1_name = gene_pair.split(':')[0]
+		g2_name = gene_pair.split(':')[1]
+
+		available_gene_pairs = filter_available_gene_pairs(available_gene_pairs, g1_name, g2_name)
+		randomly_selected_gene_pairs.append(gene_pair)
+
+		if len(available_gene_pairs) == 0:
+			print('assumptino erororor')
+			pdb.set_trace()
+	print(len(available_gene_pairs))
+
+	# Quick sanity check that the number of genes taken is n_gene_pairs*2
+	unique_genes = {}
+	randomly_selected_gene_pairs = np.asarray(randomly_selected_gene_pairs)
+	for gene_pair in randomly_selected_gene_pairs:
+		g1 = gene_pair.split(':')[0]
+		g2 = gene_pair.split(':')[1]
+		if g1 in unique_genes or g2 in unique_genes:
+			print('assumption erroror')
+			pdb.set_trace()
+		unique_genes[g1] = 1
+		unique_genes[g2] = 1
+	if len(unique_genes) != n_gene_pairs*2.0:
+		print('assumption erooror')
+		pdb.set_trace()
+
+
+	return np.asarray(randomly_selected_gene_pairs)
+
+
+def simulate_causal_eqtl_effect_sizes_with_pleiotropy(cis_window, simulated_gene_position_file, simulated_gene_expression_dir,simulation_name_string, ref_eqtl_sample_size, processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2, ge_h2, eqtl_architecture, simulated_pleio_gene_pairs_summary_file):
+	# Load in genotype data across chromosome for single eQTL data set (note: it doesn't matter what eqtl data set we are using because we are just using snp positions here and all eqtl data sets have the same snps)
+	genotype_stem = processed_genotype_data_dir + 'simulated_eqtl_' + str(ref_eqtl_sample_size) + '_data_' + chrom_num
+	G_obj = read_plink1_bin(genotype_stem + '.bed', genotype_stem + '.bim', genotype_stem + '.fam', verbose=False)
+	G_obj_chrom = np.asarray(G_obj.chrom)
+	G_obj_pos = np.asarray(G_obj.pos)
+	# For our purposes, a0 is the effect allele
+	# For case of plink package, a0 is the first column in the plink bim file
+	G_obj_a0 = np.asarray(G_obj.a0)
+	G_obj_a1 = np.asarray(G_obj.a1)
+	# RSids
+	G_obj_rsids = np.asarray(G_obj.snp)
+	# Snp ids
+	G_obj_snp_ids = 'chr' + G_obj_chrom + '_' + (G_obj_pos.astype(str)) + '_' + G_obj_a0 + '_' + G_obj_a1
+
+
+	############################################
+	# First need to get eligible pairs of genes
+	# We will restrict to genes whose cis window overlap by 1/4 
+	gene_pair_cis_window_overlap_thresh = cis_window/4
+	# We will restrict to genes whose cis window contains 5 overlapping snps
+	n_overlapping_snps_thresh = 10
+	valid_overlapping_gene_pairs, gene_name_to_tss_mapping = get_overlapping_gene_pairs(simulated_gene_position_file, cis_window, gene_pair_cis_window_overlap_thresh, G_obj_pos, n_overlapping_snps_thresh)
+	############################################
+	# Next, randomly select gene pairs
+	n_gene_pairs = 400
+	randomly_selected_gene_pairs = randomly_select_gene_pairs(valid_overlapping_gene_pairs, n_gene_pairs)
+
+
+
+	# Now loop through gene pairs and extract causal eqtl effects for each gene pair
+	gene_to_causal_effects_mapping = {}
+	# Also print gene pairs to output
+	t1 = open(simulated_pleio_gene_pairs_summary_file,'w')
+	t1.write('gene1\tgene2\n')
+	for gene_pair in randomly_selected_gene_pairs:
+		# get genes corresponding to gene pair
+		ensamble_id1 = gene_pair.split(':')[0]
+		ensamble_id2 = gene_pair.split(':')[1]
+
+		g1_tss = gene_name_to_tss_mapping[ensamble_id1]
+		g2_tss = gene_name_to_tss_mapping[ensamble_id2]
+
+		cis_window_start1 = g1_tss - cis_window
+		cis_window_end1 = g1_tss + cis_window
+		cis_snp_indices1 = (G_obj_pos >= cis_window_start1) & (G_obj_pos < cis_window_end1)
+		cis_rsids1 = G_obj_rsids[cis_snp_indices1]
+
+		cis_window_start2 = g2_tss - cis_window
+		cis_window_end2 = g2_tss + cis_window
+		cis_snp_indices2 = (G_obj_pos >= cis_window_start2) & (G_obj_pos < cis_window_end2)
+		cis_rsids2 = G_obj_rsids[cis_snp_indices2]
+
+
+		# Simulate causal eqtl effects across tissues and across gene pair
+		causal_eqtl_effects1, causal_eqtl_effects2 = simulate_causal_eqtl_effect_sizes_across_tissues_and_gene_pair_shell(cis_snp_indices1, cis_snp_indices2, fraction_genes_cis_h2, ge_h2)
+
+		if ensamble_id1 in gene_to_causal_effects_mapping or ensamble_id2 in gene_to_causal_effects_mapping:
+			print('assumption eroror')
+			pdb.set_trace()
+		gene_to_causal_effects_mapping[ensamble_id1] = causal_eqtl_effects1
+		gene_to_causal_effects_mapping[ensamble_id2] = causal_eqtl_effects2
+		t1.write(ensamble_id1 + '\t' + ensamble_id2 + '\n')
+	t1.close()
+
+
+	t = open(simulated_causal_eqtl_effect_summary_file,'w')
+	t.write('gene_id\tchr\ttss\tcausal_eqtl_effect_file\tcis_snp_id_file\tcis_snp_index_file\ttotal_n_snps\n')
+
+
+	# Loop through genes (run analysis for each gene seperately)
+	f = open(simulated_gene_position_file)
+	head_count = 0
+	for line in f:
+		line = line.rstrip()
+		data = line.split('\t')
+		if head_count == 0:
+			head_count = head_count + 1
+			continue
+
+		# Here we define a single gene
+		ensamble_id = data[1]
+		tss = int(data[2])
+		# Get snp names in cis window fo this gene
+		cis_window_start = tss - cis_window
+		cis_window_end = tss + cis_window
+		cis_snp_indices = (G_obj_pos >= cis_window_start) & (G_obj_pos < cis_window_end)
+		# Ignore genes with no or very few cis snps
+		if np.sum(cis_snp_indices) < 10:
+			continue
+		cis_rsids = G_obj_rsids[cis_snp_indices]
+		cis_snp_ids = G_obj_snp_ids[cis_snp_indices]
+		n_cis_snps = len(cis_rsids)
+
+			
+		# Check if snp is one of pair snps
+		if ensamble_id in gene_to_causal_effects_mapping:
+			causal_eqtl_effects = gene_to_causal_effects_mapping[ensamble_id]
+			if causal_eqtl_effects.shape[0] != len(cis_rsids):
+				print('assumption eororor')
+				pdb.set_trace()
+
+		else:
+			# Simulate causal eqtl effects across tissues
+			causal_eqtl_effects = simulate_causal_eqtl_effect_sizes_across_tissues_shell(n_cis_snps, fraction_genes_cis_h2, ge_h2, 'default')
+
+		# Save results to output
+		# Causal eqtl effects
+		gene_causal_effect_file = simulated_gene_expression_dir + simulation_name_string + '_' + ensamble_id + '_causal_eqtl_effects.npy'
+		np.save(gene_causal_effect_file, causal_eqtl_effects)
+		# SNP ids
+		gene_cis_snpid_file = simulated_gene_expression_dir + simulation_name_string + '_' + ensamble_id + '_cis_snpids.npy'
+		np.save(gene_cis_snpid_file, np.hstack((cis_snp_ids.reshape(n_cis_snps,1), cis_rsids.reshape(n_cis_snps,1))))
+		# SNP indices
+		gene_cis_snp_indices_file = simulated_gene_expression_dir + simulation_name_string + '_' + ensamble_id + '_cis_snp_indices.npy'
+		np.save(gene_cis_snp_indices_file, np.where(cis_snp_indices==True)[0])
+
+		# Write to output file
+		t.write(ensamble_id + '\t' + chrom_num + '\t' + str(tss) + '\t' + gene_causal_effect_file + '\t' + gene_cis_snpid_file + '\t' + gene_cis_snp_indices_file + '\t' + str(len(cis_snp_indices)) + '\n')
+
+	f.close()
+	t.close()
 
 
 
@@ -984,11 +1336,13 @@ fraction_genes_cis_h2 = .5
 ############################
 # Simulate causal eQTL effect sizes across tissues
 ############################
-if eqtl_architecture.startswith('selection') == False:
+if eqtl_architecture.startswith('pleiotropy'):
 	# Create file to keep track of causal eqtl effect sizes across genes
 	simulated_causal_eqtl_effect_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
-	simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2, ge_h2, eqtl_architecture)
-else:
+	# Create file to keep track of which gene pairs are selected
+	simulated_pleio_gene_pairs_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_pleiotropy_gene_pairs.txt'
+	simulate_causal_eqtl_effect_sizes_with_pleiotropy(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2, ge_h2, eqtl_architecture, simulated_pleio_gene_pairs_summary_file)
+elif eqtl_architecture.startswith('selection'):
 	# Simulate selected effects
 	# Create file to keep track of causal eqtl effect sizes across genes
 	simulated_causal_eqtl_effect_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
@@ -996,5 +1350,8 @@ else:
 	simulated_causal_gene_tissue_pairs_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_gt_pairs_for_selection.txt'
 	selected_variant_eqtl_var = float('.0' + eqtl_architecture.split('_')[1])
 	simulate_causal_eqtl_effect_sizes_with_selection(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, simulated_causal_gene_tissue_pairs_summary_file, fraction_genes_cis_h2, ge_h2, eqtl_architecture, selected_variant_eqtl_var, per_element_trait_heritability, total_trait_heritability, fraction_expression_mediated_heritability, gene_trait_architecture)
-
-
+else:
+	# Default and random_n
+	# Create file to keep track of causal eqtl effect sizes across genes
+	simulated_causal_eqtl_effect_summary_file = simulated_gene_expression_dir + simulation_name_string + '_causal_eqtl_effect_summary.txt'
+	simulate_causal_eqtl_effect_sizes(cis_window, simulated_gene_position_file, simulated_gene_expression_dir, simulation_name_string, eqtl_sample_sizes[0], processed_genotype_data_dir, chrom_num, simulated_causal_eqtl_effect_summary_file, fraction_genes_cis_h2, ge_h2, eqtl_architecture)

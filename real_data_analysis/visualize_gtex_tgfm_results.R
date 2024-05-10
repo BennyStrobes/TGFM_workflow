@@ -3585,6 +3585,94 @@ make_ldl_silver_standard_stratefied_gene_pip_histogram <- function(ldl_enrichmen
 
 }
 
+statistical_significance_of_power_difference_between_tgfm_pip_and_ctwas_pip_when_matched_for_fdr <- function(ldl_tgfm_enrichment_file, ldl_ctwas_enrichment_file, pip_threshold, pip_lb=0.01) {
+	n_total_pos = 69
+	pip_vec <- c()
+	efdr_vec <- c()
+	efdr_lb_vec <- c()
+	efdr_ub_vec <- c()
+	power_vec <- c()
+	power_lb_vec <- c()
+	power_ub_vec <- c()
+	method_vec <- c()
+
+	# TGFM
+	method_name <- "TGFM (Gene)"
+	df <- read.table(ldl_tgfm_enrichment_file, header=TRUE, sep="\t")
+	unique_gene_pips <- sort(unique(df$gene_pip))
+	unique_gene_pips = rev(unique_gene_pips[unique_gene_pips > pip_lb])
+
+	for (pip_iter in 1:length(unique_gene_pips)) {
+		pip_val = unique_gene_pips[pip_iter]
+		tmp_df <- df[df$gene_pip >= pip_val,]
+
+		n_silver = sum(as.character(tmp_df$silver_standard) == "silver standard")
+		n_background = sum(as.character(tmp_df$silver_standard) == "background")
+
+		efdr = n_background/(n_silver + n_background)
+
+		efdr_variance = (efdr*(1.0-efdr))/(n_silver + n_background)
+		efdr_se = sqrt(efdr_variance)
+
+		pip_vec <- c(pip_vec, pip_val)
+		efdr_vec <- c(efdr_vec, efdr)
+
+		efdr_lb_vec <- c(efdr_lb_vec, efdr - (1.96*efdr_se))
+		efdr_ub_vec <- c(efdr_ub_vec, efdr + (1.96*efdr_se))
+
+
+		power = n_silver/n_total_pos
+		power_variance = (power*(1.0-power))/(n_total_pos)
+		power_se = sqrt(power_variance)
+		power_vec <- c(power_vec, power)
+		power_lb_vec <- c(power_lb_vec, power - (1.96*power_se))
+		power_ub_vec <- c(power_ub_vec, power + (1.96*power_se))
+		method_vec <- c(method_vec, method_name)
+	}
+
+
+	# cTWAS
+	method_name <- "cTWAS"
+	df <- read.table(ldl_ctwas_enrichment_file, header=TRUE, sep="\t")
+	unique_gene_pips <- sort(unique(df$gene_pip))
+	unique_gene_pips = rev(unique_gene_pips[unique_gene_pips > pip_lb])
+
+	for (pip_iter in 1:length(unique_gene_pips)) {
+		pip_val = unique_gene_pips[pip_iter]
+		tmp_df <- df[df$gene_pip >= pip_val,]
+
+		n_silver = sum(as.character(tmp_df$silver_standard) == "silver standard")
+		n_background = sum(as.character(tmp_df$silver_standard) == "background")
+
+		efdr = n_background/(n_silver + n_background)
+
+		efdr_variance = (efdr*(1.0-efdr))/(n_silver + n_background)
+		efdr_se = sqrt(efdr_variance)
+
+		pip_vec <- c(pip_vec, pip_val)
+		efdr_vec <- c(efdr_vec, efdr)
+
+		efdr_lb_vec <- c(efdr_lb_vec, efdr - (1.96*efdr_se))
+		efdr_ub_vec <- c(efdr_ub_vec, efdr + (1.96*efdr_se))
+
+
+		power = n_silver/n_total_pos
+		power_variance = (power*(1.0-power))/(n_total_pos)
+		power_se = sqrt(power_variance)
+		power_vec <- c(power_vec, power)
+		power_lb_vec <- c(power_lb_vec, power - (1.96*power_se))
+		power_ub_vec <- c(power_ub_vec, power + (1.96*power_se))
+		method_vec <- c(method_vec, method_name)
+	}
+
+
+	df2 <- data.frame(eFDR=efdr_vec, power=power_vec, method=factor(method_vec, levels=c("TGFM (Gene)", "cTWAS")), PIP=pip_vec, eFDR_lb=efdr_lb_vec, eFDR_ub=efdr_ub_vec, power_lb=power_lb_vec, power_ub=power_ub_vec)
+
+
+	print(head(df2))
+
+}
+
 make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_emperical_power_curve <- function(ldl_tgfm_enrichment_file, ldl_ctwas_enrichment_file, pip_lb=0.01) {
 	n_total_pos = 69
 	pip_vec <- c()
@@ -3675,7 +3763,7 @@ make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_emperical_power_curve
 	 geom_line(size=1.0) +
 	 figure_theme() + 
 	 scale_colour_manual(values = c(green_color, orange_color)) +
-	 labs(x="ePower\n(Silver standard gene set)", y="eFDR\n(Silver standard gene set)",color="") +
+	 labs(x="Power", y="FDR",color="") +
 	 theme(legend.position="bottom")
 
 	return(pp)
@@ -3734,7 +3822,7 @@ make_ldl_silver_standard_stratefied_gene_pip_one_minus_emperical_fdr_plot <- fun
 
 }
 
-make_ldl_silver_standard_stratefied_gene_tissue_pip_emperical_fdr_plot <- function(ldl_enrichment_file, pip_lb=0.01, color='red', method_name="TGFM") {
+make_ldl_silver_standard_stratefied_gene_tissue_pip_emperical_fdr_plot <- function(ldl_enrichment_file, pip_lb=0.01, color='red', method_name="TGFM",expected_fdr=FALSE) {
 	df <- read.table(ldl_enrichment_file, header=TRUE, sep="\t")
 
 	unique_gene_pips <- sort(unique(df$gene_tissue_pip))
@@ -3744,6 +3832,7 @@ make_ldl_silver_standard_stratefied_gene_tissue_pip_emperical_fdr_plot <- functi
 	efdr_vec <- c()
 	efdr_lb_vec <- c()
 	efdr_ub_vec <- c()
+	expected_fdr_vec <- c()
 
 	for (pip_iter in 1:length(unique_gene_pips)) {
 		pip_val = unique_gene_pips[pip_iter]
@@ -3762,6 +3851,8 @@ make_ldl_silver_standard_stratefied_gene_tissue_pip_emperical_fdr_plot <- functi
 
 		efdr_lb_vec <- c(efdr_lb_vec, efdr - (1.96*efdr_se))
 		efdr_ub_vec <- c(efdr_ub_vec, efdr + (1.96*efdr_se))
+
+		expected_fdr_vec <- c(expected_fdr_vec, 1.0 - mean(tmp_df$gene_tissue_pip))
 	}
 
 	efdr_lb_vec[efdr_lb_vec < 0.0] = 0.0
@@ -3776,13 +3867,19 @@ make_ldl_silver_standard_stratefied_gene_tissue_pip_emperical_fdr_plot <- functi
 	if (color == "orange") {
 		color_choice=brewer.pal(n = 9, name = "Oranges")[6]
 	}
-	df2 <- data.frame(PIP=pip_vec, efdr=efdr_vec, efdr_lb = efdr_lb_vec, efdr_ub=efdr_ub_vec)
+	df2 <- data.frame(PIP=pip_vec, efdr=efdr_vec, efdr_lb = efdr_lb_vec, efdr_ub=efdr_ub_vec, expected_fdr=expected_fdr_vec)
 	pp <- ggplot(df2, aes(x = PIP, y = efdr, ymin=efdr_lb, ymax=efdr_ub)) +
 	 geom_line(color=color_choice, size=2.0) +
 	 geom_ribbon(alpha=0.2, fill=color_choice) +
 	 figure_theme() + 
 	 geom_abline(slope=-1, intercept=1, size=.3) +
 	 labs(x=paste0(method_name," (Gene-Tissue) PIP"), y="FDR (Silver standard gene-tissue set)")
+
+	 if (expected_fdr==TRUE) {
+	 	pp <- pp + geom_line(data=df2, aes(x=PIP, y=expected_fdr), linetype="dashed", colour="grey30",size=1.3)
+
+	 }
+
 
 	 return(pp) 
 
@@ -3799,6 +3896,7 @@ get_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_data <- function(ldl_e
 	efdr_vec <- c()
 	efdr_lb_vec <- c()
 	efdr_ub_vec <- c()
+	expected_fdr_vec <- c()
 
 	for (pip_iter in 1:length(unique_gene_pips)) {
 		pip_val = unique_gene_pips[pip_iter]
@@ -3817,19 +3915,52 @@ get_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_data <- function(ldl_e
 
 		efdr_lb_vec <- c(efdr_lb_vec, efdr - (1.96*efdr_se))
 		efdr_ub_vec <- c(efdr_ub_vec, efdr + (1.96*efdr_se))
+
+		expected_fdr_vec <- c(expected_fdr_vec, 1.0 - mean(tmp_df$gene_pip))
 	}
 
 	efdr_lb_vec[efdr_lb_vec < 0.0] = 0.0
 	efdr_ub_vec[efdr_lb_vec > 1.0] = 0.0
 
-	df2 <- data.frame(PIP=pip_vec, efdr=efdr_vec, efdr_lb = efdr_lb_vec, efdr_ub=efdr_ub_vec)
+	df2 <- data.frame(PIP=pip_vec, efdr=efdr_vec, efdr_lb = efdr_lb_vec, efdr_ub=efdr_ub_vec,expected_fdr=expected_fdr_vec)
 
 	return(df2)
 
 
 }
 
-make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot <- function(ldl_enrichment_file, pip_lb=0.01, color='green', method_name="TGFM") {
+statistical_significance_of_fdr_difference_between_tgfm_pip_and_ctwas_pip_calibration <- function(tgfm_ldl_enrichment_file, ctwas_ldl_enrichment_file, pip_threshold) {
+	df_tgfm <- read.table(tgfm_ldl_enrichment_file, header=TRUE, sep="\t")
+	df_ctwas <- read.table(ctwas_ldl_enrichment_file, header=TRUE, sep="\t")
+
+
+	# TGFM calc
+	tgfm_tmp_df <- df_tgfm[df_tgfm$gene_pip >= pip_threshold,]
+	tgfm_n_silver = sum(as.character(tgfm_tmp_df$silver_standard) == "silver standard")
+	tgfm_n_background = sum(as.character(tgfm_tmp_df$silver_standard) == "background")
+
+	# cTWAS calc
+	ctwas_tmp_df <- df_ctwas[df_ctwas$gene_pip >= pip_threshold,]
+	ctwas_n_silver = sum(as.character(ctwas_tmp_df$silver_standard) == "silver standard")
+	ctwas_n_background = sum(as.character(ctwas_tmp_df$silver_standard) == "background")
+
+	print(tgfm_n_silver)
+	print(tgfm_n_background)
+
+	print(ctwas_n_silver)
+	print(ctwas_n_background)
+
+
+	data <- matrix(c(tgfm_n_silver, tgfm_n_background, ctwas_n_silver, ctwas_n_background), nrow = 2)
+
+	# Perform Fisher's exact test
+	result <- fisher.test(data)
+	print(result)
+
+}
+
+
+make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot <- function(ldl_enrichment_file, pip_lb=0.01, color='green', method_name="TGFM", expected_fdr=FALSE) {
 	df <- read.table(ldl_enrichment_file, header=TRUE, sep="\t")
 
 	unique_gene_pips <- sort(unique(df$gene_pip))
@@ -3839,6 +3970,7 @@ make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot <- function(ldl_
 	efdr_vec <- c()
 	efdr_lb_vec <- c()
 	efdr_ub_vec <- c()
+	expected_fdr_vec <- c()
 
 	for (pip_iter in 1:length(unique_gene_pips)) {
 		pip_val = unique_gene_pips[pip_iter]
@@ -3857,6 +3989,9 @@ make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot <- function(ldl_
 
 		efdr_lb_vec <- c(efdr_lb_vec, efdr - (1.96*efdr_se))
 		efdr_ub_vec <- c(efdr_ub_vec, efdr + (1.96*efdr_se))
+
+
+		expected_fdr_vec <- c(expected_fdr_vec, 1.0 - mean(tmp_df$gene_pip))
 	}
 
 	efdr_lb_vec[efdr_lb_vec < 0.0] = 0.0
@@ -3868,13 +4003,18 @@ make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot <- function(ldl_
 	if (color == "orange") {
 		color_choice=brewer.pal(n = 9, name = "Oranges")[6]
 	}
-	df2 <- data.frame(PIP=pip_vec, efdr=efdr_vec, efdr_lb = efdr_lb_vec, efdr_ub=efdr_ub_vec)
+	df2 <- data.frame(PIP=pip_vec, efdr=efdr_vec, efdr_lb = efdr_lb_vec, efdr_ub=efdr_ub_vec, expected_fdr=expected_fdr_vec)
 	pp <- ggplot(df2, aes(x = PIP, y = efdr, ymin=efdr_lb, ymax=efdr_ub)) +
 	 geom_line(color=color_choice, size=2.0) +
 	 geom_ribbon(alpha=0.2, fill=color_choice) +
 	 figure_theme() + 
 	 geom_abline(slope=-1, intercept=1, size=.3) +
-	 labs(x=paste0(method_name," (Gene) PIP"), y="FDR (Silver standard gene set)")
+	 labs(x=paste0(method_name," (Gene) PIP"), y="FDR")
+
+	 if (expected_fdr==TRUE) {
+	 	pp <- pp + geom_line(data=df2, aes(x=PIP, y=expected_fdr), linetype="dashed", colour="grey30",size=1.3) 
+
+	 }
 
 	 return(pp) 
 
@@ -4358,9 +4498,7 @@ ldl_gt_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "l
 tgfm_gt_eFDR_plot <- make_ldl_silver_standard_stratefied_gene_tissue_pip_emperical_fdr_plot(ldl_gt_enrichment_file)
 output_file <- paste0(visualize_tgfm_dir, "ldl_silver_standard_tgfm_gene_tissue_set_tgfm_empirical_FDR.pdf")
 ggsave(tgfm_gt_eFDR_plot, file=output_file, width=7.2, height=4.7, units="in")
-}
 
-if (FALSE) {
 # Save raw data to supplementary table
 ldl_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_enrichment_summary.txt")
 supp_table_df <- get_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_data(ldl_enrichment_file)
@@ -4368,27 +4506,67 @@ supp_table_file = paste0(visualize_tgfm_dir, "suppTable_figure4d_numerical.txt")
 write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
 }
 
-
 ##########################################################
-# Make LDL silver standard 1-eFDR plot
+# Make LDL silver standard emperical FDR plot (show expected PIP)
 ##########################################################
-if (FALSE) {
+# TGFM
 ldl_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_enrichment_summary.txt")
-tgfm_eFDR_plot <- make_ldl_silver_standard_stratefied_gene_pip_one_minus_emperical_fdr_plot(ldl_enrichment_file)
-output_file <- paste0(visualize_tgfm_dir, "ldl_silver_standard_tgfm_gene_set_tgfm_proportion_in_silver_standard.pdf")
+tgfm_eFDR_plot <- make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot(ldl_enrichment_file, expected_fdr=TRUE)
+output_file <- paste0(visualize_tgfm_dir, "ldl_silver_standard_tgfm_gene_set_tgfm_empirical_FDR_w_expected_fdr.pdf")
 ggsave(tgfm_eFDR_plot, file=output_file, width=7.2, height=4.7, units="in")
-}
+
+# cTWAS
+ldl_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_ctwas_enrichment_summary.txt")
+ctwas_eFDR_plot <- make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot(ldl_enrichment_file,color="orange", method="cTWAS", expected_fdr=TRUE)
+output_file <- paste0(visualize_tgfm_dir, "ldl_silver_standard_ctwas_gene_set_tgfm_empirical_FDR_w_expected_fdr.pdf")
+ggsave(ctwas_eFDR_plot, file=output_file, width=7.2, height=4.7, units="in")
+
+# Joint plot 
+joint_eFDR_plot <- plot_grid(tgfm_eFDR_plot, ctwas_eFDR_plot, ncol=2, labels=c("a","b"))
+output_file <- paste0(visualize_tgfm_dir, "ldl_silver_standard_gene_set_tgfm_empirical_FDR_w_expected_fdr.pdf")
+ggsave(joint_eFDR_plot, file=output_file, width=7.2, height=3.5, units="in")
+
 
 ##########################################################
 # Make LDL silver standard emperical FDR-empirical power curv
 ##########################################################
-if (FALSE) {
 ldl_tgfm_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_enrichment_summary.txt")
 ldl_ctwas_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_ctwas_enrichment_summary.txt")
 eFDR_ePower_curve <- make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_emperical_power_curve(ldl_tgfm_enrichment_file, ldl_ctwas_enrichment_file)
 output_file <- paste0(visualize_tgfm_dir, "ldl_silver_standard_gene_set_empirical_FDR_empirical_power_curve.pdf")
 ggsave(eFDR_ePower_curve, file=output_file, width=7.2, height=4.1, units="in")
+
+# Second joint plot
+joint_eFDR_plot2 <- plot_grid(joint_eFDR_plot, eFDR_ePower_curve, ncol=1, labels=c("", "c"))
+output_file <- paste0(visualize_tgfm_dir, "tgfm_gene_ctwas_comparison_with_silver_standard_gene_set_supp_fig.pdf")
+ggsave(joint_eFDR_plot2, file=output_file, width=7.2, height=5.8, units="in")
+
+# TGFM gene-tissue
+ldl_gt_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_gene_tissue_enrichment_summary.txt")
+tgfm_gt_eFDR_plot <- make_ldl_silver_standard_stratefied_gene_tissue_pip_emperical_fdr_plot(ldl_gt_enrichment_file, expected_fdr=TRUE)
+output_file <- paste0(visualize_tgfm_dir, "ldl_silver_standard_tgfm_gene_tissue_set_tgfm_empirical_FDR_w_expected_fdr.pdf")
+ggsave(tgfm_gt_eFDR_plot, file=output_file, width=7.2, height=4.7, units="in")
+
+##########################################################
+# Statistical signficance of FDR difference between TGFM PIP and ctwas pip
+##########################################################
+tgfm_ldl_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_enrichment_summary.txt")
+ctwas_ldl_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_ctwas_enrichment_summary.txt")
+if (FALSE) {
+statistical_significance_of_fdr_difference_between_tgfm_pip_and_ctwas_pip_calibration(tgfm_ldl_enrichment_file, ctwas_ldl_enrichment_file, 0.5)
 }
+
+##########################################################
+# Statistical signficance of power difference between TGFM and ctwas when matched for fdr
+##########################################################
+tgfm_ldl_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_enrichment_summary.txt")
+ctwas_ldl_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_ctwas_enrichment_summary.txt")
+if (FALSE) {
+statistical_significance_of_power_difference_between_tgfm_pip_and_ctwas_pip_when_matched_for_fdr(tgfm_ldl_enrichment_file, ctwas_ldl_enrichment_file, 0.5)
+}
+
+
+
 
 
 ##########################################################
