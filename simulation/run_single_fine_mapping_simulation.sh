@@ -63,9 +63,8 @@ date
 eqtl_type="susie"
 n_bootstraps="100"
 annotation_file=${processed_genotype_data_dir}baseline.${chrom_num}.annot
-if false; then
 python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir $n_bootstraps
-fi
+
 
 #######################################################
 # Step 3: Preprocess data for TGFM-LASSO
@@ -147,13 +146,13 @@ ln_pi_method=${version}"_uniform_iterative_variant_gene_prior_pip_level_bootstra
 tgfm_output_stem=${simulated_tgfm_results_dir}${tgfm_simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $gene_type
 
-
+if false; then
 echo "Part 9: TGFM with Uniform prior and only LASSO-PMCES"
 date
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${tgfm_simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_lasso_"${ln_pi_method}
 python3 run_tgfm_pmces.py $tgfm_lasso_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method "lasso"
-
+fi
 
 echo "Part 10: Delete unnessary gene models"
 python3 delete_unnessary_learned_gene_model_files.py $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $eqtl_sample_size

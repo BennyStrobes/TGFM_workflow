@@ -495,19 +495,45 @@ eqtl_architecture="pleiotropy"
 # Run simulating the trait data
 ############################
 if false; then
-for simulation_number in $(seq 1 5); do 
+for simulation_number in $(seq 1 100); do 
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
 	sbatch run_single_trait_simulation.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture $eqtl_architecture
 done
 fi
 
 
+############################
+# Fit gene models in single fine-mapping simulation
+############################
+# Loop through eqtl sample sizes
+eqtl_sample_size_arr=( "300" "500") # 45 h
+run_lasso="no_run_lasso"
+if false; then
+for simulation_number in $(seq 1 100); do 
+for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
+do
+	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
+	sbatch run_single_learn_gene_models_simulation.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture $eqtl_architecture $eqtl_sample_size $simulated_focus_input_dir $simulated_focus_results_dir $simulated_causal_twas_input_data_dir $simulated_causal_twas_gene_models_dir $simulated_causal_twas_results_dir $processed_ctwas_genotype_data_dir $run_lasso
+done
+done
+fi
 
 
 
-
-
-
+############################
+# Run main single fine-mapping simulation of the simulated trait data at a single eQTL sample
+############################
+# Loop through eqtl sample sizes
+eqtl_sample_size_arr=( "300" "500")
+if false; then
+for simulation_number in $(seq 1 100); do 
+for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
+do
+	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
+	sbatch run_single_fine_mapping_simulation.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture $eqtl_architecture $eqtl_sample_size $simulated_focus_input_dir $simulated_focus_results_dir $simulated_causal_twas_input_data_dir $simulated_causal_twas_gene_models_dir $simulated_causal_twas_results_dir $processed_ctwas_genotype_data_dir
+done
+done
+fi
 
 
 

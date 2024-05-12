@@ -791,6 +791,16 @@ original_tissue="Whole_Blood"
 replicating_tissue="Whole_Blood_subsampled"
 repication_data_file <- paste0(tissue_replication_results_dir, replication_name, "_replication_pip_0.5_raw_replication_results.txt")
 subsampled_histo <- make_replication_analysis_histogram(repication_data_file, replication_name, original_tissue, replicating_tissue, "Whole Blood\n(subsampled)", "Whole Blood subsampling")
+output_file = paste0(output_dir, replication_name, "_replication_density.pdf")
+ggsave(subsampled_histo, file=output_file, width=7.2, height=4.1, units="in")
+
+
+# Whole blood subsampled replication
+replication_name="Whole_Blood_Whole_Blood_subsampled"
+original_tissue="Whole_Blood"
+replicating_tissue="Whole_Blood_subsampled"
+repication_data_file <- paste0(tissue_replication_results_dir, replication_name, "_replication_pip_0.5_raw_replication_results.txt")
+subsampled_histo <- make_replication_analysis_histogram2(repication_data_file, replication_name, original_tissue, replicating_tissue, "Whole Blood\n(subsampled)", "Whole Blood subsampling")
 output_file = paste0(output_dir, replication_name, "_replication_histogram.pdf")
 ggsave(subsampled_histo, file=output_file, width=7.2, height=4.1, units="in")
 

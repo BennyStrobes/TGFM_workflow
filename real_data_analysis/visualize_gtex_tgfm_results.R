@@ -3381,7 +3381,7 @@ make_trait_tissue_chromatin_overlap_cdf <- function(trait_tissue_chromatin_overl
   		scale_colour_manual(values=c(red_color, "grey37")) +
   		theme(legend.position="top") + 
   		geom_vline(xintercept = -log10(.05),linetype="dotted") +
-  		labs(x="SLDSC -log10(p-value) threshold",y="Fraction SLDSC significant", fill="Tissue-trait pairs (TGFM tissue-specific prior)",colour="Tissue-trait pairs (TGFM tissue-specific prior)" )
+  		labs(x="SLDSC -log10(p-value) threshold",y="Proportion SLDSC significant", fill="Tissue-trait pairs (TGFM tissue-specific prior)",colour="Tissue-trait pairs (TGFM tissue-specific prior)" )
 
   	return(pp)
 
@@ -4644,7 +4644,6 @@ write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.name
 ##########################################################
 # Make Figure 4 
 ##########################################################
-if (FALSE) {
 red_color =brewer.pal(n = 9, name = "Reds")[7]
 # FIG 4A
 pip_thresh <- "0.5"
@@ -4687,7 +4686,6 @@ fig_4cd = plot_grid(fig_4c, NULL, fig_4d, ncol=3, rel_widths=c(.6,.02,.45), labe
 fig_4 <- plot_grid(fig_4ab, fig_4cd, ncol=1, rel_heights=c(.6,.43))
 output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
 ggsave(fig_4, file=output_file, width=7.2, height=6.2, units="in")
-}
 
 
 
