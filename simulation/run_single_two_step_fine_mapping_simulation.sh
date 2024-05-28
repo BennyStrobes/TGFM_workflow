@@ -88,6 +88,7 @@ python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $tgfm_inp
 
 
 
+if false; then
 echo "Part 3: Extract tissues to run two-step fine-mapping on"
 date
 tgfm_iterative_prior_file=$tgfm_output_stem"_iterative_variant_gene_prior_pip_level_bootstrapped.txt"
@@ -124,7 +125,7 @@ sed 1d $two_step_fine_mapping_tissues_file | while read tissue_name tissue_pvalu
 	tgfm_output_stem=${simulated_two_step_tgfm_results_dir}${tgfm_simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_iterative_two_step_"$tissue_name
 	python3 run_tgfm_sampler_two_step.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $gene_type $tissue_name
 done
-
+fi
 
 
 

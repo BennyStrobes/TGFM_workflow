@@ -30,6 +30,8 @@ module load gcc/9.2.0
 module load R/4.3.1
 
 
+# Get current working dir
+cur_dir=`pwd`
 
 # Prepare gwas summary statistics for causal-TWAS
 input_gwas_file=${simulated_gwas_dir}${simulation_name_string}"_merged_gwas_summary_stats.txt"
@@ -62,6 +64,16 @@ sh prepare_gene_models_for_causal_twas.sh $input_causal_eqtl_effects_file $simul
 Rscript run_ctwas.R $ctwas_gwas_sumstats_file $processed_ctwas_genotype_data_dir $new_gene_model_dir"/multitissue" $simulated_causal_twas_results_dir${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}
 
 
+echo "DELETE"
+tmp_dir=$simulated_causal_twas_results_dir${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}
+cd $tmp_dir
+find . -type f ! -name 'testing.susieIrss.txt' -delete
+rm -rf testing_LDR
+# Return to current working dir
+cd $cur_dir
+
+
+
 
 ########################################
 # CTWAS in each tissue independently
@@ -84,4 +96,16 @@ for tissue_number in $(seq 0 9); do
 	tmp_pos_file=$new_gene_model_dir"/multitissue.tmp_pos"
 	sh prepare_gene_models_for_causal_twas_single_tissue.sh $input_causal_eqtl_effects_file $simulated_learned_gene_models_stem $genotype_bim_file $pos_file $tmp_pos_file $new_gene_model_dir"/multitissue/multitissue" $new_gene_model_dir"/" $eqtl_sample_size $tissue_number
 	Rscript run_ctwas.R $ctwas_gwas_sumstats_file $processed_ctwas_genotype_data_dir $new_gene_model_dir"/multitissue" $simulated_causal_twas_results_dir${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_tissue"$tissue_number
+
+
+
+	echo "DELETE"
+	tmp_dir=$simulated_causal_twas_results_dir${simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_tissue"$tissue_number
+	cd $tmp_dir
+	find . -type f ! -name 'testing.susieIrss.txt' -delete
+	rm -rf testing_LDR
+	# Return to current working dir
+	cd $cur_dir
+
+
 done

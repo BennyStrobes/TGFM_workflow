@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-41:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-45:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
 
@@ -71,9 +71,8 @@ python3 preprocess_data_for_tgfm.py $simulation_number $chrom_num $simulation_na
 #######################################################
 echo "Simulation Step 3"
 date
-if false; then
 python3 preprocess_data_for_tgfm_lasso_gene_model.py $simulation_number $chrom_num $simulation_name_string $n_gwas_individuals $eqtl_sample_size $global_window_file $annotation_file $simulated_gwas_dir $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_tgfm_input_data_dir $eqtl_type $processed_genotype_data_dir
-fi
+
 
 
 #######################################################
@@ -85,9 +84,8 @@ source /home/bes710/.bash_profile
 module load R/4.0.1
 
 merged_gwas_summary_stat_file=${simulated_gwas_dir}${simulation_name_string}"_merged_gwas_summary_stats.txt"
-if false; then
 python3 run_coloc_shell.py $merged_gwas_summary_stat_file $simulation_number $chrom_num $simulation_name_string $eqtl_sample_size $n_gwas_individuals $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_coloc_results_dir
-fi
+
 
 
 ##################################

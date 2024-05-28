@@ -504,7 +504,7 @@ def simulate_causal_eqtl_effect_sizes_with_pleiotropy(cis_window, simulated_gene
 	valid_overlapping_gene_pairs, gene_name_to_tss_mapping = get_overlapping_gene_pairs(simulated_gene_position_file, cis_window, gene_pair_cis_window_overlap_thresh, G_obj_pos, n_overlapping_snps_thresh)
 	############################################
 	# Next, randomly select gene pairs
-	n_gene_pairs = 400
+	n_gene_pairs = 250
 	randomly_selected_gene_pairs = randomly_select_gene_pairs(valid_overlapping_gene_pairs, n_gene_pairs)
 
 
