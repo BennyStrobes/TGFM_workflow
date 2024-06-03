@@ -3180,7 +3180,6 @@ print("DONE")
 ##########################################################
 # Make Figure 6 alt
 ##########################################################
-if (FALSE) {
 # Make heatmap-barplot showing expected number of causal gene-tissue pairs
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 single_cell_cell_types <- c("B", "NK", "Prolif", "T4", "T8", "cDC", "cM", "ncM", "pDC")
@@ -3215,7 +3214,6 @@ fig_6 <- plot_grid(fig_6ab, fig_6cf, ncol=1, rel_heights=c(.7,.65))
 output_file <- paste0(visualize_tgfm_dir, "figure6_alt.pdf")
 
 ggsave(fig_6, file=output_file, width=7.2, height=5.5, units="in")
-}
 
 
 

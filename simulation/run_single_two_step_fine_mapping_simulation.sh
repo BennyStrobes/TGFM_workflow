@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 1                               # Request one core
-#SBATCH -t 0-41:00                         # Runtime in D-HH:MM format
+#SBATCH -t 0-50:00                         # Runtime in D-HH:MM format
 #SBATCH -p medium                           # Partition to run in
 #SBATCH --mem=20GB                         # Memory total in MiB (for all cores)
 
@@ -88,14 +88,11 @@ python3 learn_iterative_tgfm_component_prior_pip_level_bootstrapped.py $tgfm_inp
 
 
 
-if false; then
 echo "Part 3: Extract tissues to run two-step fine-mapping on"
 date
 tgfm_iterative_prior_file=$tgfm_output_stem"_iterative_variant_gene_prior_pip_level_bootstrapped.txt"
 two_step_fine_mapping_tissues_file=${simulated_two_step_tgfm_results_dir}${tgfm_simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_pmces_"${ln_pi_method}"_two_step_tissues.txt"
-python3 extract_tissues_to_run_two_step_fine_mapping_on.py $tgfm_iterative_prior_file $two_step_fine_mapping_tissues_file
-
-
+python3 extract_tissues_to_run_two_step_fine_mapping_on.py $tgfm_iterative_prior_file $two_step_fine_mapping_tissues_file $gene_trait_architecture
 
 # Loop through tissues to run two step fine-mapping on 
 sed 1d $two_step_fine_mapping_tissues_file | while read tissue_name tissue_pvalue; do
@@ -125,7 +122,7 @@ sed 1d $two_step_fine_mapping_tissues_file | while read tissue_name tissue_pvalu
 	tgfm_output_stem=${simulated_two_step_tgfm_results_dir}${tgfm_simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_iterative_two_step_"$tissue_name
 	python3 run_tgfm_sampler_two_step.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $gene_type $tissue_name
 done
-fi
+
 
 
 

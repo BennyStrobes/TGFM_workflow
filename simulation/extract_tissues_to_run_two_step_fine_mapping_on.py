@@ -12,7 +12,7 @@ import scipy.stats
 
 tgfm_iterative_prior_file = sys.argv[1]
 two_step_fine_mapping_tissues_file = sys.argv[2]
-
+gene_trait_architecture = sys.argv[3]
 
 pvalues = []
 tissue_names = []
@@ -62,10 +62,23 @@ for ii, tissue_name in enumerate(ordered_tissue_names):
 	# Always print if best
 	if ii == 0:
 		t.write(tissue_name + '\t' + str(pvalue) + '\n')
-	elif ii > 0 and pvalue <= 0.05:
-		t.write(tissue_name + '\t' + str(pvalue) + '\n')
+		best_tissue_name = tissue_name
+
+
+if gene_trait_architecture == '1_caus_t':
+	true_causal_tissues = np.asarray([tissue_names[0]])
+	true_causal_tissue_pvalues = np.asarray([pvalues[0]])
+elif gene_trait_architecture == '2_caus_t':
+	true_causal_tissues = np.asarray([tissue_names[0], tissue_names[3]])
+	true_causal_tissue_pvalues = np.asarray([pvalues[0], pvalues[3]])
+
+
+for ii, tissue_name in enumerate(true_causal_tissues):
+	pvalue = true_causal_tissue_pvalues[ii]
+	if tissue_name == best_tissue_name:
+		continue
+	t.write(tissue_name + '\t' + str(pvalue) + '\n')
 t.close()
 
-
 print(pvalues)
-
+print(two_step_fine_mapping_tissues_file)

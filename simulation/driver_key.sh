@@ -219,6 +219,8 @@ done
 fi
 
 
+
+
 ############################
 # Fit gene models in single fine-mapping simulation
 ############################
@@ -719,7 +721,7 @@ fi
 simulation_number="1"
 eqtl_sample_size_arr=( "realistic" "300" "500" "1000")
 if false; then
-for simulation_number in $(seq 1 1); do 
+for simulation_number in $(seq 2 100); do 
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
@@ -727,7 +729,6 @@ do
 done 
 done
 fi
-
 
 
 
