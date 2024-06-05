@@ -33,4 +33,10 @@ for line in f:
 	gwas_sumstat_file = simulated_gwas_dir + simulation_name_string + '_simualated_gwas_results_window_' + window_name + '.txt'
 	# Remove gwas sumstat
 	os.system('rm ' + gwas_sumstat_file)
+
+	# Get name of gwas sum stat file
+	gwas_sumstat_file2 = simulated_gwas_dir + simulation_name_string + '_simualated_gwas_results_unstandardized_geno_window_' + window_name + '.txt'
+	# Remove gwas sumstat
+	os.system('rm ' + gwas_sumstat_file2)
+
 f.close()

@@ -87,12 +87,22 @@ python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows_w_o_standardizing_ge
 
 
 #######################################################
-# Step 5: Delete unnessary files
+# Step 6: Re-organize unstandardized gwas summary statistics
 #######################################################
-echo "Simulation Step 5"
-if false; then
+echo "Simulation Step 6"
+# Merge gwas data across windows
+source /home/bes710/.bash_profile
+merged_gwas_summary_stat_file=${simulated_gwas_dir}${simulation_name_string}"_merged_unstandardized_jlim_gwas_summary_stats.ma"
+python3 generate_merged_unstandardized_gwas_data_for_jlim.py $global_window_file $simulation_number $chrom_num $simulation_name_string ${simulated_gwas_dir} $processed_genotype_data_dir $n_gwas_individuals $merged_gwas_summary_stat_file
+
+
+
+#######################################################
+# Step 7: Delete unnessary files
+#######################################################
+echo "Simulation Step 7"
 python3 delete_unnessary_gwas_sum_stat_files.py $simulated_gwas_dir $simulation_name_string $global_window_file
-fi
+
 date
 
 

@@ -3,6 +3,8 @@ import os
 import sys
 import pdb
 import scipy.stats
+import scipy.stats as stats
+
 
 
 def create_mapping_from_rsid_to_gwas_sum_stats(window_names, simulated_gwas_stem):
@@ -17,17 +19,17 @@ def create_mapping_from_rsid_to_gwas_sum_stats(window_names, simulated_gwas_stem
 			if head_count == 0:
 				head_count = head_count + 1
 				continue
-			pdb.set_trace()
 			rsid = data[0]
 			beta = float(data[1])
 			beta_var = np.square(float(data[2]))
 			z_score = float(data[3])
-			pvalue = scipy.stats.norm.sf(abs(z_score))*2
+			af = float(data[4])
+			#pvalue = scipy.stats.norm.sf(abs(z_score))*2
 			if rsid in mapping:
 				if mapping[rsid][0] != beta or mapping[rsid][1] != beta_var:
 					print('assumption erororor')
 					pdb.set_trace()
-			mapping[rsid] = (beta, beta_var)
+			mapping[rsid] = (beta, beta_var, af)
 		f.close()
 	return mapping
 
@@ -41,7 +43,7 @@ simulation_name_string = sys.argv[4]
 simulated_gwas_dir = sys.argv[5] # input dir
 processed_genotype_data_dir = sys.argv[6]
 n_gwas_individuals = sys.argv[7]
-focus_gwas_summary_stat_file = sys.argv[8]  # output file
+jlim_gwas_summary_stat_file = sys.argv[8]  # output file
 
 # Extract window names
 window_names = np.loadtxt(global_window_file, dtype=str, delimiter='\t')[1:,0]
@@ -55,10 +57,12 @@ genotype_bim_file = processed_genotype_data_dir + 'simulated_gwas_data_' + str(c
 genotype_df = np.loadtxt(genotype_bim_file,dtype=str, delimiter='\t')
 
 # Open output file handle
-t = open(focus_gwas_summary_stat_file,'w')
-t.write('CHR\tSNP\tBP\tA1\tA2\tN\tBETA\tBETA_VAR\n')
+t = open(jlim_gwas_summary_stat_file,'w')
+t.write('SNP\tA1\tA2\tfreq\tb\tse\tp\tn\n')
 
 n_snps = genotype_df.shape[0]
+
+used_rsids = {}
 
 for snp_iter in range(n_snps):
 	rsid = genotype_df[snp_iter,1]
@@ -66,7 +70,25 @@ for snp_iter in range(n_snps):
 	snp_pos = genotype_df[snp_iter, 3]
 	snp_a1 = genotype_df[snp_iter, 4]
 	snp_a2 = genotype_df[snp_iter, 5]
-	t.write(line_chrom_num + '\t' + rsid + '\t' + snp_pos + '\t' + snp_a1 + '\t' + snp_a2 + '\t' + n_gwas_individuals + '\t' + str(rsid_to_gwas_sum_stats[rsid][0]) + '\t' + str(rsid_to_gwas_sum_stats[rsid][1]) + '\n')
+
+	beta = rsid_to_gwas_sum_stats[rsid][0]
+	beta_se = np.sqrt(rsid_to_gwas_sum_stats[rsid][1])
+	af = rsid_to_gwas_sum_stats[rsid][2]
+
+	t_stat = beta/beta_se
+	p_value = stats.t.sf(np.abs(t_stat), int(n_gwas_individuals)-2)*2.0
+
+	if p_value < 0 or p_value > 1:
+		print('assumption eroror')
+		pdb.set_trace()
+
+	if rsid in used_rsids:
+		print('assumption erooror')
+		pdb.set_trace()
+	used_rsids[rsid] = 1
+
+
+	t.write(rsid + '\t' + snp_a1 + '\t' + snp_a2 + '\t' + str(1.0-af) + '\t' + str(beta) + '\t' + str(beta_se) + '\t' + str(p_value) + '\t' + str(n_gwas_individuals) + '\n')
 
 t.close()
 

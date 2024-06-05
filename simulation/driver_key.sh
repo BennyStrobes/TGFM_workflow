@@ -51,6 +51,8 @@ ldsc_summary_stats_dir="/n/groups/price/ldsc/sumstats_formatted_2021/"
 jlim_source_code_dir="/n/groups/price/ben/tools/JLIM/jlim/"
 jlim_ref_geno_dir="/n/groups/price/ben/tools/JLIM/refld.1kg.nfe.b37/"
 
+# Directory containing SMR executable dir
+smr_source_code_dir="/n/groups/price/ben/tools/smr/"
 
 
 
@@ -131,6 +133,8 @@ simulated_jlim_results_dir=$temp_output_root"simulated_jlim_results/"
 # Directory containing jlim and smr eqtl sumstats
 simulated_jlim_smr_eqtl_sumstats_dir=$temp_output_root"simulated_jlim_smr_eqtl_sumstats/"
 
+# Directory containing temporary simulated smr eqtl summary stats
+simulated_tmp_smr_eqtl_dir=$perm_output_root"simulated_tmp_smr_eqtl_data/"
 
 # Directory containg smr data
 simulated_smr_data_dir=$temp_output_root"simulated_smr_data/"
@@ -241,7 +245,7 @@ eqtl_architecture="default"
 # Run main single simulation of simulating the trait data
 ############################
 if false; then
-for simulation_number in $(seq 1 100); do 
+for simulation_number in $(seq 2 100); do 
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
 	sbatch run_single_trait_simulation.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $ge_h2 $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulated_trait_dir $simulated_gwas_dir $simulated_tgfm_input_data_dir $simulated_tgfm_results_dir $simulated_coloc_results_dir $gene_trait_architecture $eqtl_architecture
 done
@@ -275,7 +279,7 @@ fi
 eqtl_sample_size_arr=( "300" "500" "1000")
 # 55 h
 if false; then
-for simulation_number in $(seq 1 3); do 
+for simulation_number in $(seq 4 50); do 
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
@@ -283,13 +287,12 @@ do
 done
 done
 fi
-
 
 # Seperate due to time differences
 # 75 h
-if false; then
 eqtl_sample_size_arr=( "realistic")
-for simulation_number in $(seq 1 3); do 
+if false; then
+for simulation_number in $(seq 4 50); do 
 for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
 do
 	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
@@ -297,6 +300,7 @@ do
 done
 done
 fi
+
 
 
 
@@ -305,11 +309,10 @@ fi
 ############################
 # Run SMR
 ############################
-eqtl_sample_size="300"
 simulation_number="1"
 simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
 if false; then
-sh run_smr.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_gwas_dir $eqtl_sample_size $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture $simulated_trait_dir $simulated_smr_data_dir $simulated_smr_results_dir
+sbatch run_smr.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_gwas_dir $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture $simulated_trait_dir $simulated_smr_data_dir $simulated_tmp_smr_eqtl_dir $simulated_smr_results_dir $smr_source_code_dir
 fi
 
 
