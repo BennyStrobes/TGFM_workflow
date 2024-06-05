@@ -44,13 +44,17 @@ simulated_learned_gene_models_dir=${simulated_learned_gene_models_base_dir}"simu
 # Step 1: Simulate gene expression causal eqtl effects
 #######################################################
 echo "Simulation Step 1"
+if false; then
 python3 simulate_gene_expression.py $simulation_number $chrom_num $cis_window $simulated_gene_position_file $simulated_gene_expression_dir $simulated_learned_gene_models_dir $simulation_name_string $processed_genotype_data_dir $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture
+fi
 
 #######################################################
 # Step 2: Simulate trait values
 #######################################################
 echo "Simulation Step 2"
+if false; then
 python3 simulate_trait_values.py $simulation_number $chrom_num $cis_window $simulated_gene_expression_dir $simulation_name_string $processed_genotype_data_dir $ldsc_real_data_results_dir $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $simulated_trait_dir $n_gwas_individuals $gene_trait_architecture $eqtl_architecture
+fi
 
 source /home/bes710/.bash_profile
 #######################################################
@@ -58,8 +62,9 @@ source /home/bes710/.bash_profile
 #######################################################
 echo "Simulation Step 3"
 global_window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_3_mb.txt"
+if false; then
 python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $global_window_file $simulated_gwas_dir
-
+fi
 #######################################################
 # Step 4: Re-organize gwas summary statistics
 #######################################################
@@ -67,15 +72,27 @@ echo "Simulation Step 4"
 # Merge gwas data across windows
 source /home/bes710/.bash_profile
 merged_gwas_summary_stat_file=${simulated_gwas_dir}${simulation_name_string}"_merged_gwas_summary_stats.txt"
+if false; then
 python3 generate_merged_gwas_data.py $global_window_file $simulation_number $chrom_num $simulation_name_string ${simulated_gwas_dir} $processed_genotype_data_dir $n_gwas_individuals $merged_gwas_summary_stat_file
+fi
+
+source /home/bes710/.bash_profile
+#######################################################
+# Step 5: Run GWAS on simulated trait on only snps in TGFM windows w/o standardizing genotype (used for SMR)
+#######################################################
+echo "Simulation Step 5"
+global_window_file=${processed_genotype_data_dir}"chromosome_"${chrom_num}"_windows_3_mb.txt"
+python3 run_gwas_on_simulated_trait_at_snps_in_tgfm_windows_w_o_standardizing_genotype.py $simulation_number $chrom_num $simulation_name_string $processed_genotype_data_dir $simulated_trait_dir $global_window_file $simulated_gwas_dir
+
 
 
 #######################################################
 # Step 5: Delete unnessary files
 #######################################################
 echo "Simulation Step 5"
+if false; then
 python3 delete_unnessary_gwas_sum_stat_files.py $simulated_gwas_dir $simulation_name_string $global_window_file
-
+fi
 date
 
 

@@ -47,6 +47,11 @@ gencode_gene_annotation_file="/n/groups/price/ben/gene_annotation_files/gencode.
 # Directory containing LDSC Summary statistics (This will be used to create a realistic gene model)
 ldsc_summary_stats_dir="/n/groups/price/ldsc/sumstats_formatted_2021/"
 
+# Directory containing JLIM source code
+jlim_source_code_dir="/n/groups/price/ben/tools/JLIM/jlim/"
+jlim_ref_geno_dir="/n/groups/price/ben/tools/JLIM/refld.1kg.nfe.b37/"
+
+
 
 
 ############################
@@ -63,8 +68,11 @@ ldsc_real_data_results_dir=$temp_output_root"ldsc_real_data_results/"
 # Directory containing processed genotype data
 processed_genotype_data_dir=$temp_output_root"processed_genotype/"
 
-# Directory containing processed genotype data
+# Directory containing processed ctwas genotype data
 processed_ctwas_genotype_data_dir=$temp_output_root"processed_ctwas_genotype/"
+
+# Directory containing processed jlim genotype data
+processed_jlim_genotype_data_dir=$temp_output_root"processed_jlim_genotype/"
 
 # Directory containing simulated gene positions
 simulated_gene_position_dir=$temp_output_root"simulated_gene_positions/"
@@ -114,6 +122,22 @@ simulated_causal_twas_gene_models_dir=$perm_output_root"simulated_causal_twas_ge
 # Directory containing simulated causal-twas results
 simulated_causal_twas_results_dir=$temp_output_root"simulated_causal_twas_results/"
 
+# Directory containg jlim data
+simulated_jlim_data_dir=$temp_output_root"simulated_jlim_data/"
+
+# Directory containg jlim results
+simulated_jlim_results_dir=$temp_output_root"simulated_jlim_results/"
+
+# Directory containing jlim and smr eqtl sumstats
+simulated_jlim_smr_eqtl_sumstats_dir=$temp_output_root"simulated_jlim_smr_eqtl_sumstats/"
+
+
+# Directory containg smr data
+simulated_smr_data_dir=$temp_output_root"simulated_smr_data/"
+
+# Directory containg smr results
+simulated_smr_results_dir=$temp_output_root"simulated_smr_results/"
+
 # Directory containing visualizations of simulated results
 visualize_simulated_results_dir=$perm_output_root"visualize_simulated_results/"
 visualize_simulated_results_debug_dir=$perm_output_root"visualize_simulated_results_debug/"
@@ -138,26 +162,6 @@ if false; then
 sh run_ldsc_on_real_trait_data_to_get_realistic_heritability_model.sh $ldsc_code_dir $ldsc_baseline_hg19_annotation_dir $ldsc_weights_dir $ldsc_summary_stats_dir $kg_genotype_dir $ldsc_real_data_results_dir
 fi
 
-############################
-# Prepare genotype data for analysis:
-## 1. Filter number of individuals in original data
-## 2. Filter sites to be those in LDSC annotation file
-## 3. Convert to plink bed files
-############################
-# NOTE: THERE IS CURRENTLY A HACK IN HERE TO REMOVE 3 variants (out of 500000) on chrom 1 that have no variance across the 100-sample eqtl data set.
-############################
-n_gwas_individuals="100000"
-if false; then
-sbatch prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir $processed_ctwas_genotype_data_dir
-fi
-
-if false; then
-n_gwas_individuals="200000"
-sbatch prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir $processed_ctwas_genotype_data_dir
-
-n_gwas_individuals="50000"
-sbatch prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir $processed_ctwas_genotype_data_dir
-fi
 
 ############################
 # Prepare gene file for simulation:
@@ -169,6 +173,31 @@ simulated_gene_position_file=${simulated_gene_position_dir}"gene_positions_chr"$
 if false; then
 sh prepare_simulated_gene_position_list.sh $chrom_num $gencode_gene_annotation_file $simulated_gene_position_file
 fi
+
+
+
+############################
+# Prepare genotype data for analysis:
+## 1. Filter number of individuals in original data
+## 2. Filter sites to be those in LDSC annotation file
+## 3. Convert to plink bed files
+############################
+# NOTE: THERE IS CURRENTLY A HACK IN HERE TO REMOVE 3 variants (out of 500000) on chrom 1 that have no variance across the 100-sample eqtl data set.
+############################
+n_gwas_individuals="100000"
+if false; then
+sh prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir $processed_ctwas_genotype_data_dir $processed_jlim_genotype_data_dir $simulated_gene_position_file
+fi
+
+if false; then
+n_gwas_individuals="200000"
+sbatch prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir $processed_ctwas_genotype_data_dir $processed_jlim_genotype_data_dir $simulated_gene_position_file
+
+n_gwas_individuals="50000"
+sbatch prepare_ukbb_genotype_data_for_simulation_on_single_chromosome.sh $ukbb_genotype_dir $processed_genotype_data_dir $chrom_num $n_gwas_individuals $ldsc_baseline_hg19_annotation_dir $kg_genotype_dir $processed_ctwas_genotype_data_dir $processed_jlim_genotype_data_dir $simulated_gene_position_file
+fi
+
+
 
 
 
@@ -220,7 +249,6 @@ fi
 
 
 
-
 ############################
 # Fit gene models in single fine-mapping simulation
 ############################
@@ -240,6 +268,49 @@ done
 done
 fi
 
+
+############################
+# Run jlim
+############################
+eqtl_sample_size_arr=( "300" "500" "1000")
+# 55 h
+if false; then
+for simulation_number in $(seq 1 3); do 
+for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
+do
+	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
+	sbatch run_jlim.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_gwas_dir $eqtl_sample_size $jlim_source_code_dir $processed_jlim_genotype_data_dir $simulated_jlim_data_dir $simulated_jlim_results_dir $simulated_jlim_smr_eqtl_sumstats_dir $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture $jlim_ref_geno_dir
+done
+done
+fi
+
+
+# Seperate due to time differences
+# 75 h
+if false; then
+eqtl_sample_size_arr=( "realistic")
+for simulation_number in $(seq 1 3); do 
+for eqtl_sample_size in "${eqtl_sample_size_arr[@]}"
+do
+	simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
+	sbatch run_jlim.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_gwas_dir $eqtl_sample_size $jlim_source_code_dir $processed_jlim_genotype_data_dir $simulated_jlim_data_dir $simulated_jlim_results_dir $simulated_jlim_smr_eqtl_sumstats_dir $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture $jlim_ref_geno_dir
+done
+done
+fi
+
+
+
+
+
+############################
+# Run SMR
+############################
+eqtl_sample_size="300"
+simulation_number="1"
+simulation_name_string="simulation_"${simulation_number}"_chrom"${chrom_num}"_cis_window_"${cis_window}"_ss_"${n_gwas_individuals}"_ge_h2_"${ge_h2}"_gt_arch_"${gene_trait_architecture}"_qtl_arch_"${eqtl_architecture}
+if false; then
+sh run_smr.sh $simulation_number $chrom_num $cis_window $n_gwas_individuals $simulation_name_string $simulated_gene_position_file $processed_genotype_data_dir"gwas_sample_size_"${n_gwas_individuals}"/" $simulated_gene_expression_dir $simulated_gwas_dir $eqtl_sample_size $ge_h2 $eqtl_architecture $per_element_heritability $total_heritability $fraction_expression_mediated_heritability $gene_trait_architecture $simulated_trait_dir $simulated_smr_data_dir $simulated_smr_results_dir
+fi
 
 
 
@@ -291,7 +362,6 @@ do
 done 
 done
 fi
-
 
 
 
@@ -684,6 +754,9 @@ do
 done
 done
 fi
+
+
+
 
 ############################
 # Run main single fine-mapping simulation of the simulated trait data at a single eQTL sample
