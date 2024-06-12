@@ -4287,10 +4287,10 @@ supp_table_file = paste0(visualize_tgfm_dir, "suppTable_figure4a_numerical.txt")
 write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
 }
 
-if (FALSE) {
 ##########################################################
 # Make Figure 3
 ##########################################################
+if (FALSE) {
 # Get ordered traits according to number of hits identified by gene-tissue pairs
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 ordered_traits <- make_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_trait_order_according_to_gene_tissue_pairs(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits)
@@ -4643,10 +4643,11 @@ supp_table_df <- get_trait_tissue_chromatin_overlap_cdf_raw_data(trait_tissue_ch
 supp_table_file = paste0(visualize_tgfm_dir, "suppTable_figure4b_numerical.txt")
 write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
 }
+
+if (FALSE) {
 ##########################################################
 # Make Figure 4 
 ##########################################################
-if (FALSE) {
 red_color =brewer.pal(n = 9, name = "Reds")[7]
 # FIG 4A
 pip_thresh <- "0.5"
@@ -4690,9 +4691,8 @@ fig_4 <- plot_grid(fig_4ab, fig_4cd, ncol=1, rel_heights=c(.6,.43))
 output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
 ggsave(fig_4, file=output_file, width=7.2, height=6.2, units="in")
 
-
-
 }
+
 
 
 
