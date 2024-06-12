@@ -94,10 +94,6 @@ do
 
 done
 
-# TO DO: 
-# 2. Allow analysis at realistic QTL sample size
-# 3. Add code to delete gwas region files
-# 4. Run gwas regions
 
 
 date

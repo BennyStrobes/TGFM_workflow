@@ -1434,6 +1434,7 @@ generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_it
 			tissue_name <- as.character(df$tissue[tissue_iter])
 			prob_string = as.character(df$prior_distribution[tissue_iter])
 			prob_vec = as.numeric(strsplit(prob_string,";")[[1]])
+			prob_vec[prob_vec < 1e-15] = 0
 
 			sdev = sd(prob_vec)
 			if (sdev == 0.0) {
@@ -4155,11 +4156,9 @@ for (trait_iter in 1:length(trait_names)) {
 ##################################################
 method_version="susie_pmces_uniform"
 gene_type <- "component_gene"
-trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, gene_type, "_trait_tissue_prior_bonferronni_corrected_significance.txt")
-if (FALSE) {
+trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, gene_type, "_trait_tissue_prior_bonferronni_corrected_significance2.txt")
 generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file, gene_type)
-}
-
+print(trait_tissue_prior_significance_file)
 
 
 
@@ -4509,6 +4508,7 @@ write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.name
 ##########################################################
 # Make LDL silver standard emperical FDR plot (show expected PIP)
 ##########################################################
+if (FALSE) {
 # TGFM
 ldl_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_enrichment_summary.txt")
 tgfm_eFDR_plot <- make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot(ldl_enrichment_file, expected_fdr=TRUE)
@@ -4546,6 +4546,7 @@ ldl_gt_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "l
 tgfm_gt_eFDR_plot <- make_ldl_silver_standard_stratefied_gene_tissue_pip_emperical_fdr_plot(ldl_gt_enrichment_file, expected_fdr=TRUE)
 output_file <- paste0(visualize_tgfm_dir, "ldl_silver_standard_tgfm_gene_tissue_set_tgfm_empirical_FDR_w_expected_fdr.pdf")
 ggsave(tgfm_gt_eFDR_plot, file=output_file, width=7.2, height=4.7, units="in")
+}
 
 ##########################################################
 # Statistical signficance of FDR difference between TGFM PIP and ctwas pip
@@ -4603,6 +4604,7 @@ ggsave(barplot_05, file=output_file, width=7.2, height=4.7, units="in")
 ##########################################################
 # Make trait-tissue pair chromatin overlap cdf plot
 ##########################################################
+if (FALSE) {
 fdr <- "0.05"
 trait_tissue_chromatin_overlap_barplot <- paste0(chromatin_cell_type_group_ldsc_dir, "tgfm_sldsc_chromatin_overlap_summary_", fdr, ".txt")
 barplot_05 <- make_trait_tissue_chromatin_overlap_cdf(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=FALSE)
@@ -4640,10 +4642,11 @@ trait_tissue_chromatin_overlap_barplot <- paste0(chromatin_cell_type_group_ldsc_
 supp_table_df <- get_trait_tissue_chromatin_overlap_cdf_raw_data(trait_tissue_chromatin_overlap_barplot, fdr, independent_traits=FALSE)
 supp_table_file = paste0(visualize_tgfm_dir, "suppTable_figure4b_numerical.txt")
 write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
-
+}
 ##########################################################
 # Make Figure 4 
 ##########################################################
+if (FALSE) {
 red_color =brewer.pal(n = 9, name = "Reds")[7]
 # FIG 4A
 pip_thresh <- "0.5"
@@ -4689,7 +4692,7 @@ ggsave(fig_4, file=output_file, width=7.2, height=6.2, units="in")
 
 
 
-
+}
 
 
 

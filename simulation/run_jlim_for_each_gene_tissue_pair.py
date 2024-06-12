@@ -78,7 +78,7 @@ def make_temporary_jlim_eqtl_ss_file(tmp_jlim_eqtl_summary_stat_file, snp_ids, t
 		pos = snp_id.split('_')[1]
 
 		# One-tailed p-value
-		p_value_one_tailed = stats.t.sf(t_stat[ii], tissue_ss-2)
+		p_value_one_tailed = stats.t.sf(np.abs(t_stat[ii]), tissue_ss-2)
 		# Two-tailed p-value
 		p_value_two_tailed = p_value_one_tailed * 2
 
@@ -256,6 +256,7 @@ for line in f:
 
 	# Extract relevent fields
 	gene_id = data[0]
+
 	tss = data[1]
 	eqtl_sss = np.asarray(data[2].split(';')).astype(int)
 
@@ -299,7 +300,7 @@ for line in f:
 		make_temporary_jlim_eqtl_ss_file_cross_tissues_with_eqtl_sample_size_equal_to_320(tmp_jlim_eqtl_summary_stat_file, snp_ids, t_mat, eqtl_sss, gene_id)
 
 		# 3. Run JLIM using reference LD
-		tmp_jlim_output_file = simulated_jlim_results_dir + simulation_name_string + '_' + str(eqtl_sample_size) + '_tmp_jlim_res.txt'
+		tmp_jlim_output_file = simulated_jlim_results_dir + simulation_name_string + '_' + str(eqtl_sample_size) + '_tmp_jlim_res_a.txt'
 		run_jlim_with_ref_genotype_data(tmp_jlim_gwas_summary_stat_file, tmp_jlim_eqtl_summary_stat_file, tmp_jlim_output_file, 320, gene_id, tss, jlim_ref_geno_dir, jlim_source_code_dir, index_snp_pos)
 
 		# Print gene's results to global output file
@@ -320,7 +321,7 @@ for line in f:
 
 
 			# 3. Run JLIM using reference LD
-			tmp_jlim_output_file = simulated_jlim_results_dir + simulation_name_string + '_' + str(eqtl_sample_size) + '_tmp_jlim_res.txt'
+			tmp_jlim_output_file = simulated_jlim_results_dir + simulation_name_string + '_' + str(eqtl_sample_size) + '_tmp_jlim_res_b.txt'
 			run_jlim_with_ref_genotype_data(tmp_jlim_gwas_summary_stat_file, tmp_jlim_eqtl_summary_stat_file, tmp_jlim_output_file, tissue_ss, gene_id, tss, jlim_ref_geno_dir, jlim_source_code_dir, index_snp_pos)
 
 			# Print gene's results to global output file

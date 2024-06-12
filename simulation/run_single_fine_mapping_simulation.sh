@@ -122,12 +122,13 @@ python3 run_tgfm_pmces.py $tgfm_input_summary_file $tgfm_output_stem $init_metho
 
 
 echo "Part 6: TGFM with Uniform prior and sampling"
+if false; then
 date
 # Uniform (sampler)
 ln_pi_method="uniform"
 tgfm_output_stem=${simulated_tgfm_results_dir}${tgfm_simulation_name_string}"_eqtl_ss_"${eqtl_sample_size}"_susie_sampler_"${ln_pi_method}
 python3 run_tgfm_sampler.py $tgfm_input_summary_file $tgfm_output_stem $init_method $est_resid_var $ln_pi_method $gene_type
-
+fi
 
 echo "Part 7: TGFM tissue specific prior"
 date

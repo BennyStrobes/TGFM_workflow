@@ -2772,6 +2772,7 @@ make_trait_cell_type_heatmap <- function(trait_names, trait_names_readable, pip_
 
 
 generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior <- function(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file, gene_type) {
+	print("HI")
 	trait_vec <- c()
 	tissue_vec <- c()
 	sig_vec <- c()
@@ -2799,6 +2800,7 @@ generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_it
 			tissue_name <- as.character(df$tissue[tissue_iter])
 			prob_string = as.character(df$prior_distribution[tissue_iter])
 			prob_vec = as.numeric(strsplit(prob_string,";")[[1]])
+			prob_vec[prob_vec < 1e-15] = 0
 
 			sdev = sd(prob_vec)
 			if (sdev == 0.0) {
@@ -2829,12 +2831,18 @@ generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_it
 					fdr_sig_vec <- c(fdr_sig_vec, "**")
 				} else {
 					fdr_sig_vec <- c(fdr_sig_vec, "null")
+					print(trait_name)
+					print(as.character(df$tissue[tissue_iter]))
+
+
 				}
 			} else if (is.na(bh_corrected_pvalues_2[tissue_iter]) == FALSE) {
 				if (trait_mean_prob_vec[tissue_iter] > 1e-14) {
 					fdr_sig_vec <- c(fdr_sig_vec, "*")
 				} else {
 					fdr_sig_vec <- c(fdr_sig_vec, "null")
+					print(trait_name)
+					print(as.character(df$tissue[tissue_iter]))
 				}
 			} else {
 				fdr_sig_vec <- c(fdr_sig_vec, "null")
@@ -2985,10 +2993,8 @@ ggsave(ct_tissue_corr_heatmap, file=output_file, width=7.2, height=5.5, units="i
 # Make file summarizing prior significance of each trait-tissue pair
 ##################################################
 method_version="susie_pmces_uniform"
-trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, "trait_cell_type_tissue_prior_bonferronni_corrected_significance.txt")
-if (FALSE) {
+trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, "trait_cell_type_tissue_prior_bonferronni_corrected_significance2.txt")
 generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file, "component_gene")
-}
 
 
 

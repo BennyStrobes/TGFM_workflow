@@ -791,9 +791,8 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
-if false; then
 Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_results_dir $tgfm_organized_results_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir $tissue_tissue_correlation_file $gtex_pseudotissue_file $chromatin_cell_type_group_ldsc_dir $ldl_silver_standard_gene_set_enrichment_dir
-fi
+
 
 
 
