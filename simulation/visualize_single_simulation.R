@@ -5646,7 +5646,7 @@ make_tgfm_fdr_power_line_plot_across_eqtl_ss <- function(simulated_organized_res
 	for (ss_iter in 1:length(eqtl_sss)) {
 		eqtl_ss <- eqtl_sss[ss_iter]
 		# TGFM
-		input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_", eqtl_ss, "_tgfm_gene_tissue_fdr_power_curve_data.txt")
+		input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_", eqtl_ss, "_tgfm_gene_tissue_fdr_power_curve_data2.txt")
 		df <- read.table(input_file, header=TRUE,sep="\t")
 		fdr_vec <- c(fdr_vec, df$fdr)
 		power_vec <- c(power_vec, df$power)
@@ -6265,8 +6265,7 @@ local_simulation_name_string = paste0(global_simulation_name_string, "_gt_arch_2
 #####################################################################
 # Make Figure 1 (using single causal tissue simulation framework and limiting to single causal gene-tissue pair per locus)
 #####################################################################
-if (FALSE) {
-local_simulation_name_string = paste0(global_simulation_name_string, "_gt_arch_1_caus_t_qtl_arch_default")
+local_simulation_name_string = paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default")
 # Precision plots
 pip_threshold <- "0.5"
 fdr_plot_5 <- make_gene_fdr_plot_across_methods_and_sample_sizes_limit_one_gt_pair_per_locus(simulated_organized_results_dir, local_simulation_name_string, pip_threshold)
@@ -6286,13 +6285,12 @@ legender = get_legend(power_plot_9 +guides(fill = guide_legend(byrow = TRUE)))
 figure1 <- plot_grid( legender, NULL, plot_grid(fdr_plot_5 +theme(legend.position="none"), fdr_plot_9 +theme(legend.position="none"), power_plot_5 +theme(legend.position="none"), power_plot_9 +theme(legend.position="none"), ncol=2, labels=c("a", "b", "c","d")), ncol=1, rel_heights=c(.13, .03, 1))
 
 # Make joint plot
-output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_figure1_1_caus_t_limiting_to_1_caus_gt_pair_per_locus.pdf")
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", global_simulation_name_string, "_figure1_2_caus_t_limiting_to_1_caus_gt_pair_per_locus.pdf")
 ggsave(figure1, file=output_file, width=7.2, height=5.5, units="in")
 print(output_file)
 
 
 local_simulation_name_string = paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default")
-}
 
 
 #####################################################################
@@ -6830,7 +6828,6 @@ joint_fdr_power_plot <- plot_grid(fdr_power_plot_realistic + theme(legend.positi
 joint_fdr_power_plot <- plot_grid(joint_fdr_power_plot, legender, ncol=1, rel_heights=c(1,.16))
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default"), "_cross_method_and_ss_fdr_power_line_plot.pdf")
 ggsave(joint_fdr_power_plot, file=output_file, width=7.2, height=5.4, units="in")
-print(output_file)
 }
 
 #####################################################################
@@ -6842,7 +6839,6 @@ fdr_power_plot <- make_tgfm_fdr_power_line_plot_across_eqtl_ss(simulated_organiz
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default"), "_tgfm_fdr_power_line_plot.pdf")
 ggsave(fdr_power_plot, file=output_file, width=7.2, height=4.0, units="in")
 }
-
 
 #####################################################################
 # Make gene-tissue FDR and power plot comparing TGFM to two step approach

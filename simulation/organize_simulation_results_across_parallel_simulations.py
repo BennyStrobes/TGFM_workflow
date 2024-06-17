@@ -1483,7 +1483,7 @@ def create_file_containing_coloc_cs_calibration_per_high_pip_snp_when_limiting_t
 					continue
 				gene_name = gene_id.split('_')[0]
 				gene_tss = gene_name_to_tss[gene_name]
-				n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+				n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 				if n_neighbor_causal_genes > 1:
 					continue
@@ -1666,7 +1666,7 @@ def create_file_containing_focus_tg_cs_calibration_per_high_pip_snp_when_limitin
 
 				gene_name = gene_id.split('_')[0]
 				gene_tss = gene_name_to_tss[gene_name]
-				n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+				n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 				if n_neighbor_causal_genes > 1:
 					continue
@@ -1905,7 +1905,7 @@ def create_file_containing_focus_cs_calibration_per_high_pip_snp_when_limiting_t
 
 				gene_name = gene_id.split('_')[0]
 				gene_tss = gene_name_to_tss[gene_name]
-				n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+				n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 				if n_neighbor_causal_genes > 1:
 					continue
@@ -3495,7 +3495,7 @@ def create_file_containing_ctwas_cs_calibration_per_high_pip_snp_when_limiting_t
 
 					gene_name = genetic_element_name.split('_')[0]
 					gene_tss = gene_name_to_tss[gene_name]
-					n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+					n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 					if n_neighbor_causal_genes > 1:
 						continue
@@ -3814,7 +3814,7 @@ def create_file_containing_ctwas_tg_cs_calibration_per_high_pip_snp_when_limitin
 
 				gene_name = genetic_element_name.split('_')[0]
 				gene_tss = gene_name_to_tss[gene_name]
-				n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+				n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 				if n_neighbor_causal_genes > 1:
 					continue
@@ -4084,7 +4084,7 @@ def create_file_containing_tgfm_cs_calibration_per_high_pip_snp_when_limiting_to
 
 							gene_name = genetic_element_name.split('_')[0]
 							gene_tss = gene_name_to_tss[gene_name]
-							n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+							n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 							if n_neighbor_causal_genes > 1:
 								continue
@@ -4775,7 +4775,7 @@ def create_file_containing_focus_tg_high_pip_snp_power_per_component_when_limiti
 
 						gene_name_tmp = gene_name.split('_')[0]
 						gene_tss = gene_name_to_tss[gene_name_tmp]
-						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 						if n_neighbor_causal_genes > 1:
 							continue
@@ -5043,7 +5043,7 @@ def create_file_containing_focus_high_pip_snp_power_per_component_when_limiting_
 
 						gene_name_tmp = gene_name.split('_')[0]
 						gene_tss = gene_name_to_tss[gene_name_tmp]
-						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 						if n_neighbor_causal_genes > 1:
 							continue
@@ -5549,7 +5549,7 @@ def create_file_containing_coloc_high_pip_snp_power_per_component_when_limiting_
 
 						gene_name_tmp = gene_name.split('_')[0]
 						gene_tss = gene_name_to_tss[gene_name_tmp]
-						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 						if n_neighbor_causal_genes > 1:
 							continue
@@ -6714,6 +6714,10 @@ def create_file_containing_ctwas_tg_gene_tissue_fdr_power_curve_data(global_simu
 	pips = np.asarray(pips)
 	labels = np.asarray(labels)
 
+	unique_pips = np.sort(np.unique(pips))
+
+	lower_pip_thresholds = np.asarray([0.0,1e-20, 1e-19, 1e-18, 1e-17, 1e-16, 1e-15, 1e-14, 1e-13, 1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3])
+
 
 	# Open output handle to processed fdr power curve data
 	t = open(fdr_power_curve_data_output_file,'w')
@@ -6721,11 +6725,11 @@ def create_file_containing_ctwas_tg_gene_tissue_fdr_power_curve_data(global_simu
 	t.write('pip_threshold\tfdr\tpower\n')
 	prev_fdr = 0.0
 	prev_power = 0.0
-	for pip_threshold in np.arange(.05,1,.01):
-		if np.sum(pips > pip_threshold) == 0:
+	for pip_threshold in np.hstack((lower_pip_thresholds, np.arange(.01,1,.01), np.sort(unique_pips[unique_pips > .99]))):
+		if np.sum(pips >= pip_threshold) <= 1:
 			continue
-		fdr = 1.0 - np.sum(labels[pips > pip_threshold] == 'causal')/np.sum(pips > pip_threshold)
-		power = np.sum(labels[pips > pip_threshold] == 'causal')/np.sum(labels=='causal')
+		fdr = 1.0 - np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(pips >= pip_threshold)
+		power = np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(labels=='causal')
 		if prev_fdr == fdr and prev_power == power:
 			continue
 		prev_fdr = fdr
@@ -6736,10 +6740,9 @@ def create_file_containing_ctwas_tg_gene_tissue_fdr_power_curve_data(global_simu
 	return
 
 
-def create_file_containing_focus_tg_gene_tissue_fdr_power_curve_data(global_simulation_name_string, eqtl_sample_size, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file, fdr_power_curve_data_output_file, twas_method, ln_pi_method, global_window_file, simulated_learned_gene_models_dir, intercept=False):
+def create_file_containing_focus_tg_gene_tissue_fdr_power_curve_data(global_simulation_name_string, eqtl_sample_size, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file, fdr_power_curve_data_output_file, global_window_file, simulated_learned_gene_models_dir, intercept=False):
 	all_variants, all_variants_positions = extract_all_variants_and_their_positions(bim_file)
 	all_genes, all_genes_positions = extract_all_genes_and_their_positions(simulated_gene_position_file)
-
 
 	# Open raw data output file handle
 	t = open(fdr_power_curve_raw_data_output_file,'w')
@@ -6838,17 +6841,24 @@ def create_file_containing_focus_tg_gene_tissue_fdr_power_curve_data(global_simu
 	labels = np.asarray(labels)
 
 
+
+	unique_pips = np.sort(np.unique(pips))
+
+	lower_pip_thresholds = np.asarray([0.0,1e-20, 1e-19, 1e-18, 1e-17, 1e-16, 1e-15, 1e-14, 1e-13, 1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3])
+
+
+
 	# Open output handle to processed fdr power curve data
 	t = open(fdr_power_curve_data_output_file,'w')
 	# Header
 	t.write('pip_threshold\tfdr\tpower\n')
 	prev_fdr = 0.0
 	prev_power = 0.0
-	for pip_threshold in np.arange(.05,1,.01):
-		if np.sum(pips > pip_threshold) == 0:
+	for pip_threshold in np.hstack((lower_pip_thresholds, np.arange(.01,1,.01), np.sort(unique_pips[unique_pips > .99]))):
+		if np.sum(pips >= pip_threshold) <= 1:
 			continue
-		fdr = 1.0 - np.sum(labels[pips > pip_threshold] == 'causal')/np.sum(pips > pip_threshold)
-		power = np.sum(labels[pips > pip_threshold] == 'causal')/np.sum(labels=='causal')
+		fdr = 1.0 - np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(pips >= pip_threshold)
+		power = np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(labels=='causal')
 		if prev_fdr == fdr and prev_power == power:
 			continue
 		prev_fdr = fdr
@@ -6996,10 +7006,9 @@ def create_file_containing_two_step_focus_gene_tissue_fdr_power_curve_data(globa
 
 
 
-def create_file_containing_focus_gene_tissue_fdr_power_curve_data(global_simulation_name_string, eqtl_sample_size, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file, fdr_power_curve_data_output_file, twas_method, ln_pi_method, global_window_file, simulated_learned_gene_models_dir, intercept=False):
+def create_file_containing_focus_gene_tissue_fdr_power_curve_data(global_simulation_name_string, eqtl_sample_size, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file, fdr_power_curve_data_output_file, global_window_file, simulated_learned_gene_models_dir, intercept=False):
 	all_variants, all_variants_positions = extract_all_variants_and_their_positions(bim_file)
 	all_genes, all_genes_positions = extract_all_genes_and_their_positions(simulated_gene_position_file)
-
 
 	# Open raw data output file handle
 	t = open(fdr_power_curve_raw_data_output_file,'w')
@@ -7098,17 +7107,24 @@ def create_file_containing_focus_gene_tissue_fdr_power_curve_data(global_simulat
 	labels = np.asarray(labels)
 
 
+
+
+	unique_pips = np.sort(np.unique(pips))
+
+	lower_pip_thresholds = np.asarray([0.0,1e-20, 1e-19, 1e-18, 1e-17, 1e-16, 1e-15, 1e-14, 1e-13, 1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3])
+
+
 	# Open output handle to processed fdr power curve data
 	t = open(fdr_power_curve_data_output_file,'w')
 	# Header
 	t.write('pip_threshold\tfdr\tpower\n')
 	prev_fdr = 0.0
 	prev_power = 0.0
-	for pip_threshold in np.arange(.05,1,.01):
-		if np.sum(pips > pip_threshold) == 0:
+	for pip_threshold in np.hstack((lower_pip_thresholds, np.arange(.01,1,.01), np.sort(unique_pips[unique_pips > .99]))):
+		if np.sum(pips >= pip_threshold) <= 1:
 			continue
-		fdr = 1.0 - np.sum(labels[pips > pip_threshold] == 'causal')/np.sum(pips > pip_threshold)
-		power = np.sum(labels[pips > pip_threshold] == 'causal')/np.sum(labels=='causal')
+		fdr = 1.0 - np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(pips >= pip_threshold)
+		power = np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(labels=='causal')
 		if prev_fdr == fdr and prev_power == power:
 			continue
 		prev_fdr = fdr
@@ -7262,7 +7278,6 @@ def create_file_containing_ctwas_gene_tissue_fdr_power_curve_data(global_simulat
 	all_variants, all_variants_positions = extract_all_variants_and_their_positions(bim_file)
 	all_genes, all_genes_positions = extract_all_genes_and_their_positions(simulated_gene_position_file)
 
-
 	# Open raw data output file handle
 	t = open(fdr_power_curve_raw_data_output_file,'w')
 	t.write('simulation_number\twindow\tgene_name\tTGFM_PIP\tcausal_gene\n')
@@ -7370,17 +7385,22 @@ def create_file_containing_ctwas_gene_tissue_fdr_power_curve_data(global_simulat
 	labels = np.asarray(labels)
 
 
+	unique_pips = np.sort(np.unique(pips))
+
+	lower_pip_thresholds = np.asarray([0.0,1e-20, 1e-19, 1e-18, 1e-17, 1e-16, 1e-15, 1e-14, 1e-13, 1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3])
+
+
 	# Open output handle to processed fdr power curve data
 	t = open(fdr_power_curve_data_output_file,'w')
 	# Header
 	t.write('pip_threshold\tfdr\tpower\n')
 	prev_fdr = 0.0
 	prev_power = 0.0
-	for pip_threshold in np.arange(.05,1,.01):
-		if np.sum(pips > pip_threshold) == 0:
+	for pip_threshold in np.hstack((lower_pip_thresholds, np.arange(.01,1,.01), np.sort(unique_pips[unique_pips > .99]))):
+		if np.sum(pips >= pip_threshold) <= 1:
 			continue
-		fdr = 1.0 - np.sum(labels[pips > pip_threshold] == 'causal')/np.sum(pips > pip_threshold)
-		power = np.sum(labels[pips > pip_threshold] == 'causal')/np.sum(labels=='causal')
+		fdr = 1.0 - np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(pips >= pip_threshold)
+		power = np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(labels=='causal')
 		if prev_fdr == fdr and prev_power == power:
 			continue
 		prev_fdr = fdr
@@ -7777,7 +7797,6 @@ def create_file_containing_coloc_gene_tissue_fdr_power_curve_data(global_simulat
 	all_variants, all_variants_positions = extract_all_variants_and_their_positions(bim_file)
 	all_genes, all_genes_positions = extract_all_genes_and_their_positions(simulated_gene_position_file)
 
-
 	# Open raw data output file handle
 	t = open(fdr_power_curve_raw_data_output_file,'w')
 	t.write('simulation_number\twindow\tgene_name\tTGFM_PIP\tcausal_gene\n')
@@ -7872,17 +7891,22 @@ def create_file_containing_coloc_gene_tissue_fdr_power_curve_data(global_simulat
 	labels = np.asarray(labels)
 
 
+	unique_pips = np.sort(np.unique(pips))
+
+	lower_pip_thresholds = np.asarray([0.0,1e-20, 1e-19, 1e-18, 1e-17, 1e-16, 1e-15, 1e-14, 1e-13, 1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3])
+
+
 	# Open output handle to processed fdr power curve data
 	t = open(fdr_power_curve_data_output_file,'w')
 	# Header
 	t.write('pip_threshold\tfdr\tpower\n')
 	prev_fdr = 0.0
 	prev_power = 0.0
-	for pip_threshold in np.arange(.05,1,.01):
-		if np.sum(pips > pip_threshold) == 0:
+	for pip_threshold in np.hstack((lower_pip_thresholds, np.arange(.01,1,.01), np.sort(unique_pips[unique_pips > .99]))):
+		if np.sum(pips >= pip_threshold) <= 1:
 			continue
-		fdr = 1.0 - np.sum(labels[pips > pip_threshold] == 'causal')/np.sum(pips > pip_threshold)
-		power = np.sum(labels[pips > pip_threshold] == 'causal')/np.sum(labels=='causal')
+		fdr = 1.0 - np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(pips >= pip_threshold)
+		power = np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(labels=='causal')
 		if prev_fdr == fdr and prev_power == power:
 			continue
 		prev_fdr = fdr
@@ -8039,7 +8063,6 @@ def create_file_containing_tgfm_gene_tissue_fdr_power_curve_data(global_simulati
 	all_variants, all_variants_positions = extract_all_variants_and_their_positions(bim_file)
 	all_genes, all_genes_positions = extract_all_genes_and_their_positions(simulated_gene_position_file)
 
-
 	# Open raw data output file handle
 	t = open(fdr_power_curve_raw_data_output_file,'w')
 	t.write('simulation_number\twindow\tgene_name\tTGFM_PIP\tcausal_gene\n')
@@ -8162,7 +8185,7 @@ def create_file_containing_tgfm_gene_tissue_fdr_power_curve_data(global_simulati
 	prev_fdr = 0.0
 	prev_power = 0.0
 	for pip_threshold in np.hstack((lower_pip_thresholds, np.arange(.01,1,.01), np.sort(unique_pips[unique_pips > .99]))):
-		if np.sum(pips > pip_threshold) == 0:
+		if np.sum(pips >= pip_threshold) <= 2:
 			continue
 		fdr = 1.0 - np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(pips >= pip_threshold)
 		power = np.sum(labels[pips >= pip_threshold] == 'causal')/np.sum(labels=='causal')
@@ -8537,7 +8560,7 @@ def create_file_containing_ctwas_high_pip_snp_power_per_component_when_limiting_
 
 						gene_name_tmp = gene_name.split('_')[0]
 						gene_tss = gene_name_to_tss[gene_name_tmp]
-						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 						if n_neighbor_causal_genes > 1:
 							continue
@@ -9097,7 +9120,7 @@ def create_file_containing_ctwas_tg_high_pip_snp_power_per_component_when_limiti
 
 						gene_name_tmp = gene_name.split('_')[0]
 						gene_tss = gene_name_to_tss[gene_name_tmp]
-						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 						if n_neighbor_causal_genes > 1:
 							continue
@@ -9594,7 +9617,7 @@ def create_file_containing_tgfm_high_pip_snp_power_per_component_when_limiting_t
 
 						gene_name_tmp = gene_name.split('_')[0]
 						gene_tss = gene_name_to_tss[gene_name_tmp]
-						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 1000000)
+						n_neighbor_causal_genes = np.sum(np.abs(causal_gene_tss - gene_tss) < 500000)
 
 						if n_neighbor_causal_genes > 1:
 							continue
@@ -10462,8 +10485,41 @@ for pip_threshold in pip_thresholds:
 	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods,twas_methods)
 
 
-'''
-'''
+
+##################################
+# Coverage/Calibration to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+print("TGFM")
+pip_thresholds = [.5, .9]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per cs (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, component_num, boolean_causal_variant_in_cs)
+	cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration_per_component.txt'
+	create_file_containing_tgfm_cs_calibration_per_high_pip_snp_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, twas_methods, simulated_trait_dir, simulated_tgfm_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file, simulated_gene_position_file)
+	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration.txt'
+	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ln_pi_methods, twas_methods)
+	print(cs_high_pip_coverage_output_file)
+
+
+##################################
+# Power to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+pip_thresholds = [.5, .9]
+
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per causal element (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, gene_or_variant, causal_element_name, boolean_causal_element_in_cs)
+	cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power_per_component.txt'
+	create_file_containing_tgfm_high_pip_snp_power_per_component_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, ln_pi_methods, simulated_trait_dir, simulated_tgfm_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, cs_power_per_component_output_file, pip_threshold, twas_methods, global_window_file)
+	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_tgfm_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power.txt'
+	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ln_pi_methods,twas_methods)
+	print(cs_power_output_file)
+
+
+
 ##################################
 # TGFM FDR-Power Curve
 ##################################
@@ -10478,7 +10534,7 @@ for eqtl_ss in eqtl_sample_sizes:
 	fdr_power_curve_raw_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + twas_method + '_' + ln_pi_method + '_' + eqtl_ss + '_tgfm_gene_tissue_fdr_power_curve_raw_data2.txt'
 	fdr_power_curve_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + twas_method + '_' + ln_pi_method + '_' + eqtl_ss + '_tgfm_gene_tissue_fdr_power_curve_data2.txt'
 	create_file_containing_tgfm_gene_tissue_fdr_power_curve_data(local_simulation_name_string, simulation_runs, simulated_trait_dir, simulated_tgfm_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, twas_method, ln_pi_method, global_window_file, eqtl_ss, gene_type=gene_type)
-'''
+
 
 ##################################
 # Vary n posterior samples
@@ -10494,7 +10550,7 @@ twas_methods = np.asarray(['susie_pmces', 'susie_sampler'])
 
 # Vary ln_pi_method
 # Used eQTL sample sizes
-'''
+
 eqtl_sample_sizes = np.asarray(['500' ])
 n_posterior_samples_vec = ['50', '100', '200']
 for pip_threshold in pip_thresholds:
@@ -10788,6 +10844,8 @@ for sim_run in tmp_simulation_runs:
 	if sim_run not in bads:
 		simulation_runs.append(sim_run)
 simulation_runs = np.asarray(simulation_runs)
+eqtl_sample_sizes = np.asarray(['realistic', '300', '500', '1000'])
+
 
 '''
 print('cTWAS')
@@ -10843,7 +10901,6 @@ for eqtl_ss in eqtl_sample_sizes:
 	create_file_containing_ctwas_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_causal_twas_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, twas_method, ln_pi_method, global_window_file, simulated_learned_gene_models_dir)
 	print(fdr_power_curve_data_output_file)
 
-
 ##################################
 # cTWAS-TG Coverage/Calibration to detect snps with PIP > threshold
 ##################################
@@ -10885,6 +10942,8 @@ for pip_threshold in pip_thresholds:
 	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_tg_pip_' + str(pip_threshold) + '_gene_power.txt'
 	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ['ctwas'],['lasso'], agg_eqtl_ss=False)
 
+
+
 ##################################
 # cTWAS-TG FDR-power curve
 ##################################
@@ -10897,6 +10956,74 @@ for eqtl_ss in eqtl_sample_sizes:
 	fdr_power_curve_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'ctwas_tg' + '_' + twas_method + '_' + ln_pi_method + '_' + eqtl_ss + '_fdr_power_curve_data.txt'
 	create_file_containing_ctwas_tg_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_causal_twas_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, twas_method, ln_pi_method, global_window_file, simulated_learned_gene_models_dir)
 	print(fdr_power_curve_data_output_file)
+
+##################################
+# cTWAS Coverage/Calibration to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+
+pip_thresholds = [.5, .9]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+
+	# Create file with one line per cs (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, component_num, boolean_causal_variant_in_cs)
+	cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration_per_component.txt'
+	create_file_containing_ctwas_cs_calibration_per_high_pip_snp_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_causal_twas_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file, simulated_learned_gene_models_dir, simulated_gene_position_file)
+	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration.txt'
+	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ['ctwas'], ['lasso'], agg_eqtl_ss=False)
+
+	print(cs_high_pip_coverage_output_file)
+
+##################################
+# cTWAS Power to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+pip_thresholds = [.5, .9]
+
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+
+	# Create file with one line per causal element (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, gene_or_variant, causal_element_name, boolean_causal_element_in_cs)
+	cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power_per_component.txt'
+	create_file_containing_ctwas_high_pip_snp_power_per_component_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_causal_twas_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, cs_power_per_component_output_file, pip_threshold, global_window_file,simulated_learned_gene_models_dir)
+	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power.txt'
+	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ['ctwas'],['lasso'], agg_eqtl_ss=False)
+	print(cs_power_output_file)
+
+
+##################################
+# cTWAS-TG Coverage/Calibration to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+pip_thresholds = [.5, .9]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per cs (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, component_num, boolean_causal_variant_in_cs)
+	cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_tg_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration_per_component.txt'
+	create_file_containing_ctwas_tg_cs_calibration_per_high_pip_snp_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_causal_twas_results_dir, pip_threshold, cs_coverage_per_high_pip_snp_output_file, simulated_learned_gene_models_dir, simulated_gene_position_file)
+	cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_tg_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration.txt'
+	create_file_containing_averaged_tgfm_high_pip_calibration(cs_coverage_per_high_pip_snp_output_file, cs_high_pip_coverage_output_file, eqtl_sample_sizes, ['ctwas'], ['lasso'], agg_eqtl_ss=False)
+
+	print(cs_high_pip_coverage_output_file)
+
+
+##################################
+# cTWAS-TG Power to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+pip_thresholds = [.5, .9]
+
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per causal element (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, gene_or_variant, causal_element_name, boolean_causal_element_in_cs)
+	cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_tg_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power_per_component.txt'
+	create_file_containing_ctwas_tg_high_pip_snp_power_per_component_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_causal_twas_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, cs_power_per_component_output_file, pip_threshold, global_window_file,simulated_learned_gene_models_dir)
+	cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_ctwas_tg_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power.txt'
+	create_file_containing_averaged_tgfm_cs_power(cs_power_per_component_output_file, cs_power_output_file, eqtl_sample_sizes, ['ctwas'],['lasso'], agg_eqtl_ss=False)
+
+	print(cs_power_output_file)
 
 ##################################
 # Two-step cTWAS Coverage/Calibration to detect snps with PIP > threshold
@@ -11015,7 +11142,6 @@ for pip_threshold in pip_thresholds:
 	focus_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_intercept_pip_' + str(pip_threshold) + '_gene_power.txt'
 	create_file_containing_averaged_focus_cs_power(focus_cs_power_per_component_output_file, focus_cs_power_output_file, eqtl_sample_sizes)
 
-
 ##################################
 # FOCUS FDR-power curve
 ##################################
@@ -11023,15 +11149,14 @@ for eqtl_ss in eqtl_sample_sizes:
 	# W/O intercept
 	fdr_power_curve_raw_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus' + '_' + eqtl_ss + '_fdr_power_curve_raw_data.txt'
 	fdr_power_curve_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus' + '_' + eqtl_ss + '_fdr_power_curve_data.txt'
-	create_file_containing_focus_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, twas_method, ln_pi_method, global_window_file, simulated_learned_gene_models_dir)
+	create_file_containing_focus_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, global_window_file, simulated_learned_gene_models_dir)
 	print(fdr_power_curve_data_output_file)
 
 	# W intercept
 	fdr_power_curve_raw_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus_intercept' + '_' + eqtl_ss + '_fdr_power_curve_raw_data.txt'
 	fdr_power_curve_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus_intercept' + '_' + eqtl_ss + '_fdr_power_curve_data.txt'
-	create_file_containing_focus_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, twas_method, ln_pi_method, global_window_file, simulated_learned_gene_models_dir, intercept=True)
-	print(fdr_power_curve_data_output_file)
-
+	#create_file_containing_focus_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, global_window_file, simulated_learned_gene_models_dir, intercept=True)
+	#print(fdr_power_curve_data_output_file)
 
 ##################################
 # FOCUS-TG Coverage/Calibration to detect snps with PIP > threshold
@@ -11101,6 +11226,78 @@ for pip_threshold in pip_thresholds:
 	focus_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_tg_intercept_pip_' + str(pip_threshold) + '_gene_power.txt'
 	create_file_containing_averaged_focus_cs_power(focus_cs_power_per_component_output_file, focus_cs_power_output_file, eqtl_sample_sizes)
 
+
+##################################
+# FOCUS Coverage/Calibration to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+pip_thresholds = [.5, .9]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Calibration to detect causal gene-tissue pairs (no genotype intercept)
+	focus_cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration_per_component.txt'
+	create_file_containing_focus_cs_calibration_per_high_pip_snp_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, pip_threshold, focus_cs_coverage_per_high_pip_snp_output_file, simulated_gene_position_file)
+	focus_cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration.txt'
+	create_file_containing_averaged_focus_high_pip_calibration(focus_cs_coverage_per_high_pip_snp_output_file, focus_cs_high_pip_coverage_output_file, eqtl_sample_sizes)
+	
+	print(focus_cs_high_pip_coverage_output_file)
+
+
+##################################
+# FOCUS Power to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+pip_thresholds = [.5, .9]
+
+for pip_threshold in pip_thresholds:
+
+	print(pip_threshold)
+
+	# Power to detect causal gene-tissue pairs (no genotype intercept)
+	focus_cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power_per_component.txt'
+	create_file_containing_focus_high_pip_snp_power_per_component_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, focus_cs_power_per_component_output_file, pip_threshold, global_window_file)
+	focus_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power.txt'
+	create_file_containing_averaged_focus_cs_power(focus_cs_power_per_component_output_file, focus_cs_power_output_file, eqtl_sample_sizes)
+	print(focus_cs_power_output_file)
+
+
+
+##################################
+# FOCUS-TG Coverage/Calibration to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+pip_thresholds = [.5, .9]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Calibration to detect causal gene-tissue pairs (no genotype intercept)
+	# Create file with one line per cs (columns: eQTL_sample_size, simulation_num, window_num, boolean_causal_variant_in_cs)
+	focus_cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_tg_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration_per_component.txt'
+	create_file_containing_focus_tg_cs_calibration_per_high_pip_snp_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, pip_threshold, focus_cs_coverage_per_high_pip_snp_output_file, simulated_gene_position_file)
+	focus_cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_tg_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration.txt'
+	create_file_containing_averaged_focus_high_pip_calibration(focus_cs_coverage_per_high_pip_snp_output_file, focus_cs_high_pip_coverage_output_file, eqtl_sample_sizes)
+
+	print(focus_cs_high_pip_coverage_output_file)
+
+
+##################################
+# FOCUS-TG Power to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+pip_thresholds = [.5, .9]
+
+for pip_threshold in pip_thresholds:
+
+	print(pip_threshold)
+	# Power to detect causal gene-tissue pairs (no genotype intercept)
+	# Create file with one line per causal element (columns: eQTL_sample_size, ln_pvalue_method, simulation_num, window_num, gene_or_variant, causal_element_name, boolean_causal_element_in_cs)
+	focus_cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_tg_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power_per_component.txt'
+	create_file_containing_focus_tg_high_pip_snp_power_per_component_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, focus_cs_power_per_component_output_file, pip_threshold, global_window_file)
+	focus_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_focus_tg_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power.txt'
+	create_file_containing_averaged_focus_cs_power(focus_cs_power_per_component_output_file, focus_cs_power_output_file, eqtl_sample_sizes)
+	print(focus_cs_power_output_file)
+
 ##################################
 # FOCUS-TG FDR-power curve
 ##################################
@@ -11108,12 +11305,13 @@ for eqtl_ss in eqtl_sample_sizes:
 	# W/O intercept
 	fdr_power_curve_raw_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus_tg' + '_' + eqtl_ss + '_fdr_power_curve_raw_data.txt'
 	fdr_power_curve_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus_tg' + '_' + eqtl_ss + '_fdr_power_curve_data.txt'
-	create_file_containing_focus_tg_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, twas_method, ln_pi_method, global_window_file, simulated_learned_gene_models_dir)
+	create_file_containing_focus_tg_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, global_window_file, simulated_learned_gene_models_dir)
 
 	# W intercept
 	fdr_power_curve_raw_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus_tg_intercept' + '_' + eqtl_ss + '_fdr_power_curve_raw_data.txt'
 	fdr_power_curve_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus_tg_intercept' + '_' + eqtl_ss + '_fdr_power_curve_data.txt'
-	create_file_containing_focus_tg_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, twas_method, ln_pi_method, global_window_file, simulated_learned_gene_models_dir, intercept=True)
+	#create_file_containing_focus_tg_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, global_window_file, simulated_learned_gene_models_dir, intercept=True)
+
 
 ##################################
 # Two-step FOCUS Coverage/Calibration to detect snps with PIP > threshold
@@ -11197,6 +11395,39 @@ for pip_threshold in pip_thresholds:
 	create_file_containing_averaged_focus_cs_power(coloc_cs_power_per_component_output_file, coloc_cs_power_output_file, eqtl_sample_sizes)
 
 ##################################
+# coloc Coverage/Calibration to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+pip_thresholds = [.5, .9]
+# Vary ln_pi_method
+for pip_threshold in pip_thresholds:
+	print(pip_threshold)
+	# Create file with one line per cs (columns: eQTL_sample_size, simulation_num, window_num, boolean_causal_variant_in_cs)
+	coloc_cs_coverage_per_high_pip_snp_output_file =  simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration_per_component.txt'
+	create_file_containing_coloc_cs_calibration_per_high_pip_snp_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_coloc_results_dir, pip_threshold, coloc_cs_coverage_per_high_pip_snp_output_file, simulated_gene_position_file)
+	coloc_cs_high_pip_coverage_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_calibration.txt'
+	create_file_containing_averaged_focus_high_pip_calibration(coloc_cs_coverage_per_high_pip_snp_output_file, coloc_cs_high_pip_coverage_output_file, eqtl_sample_sizes)
+	print(coloc_cs_high_pip_coverage_output_file)
+
+
+
+##################################
+# coloc Power to detect snps with PIP > threshold
+# When limiting to loci with at most 1 causal gene-tissue pair
+##################################
+pip_thresholds = [.5, .9]
+
+for pip_threshold in pip_thresholds:
+
+	print(pip_threshold)
+	coloc_cs_power_per_component_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power_per_component.txt'
+	create_file_containing_coloc_high_pip_snp_power_per_component_when_limiting_to_at_most_1_causal_gt_pair_per_locus(local_simulation_name_string, eqtl_sample_sizes, simulation_runs, simulated_trait_dir, simulated_coloc_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, coloc_cs_power_per_component_output_file, pip_threshold, global_window_file)
+	coloc_cs_power_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_coloc_pip_' + str(pip_threshold) + '_1_caus_gt_pair_per_locus_power.txt'
+	create_file_containing_averaged_focus_cs_power(coloc_cs_power_per_component_output_file, coloc_cs_power_output_file, eqtl_sample_sizes)
+	print(coloc_cs_power_output_file)
+
+
+##################################
 # coloc FDR-power curve
 ##################################
 for eqtl_ss in eqtl_sample_sizes:
@@ -11204,7 +11435,6 @@ for eqtl_ss in eqtl_sample_sizes:
 	fdr_power_curve_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'coloc' + '_' + eqtl_ss + '_fdr_power_curve_data.txt'
 	create_file_containing_coloc_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_coloc_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, global_window_file, simulated_learned_gene_models_dir)
 	print(fdr_power_curve_data_output_file)
-
 
 ##################################
 # Two-step coloc Coverage/Calibration to detect snps with PIP > threshold
@@ -12454,7 +12684,7 @@ for eqtl_ss in eqtl_sample_sizes:
 	# W/O intercept
 	fdr_power_curve_raw_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus' + '_' + eqtl_ss + '_fdr_power_curve_raw_data.txt'
 	fdr_power_curve_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus' + '_' + eqtl_ss + '_fdr_power_curve_data.txt'
-	create_file_containing_focus_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, twas_method, ln_pi_method, global_window_file, simulated_learned_gene_models_dir)
+	create_file_containing_focus_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, global_window_file, simulated_learned_gene_models_dir)
 	print(fdr_power_curve_data_output_file)
 
 
@@ -12548,7 +12778,7 @@ for eqtl_ss in eqtl_sample_sizes:
 	# W/O intercept
 	fdr_power_curve_raw_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus_tg' + '_' + eqtl_ss + '_fdr_power_curve_raw_data.txt'
 	fdr_power_curve_data_output_file = simulated_organized_results_dir + 'organized_simulation_' + local_simulation_name_string + '_' + 'focus_tg' + '_' + eqtl_ss + '_fdr_power_curve_data.txt'
-	create_file_containing_focus_tg_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, twas_method, ln_pi_method, global_window_file, simulated_learned_gene_models_dir)
+	create_file_containing_focus_tg_gene_tissue_fdr_power_curve_data(local_simulation_name_string, eqtl_ss, simulation_runs, simulated_trait_dir, simulated_focus_results_dir, simulated_tgfm_input_data_dir, bim_file, simulated_gene_position_file, fdr_power_curve_raw_data_output_file,fdr_power_curve_data_output_file, global_window_file, simulated_learned_gene_models_dir)
 
 
 ##################################
