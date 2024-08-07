@@ -381,12 +381,13 @@ num_jobs="40"
 #gene_type="cis_heritable_gene"
 gene_type="component_gene"
 # FIle summarizing ukkbb windows
-ukkbb_window_summary_file=$ukbb_preprocessed_for_genome_wide_susie_dir"genome_wide_susie_windows_and_processed_data.txt"
 if false; then
+ukkbb_window_summary_file=$ukbb_preprocessed_for_genome_wide_susie_dir"genome_wide_susie_windows_and_processed_data.txt"
 for job_number in $(seq 0 $(($num_jobs-1))); do 
 	sbatch preprocess_data_for_tgfm.sh $ukkbb_window_summary_file $gtex_pseudotissue_file $gtex_susie_gene_models_dir $preprocessed_tgfm_data_dir $job_number $num_jobs $gene_type
 done
 fi
+
 
 
 
@@ -1095,8 +1096,9 @@ if false; then
 source ~/.bash_profile
 module load R/3.5.1
 fi
+if false; then
 Rscript visualize_sc_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $sc_tgfm_results_dir $sc_tgfm_organized_results_dir $iterative_sc_tgfm_prior_results_dir $visualize_sc_tgfm_dir $tissue_tissue_ct_ct_correlation_file $tissue_replication_results_dir
-
+fi
 
 
 #################################
