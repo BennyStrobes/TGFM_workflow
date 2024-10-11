@@ -339,7 +339,7 @@ for line in f:
 	window_name = data[5]
 
 	# Output root
-	example_output_root = visualize_specific_tgfm_examples_dir + trait_name + '_' + window_name + 'tmp'
+	example_output_root = visualize_specific_tgfm_examples_dir + trait_name + '_' + window_name
 
 	# Generate input data for this window
 	generate_visualization_input_data_for_specific_example(trait_name, window_name, tgfm_input_summary_file, tgfm_results_dir, tgfm_organized_results_dir, gtex_susie_gene_models_dir, ensamble_id_to_gene_id,snp_id_to_rsid, example_output_root)

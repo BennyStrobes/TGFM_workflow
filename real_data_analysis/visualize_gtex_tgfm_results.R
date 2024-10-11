@@ -4,6 +4,7 @@ library(ggplot2)
 library(hash)
 library(dplyr)
 library(reshape)
+library(ggprism)
 library(stringr)
 library(reshape2)
 library(ggbeeswarm)
@@ -223,8 +224,9 @@ make_number_of_high_pip_genes_heatmap_barplot_v2_transpose <- function(trait_nam
    p <- ggplot() +
   	geom_bar(data=df, aes(y = trait,x = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
   	figure_theme() +
-  	scale_x_continuous(breaks=c(0.0,sqrt(25), sqrt(100), sqrt(250), sqrt(500), sqrt(1000)), labels=c("0", "25", "100", "250", "  500", "1000")) +
-  	#theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
+   	scale_x_continuous(guide = "prism_offset_minor",breaks=c(0.0,sqrt(200), sqrt(400), sqrt(600), sqrt(800)),minor_breaks=sqrt(c(40, 80, 120, 160, 240, 280,320, 360, 440, 480, 520, 560, 640, 680, 720, 760)), labels=c("0", "200", "400", "600", "  800"), limits=c(0,sqrt(800))) +
+	theme(axis.ticks.length = unit(0.15, "cm")) +
+	theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   	scale_fill_distiller(direction=1, palette = "Greens", limits=c(.2,1.0)) +
   	scale_color_distiller(direction=1, palette = "Greens", limits=c(.2,1.0)) +	
   	theme(plot.title = element_text(hjust = 0.5)) +
@@ -279,7 +281,8 @@ make_number_of_high_pip_genes_heatmap_barplot_v2 <- function(trait_names, trait_
    p <- ggplot() +
   	geom_bar(data=df, aes(x = trait,y = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
   	figure_theme() +
-  	scale_y_continuous(breaks=c(0.0,sqrt(25), sqrt(100), sqrt(250), sqrt(500), sqrt(1000)), labels=c("0", "25", "100", "250", "  500", "1000")) +
+   	scale_y_continuous(guide = "prism_offset_minor",breaks=c(0.0,sqrt(200), sqrt(400), sqrt(600), sqrt(800)),minor_breaks=sqrt(c(40, 80, 120, 160, 240, 280,320, 360, 440, 480, 520, 560, 640, 680, 720, 760)), labels=c("0", "200", "400", "600", "  800"), limits=c(0,sqrt(800))) +
+	theme(axis.ticks.length = unit(0.15, "cm")) +
   	theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
   	scale_fill_distiller(direction=1, palette = "Greens", limits=c(.2,1.0)) +
   	scale_color_distiller(direction=1, palette = "Greens", limits=c(.2,1.0)) +	
@@ -336,8 +339,9 @@ make_number_of_high_pip_variants_heatmap_barplot_v2_transpose <- function(trait_
    p <- ggplot() +
   	geom_bar(data=df, aes(y = trait,x = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
   	figure_theme() +
-  	scale_x_continuous(breaks=c(0.0, sqrt(100), sqrt(500), sqrt(1000), sqrt(2000)), labels=c(0, 100, 500, 1000, 2000)) +
-  	#theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
+   	scale_x_continuous(guide = "prism_offset_minor",breaks=c(0.0,sqrt(500), sqrt(1000), sqrt(1500), sqrt(2000)),minor_breaks=sqrt(c(100, 200, 300, 400, 600, 700,800, 900, 1100, 1200, 1300, 1400, 1600, 1700, 1800, 1900)), labels=c("0", "500", "1000", "1500", "2000"), limits=c(0,sqrt(2000))) +
+	theme(axis.ticks.length = unit(0.15, "cm")) +
+  	theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   	scale_fill_distiller(direction=1, palette = "Blues", limits=c(.2,1.0)) +
   	scale_color_distiller(direction=1, palette = "Blues", limits=c(.2,1.0)) +	
   	theme(plot.title = element_text(hjust = 0.5)) +
@@ -395,7 +399,8 @@ make_number_of_high_pip_variants_heatmap_barplot_v2 <- function(trait_names, tra
    p <- ggplot() +
   	geom_bar(data=df, aes(x = trait,y = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
   	figure_theme() +
-  	scale_y_continuous(breaks=c(0.0, sqrt(100), sqrt(500), sqrt(1000), sqrt(2000)), labels=c(0, 100, 500, 1000, 2000)) +
+   	scale_y_continuous(guide = "prism_offset_minor",breaks=c(0.0,sqrt(500), sqrt(1000), sqrt(1500), sqrt(2000)),minor_breaks=sqrt(c(100, 200, 300, 400, 600, 700,800, 900, 1100, 1200, 1300, 1400, 1600, 1700, 1800, 1900)), labels=c("0", "500", "1000", "1500", "2000"), limits=c(0,sqrt(2000))) +
+	theme(axis.ticks.length = unit(0.15, "cm")) +
   	theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
   	scale_fill_distiller(direction=1, palette = "Blues", limits=c(.2,1.0)) +
   	scale_color_distiller(direction=1, palette = "Blues", limits=c(.2,1.0)) +	
@@ -491,8 +496,11 @@ make_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_v2_transpose <- functi
   	geom_bar(data=df, aes(y = trait,x = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
   	figure_theme() +
   	#scale_y_continuous(breaks=c(0.0,sqrt(5), sqrt(20), sqrt(50), sqrt(100), sqrt(200), sqrt(400), sqrt(600)), labels=c(0, 5, 20, 50, 100, 200, 400,600)) +
-  	scale_x_continuous(breaks=c(0.0,sqrt(10), sqrt(50), sqrt(100), sqrt(200)), labels=c("0", "10", "50", "100", "  200")) +
+  	#scale_x_continuous(breaks=c(0.0,sqrt(10), sqrt(50), sqrt(100), sqrt(200)), labels=c("0", "10", "50", "100", "  200")) +
   	#theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
+   	scale_x_continuous(guide = "prism_offset_minor",breaks=c(0.0,sqrt(100), sqrt(200), sqrt(300)),minor_breaks=c(sqrt(20), sqrt(40), sqrt(60), sqrt(80), sqrt(120), sqrt(140), sqrt(160), sqrt(180), sqrt(220), sqrt(240), sqrt(260), sqrt(280)), labels=c("0", "100", "200", "  300"), limits=c(0,sqrt(300))) +
+	theme(axis.ticks.length = unit(0.15, "cm")) +
+	theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   	scale_fill_distiller(direction=1, palette = "Reds", limits=c(.2,1.0)) +
   	scale_color_distiller(direction=1, palette = "Reds", limits=c(.2,1.0)) +	
   	theme(plot.title = element_text(hjust = 0.5)) +
@@ -548,14 +556,15 @@ make_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_v2 <- function(trait_n
    p <- ggplot() +
   	geom_bar(data=df, aes(x = trait,y = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
   	figure_theme() +
-  	#scale_y_continuous(breaks=c(0.0,sqrt(5), sqrt(20), sqrt(50), sqrt(100), sqrt(200), sqrt(400), sqrt(600)), labels=c(0, 5, 20, 50, 100, 200, 400,600)) +
-  	scale_y_continuous(breaks=c(0.0,sqrt(10), sqrt(50), sqrt(100), sqrt(200)), labels=c("0", "10", "50", "100", "  200")) +
+   	scale_y_continuous(guide = "prism_offset_minor",breaks=c(0.0,sqrt(100), sqrt(200), sqrt(300)),minor_breaks=c(sqrt(20), sqrt(40), sqrt(60), sqrt(80), sqrt(120), sqrt(140), sqrt(160), sqrt(180), sqrt(220), sqrt(240), sqrt(260), sqrt(280)), labels=c("0", "100", "200", "  300"), limits=c(0,sqrt(300))) +
+	theme(axis.ticks.length = unit(0.15, "cm")) +
   	theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
   	scale_fill_distiller(direction=1, palette = "Reds", limits=c(.2,1.0)) +
   	scale_color_distiller(direction=1, palette = "Reds", limits=c(.2,1.0)) +	
   	theme(plot.title = element_text(hjust = 0.5)) +
   	 geom_errorbar(data  = df2, aes(x=trait,y=midpoint, ymax=midpoint, ymin=midpoint)) +
   	 labs(x="", y="No. fine-mapped\nGene-Tissue pairs")
+  	 print("DONE")
  	return(p)
 }
 
@@ -2917,6 +2926,235 @@ mean_se_barplot_of_pops_score_comparison_binned_by_tgfm_pip <- function(df_full_
 }
 
 
+mean_violinplot_of_pops_score_binned_by_tgfm_pip_supp_table <- function(df_full, independent_traits) { 
+
+	indices = df_full$trait_name %in% independent_traits
+	df = df_full[indices,]
+
+	print(summary(df))
+
+
+	pops_score_vec <- c()
+	gene_bin_vec <- c()
+	gene_vec <- c()
+	trait_vec <- c()
+
+	threshold_lb <- 0.0
+	threshold_ub <- .01
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+	gene_vec <- c(gene_vec, as.character(df$gene_name[indices]))
+	trait_vec <- c(trait_vec, as.character(df$trait_name[indices]))
+
+
+	threshold_lb <- .01
+	threshold_ub <- .25
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+	gene_vec <- c(gene_vec, as.character(df$gene_name[indices]))
+	trait_vec <- c(trait_vec, as.character(df$trait_name[indices]))
+
+	threshold_lb <- .25
+	threshold_ub <- .5
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+	gene_vec <- c(gene_vec, as.character(df$gene_name[indices]))
+	trait_vec <- c(trait_vec, as.character(df$trait_name[indices]))
+
+
+	threshold_lb <- .5
+	threshold_ub <- .7
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+	gene_vec <- c(gene_vec, as.character(df$gene_name[indices]))
+	trait_vec <- c(trait_vec, as.character(df$trait_name[indices]))
+
+	threshold_lb <- .7
+	threshold_ub <- .9
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+	gene_vec <- c(gene_vec, as.character(df$gene_name[indices]))
+	trait_vec <- c(trait_vec, as.character(df$trait_name[indices]))
+
+	threshold_lb <- .9
+	threshold_ub <- 1.0
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip <= threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+	gene_vec <- c(gene_vec, as.character(df$gene_name[indices]))
+	trait_vec <- c(trait_vec, as.character(df$trait_name[indices]))
+
+	df2 <- data.frame(trait=trait_vec, gene=gene_vec, tgfm_bin=factor(gene_bin_vec), pops=pops_score_vec)
+
+	return(df2)
+}
+
+
+
+mean_violinplot_of_pops_score_binned_by_tgfm_pip <- function(df_full, independent_traits) {
+
+	indices = df_full$trait_name %in% independent_traits
+	df = df_full[indices,]
+
+
+	pops_score_vec <- c()
+	gene_bin_vec <- c()
+
+	threshold_lb <- 0.0
+	threshold_ub <- .01
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+
+
+	threshold_lb <- .01
+	threshold_ub <- .25
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+
+	threshold_lb <- .25
+	threshold_ub <- .5
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+	threshold_lb <- .5
+	threshold_ub <- .7
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+	threshold_lb <- .7
+	threshold_ub <- .9
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+
+	threshold_lb <- .9
+	threshold_ub <- 1.0
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip <= threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+
+	df2 <- data.frame(pops=pops_score_vec, tgfm_bin=factor(gene_bin_vec))
+
+	green_color=brewer.pal(n = 9, name = "Greens")[6]
+
+
+	pp <- ggplot(df2, aes(x=tgfm_bin, y=pops)) +
+ 	 	geom_violin(fill=green_color)+
+  		labs(y="\nPoPS scores", x="") +
+    	theme(axis.text.x = element_text(angle = 45, hjust=1,size=11)) + 
+    	figure_theme()
+
+
+
+    return(pp)
+}
+
+
+mean_violinplot_of_pops_score_binned_by_tgfm_pip2 <- function(df_full, independent_traits) {
+
+	indices = df_full$trait_name %in% independent_traits
+	df = df_full[indices,]
+
+
+	pops_score_vec <- c()
+	gene_bin_vec <- c()
+
+	threshold_lb <- 0.0
+	threshold_ub <- .01
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	print(mean(df$pops_score[indices]))
+
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+
+
+	threshold_lb <- .01
+	threshold_ub <- .25
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+
+	threshold_lb <- .25
+	threshold_ub <- .5
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+	threshold_lb <- .5
+	threshold_ub <- .7
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+	threshold_lb <- .7
+	threshold_ub <- .9
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip < threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+
+	threshold_lb <- .9
+	threshold_ub <- 1.0
+	indices = (df$tgfm_gene_pip >= threshold_lb) & (df$tgfm_gene_pip <= threshold_ub)
+	pops_score_vec <- c(pops_score_vec, df$pops_score[indices])
+	bin_name <- paste0(threshold_lb," <= PIP < ", threshold_ub)
+	gene_bin_vec <- c(gene_bin_vec, rep(bin_name, length(df$pops_score[indices])))
+
+
+	df2 <- data.frame(pops=pops_score_vec, tgfm_bin=factor(gene_bin_vec))
+
+	green_color=brewer.pal(n = 9, name = "Greens")[6]
+
+
+	pp <- ggplot(df2, aes(x=tgfm_bin, y=pops)) +
+ 	 	geom_violin(fill=green_color)+
+ 	 	#geom_boxplot(fill=green_color) +
+  		labs(y="PoPS score", x="") +
+    	theme(axis.text.x = element_text(angle = 45, hjust=1,size=11)) + 
+    	figure_theme()
+
+
+
+    return(pp)
+}
+
+
+
+
 mean_se_barplot_of_pops_score_binned_by_tgfm_pip <- function(df_full, independent_traits) {
 
 	indices = df_full$trait_name %in% independent_traits
@@ -2979,13 +3217,15 @@ mean_se_barplot_of_pops_score_binned_by_tgfm_pip <- function(df_full, independen
 	p <- ggplot(df2) +
     		geom_bar( aes(x=tgfm_bin, y=pops), stat="identity", fill=green_color, alpha=.95) +
     		#theme(axis.text.x = element_text(angle = 90,hjust=1, vjust=.5)) +
-    		labs(y="PoPS score", x="") +
+    		labs(y="Average\nPoPS score", x="") +
     		geom_errorbar( aes(x=tgfm_bin, ymin=pops-(1.96*pops_se), ymax=pops+(1.96*pops_se)), width=0.4, colour="grey45", alpha=0.9, size=1.0) +
     		theme(axis.text.x = element_text(angle = 45, hjust=1,size=11)) + 
     		figure_theme()
 
     return(p)
 }
+
+
 
 mean_se_barplot_of_pops_score_binned_by_tgfm_pip_supp_table <- function(df_full, independent_traits) {
 
@@ -4022,6 +4262,37 @@ make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot <- function(ldl_
 
 }
 
+make_component_matching_histogram <- function(component_matching_file) {
+	df <- read.table(component_matching_file, header=TRUE, sep="\t")
+
+
+	color_choice = brewer.pal(n = 9, name = "Blues")[6]
+
+	df0 <- df[df$gene_fraction <= 0.5,]
+	print(mean(df0$fraction_of_correlated_samples))
+	pp0 <- ggplot(data = df0, aes(x = fraction_of_correlated_samples)) +
+  		geom_histogram(color="white", fill=color_choice) +
+  		figure_theme() +
+  		labs(x="Fraction of TGFM samples that sample-specific CS replicate in", y="No. sample-specific CS", title="Sample-specific CS corresponding to non-mediated variants")
+
+
+  	color_choice = brewer.pal(n = 9, name = "Reds")[6]
+
+	df1 <- df[df$gene_fraction > 0.5,]
+	print(mean(df1$fraction_of_correlated_samples))
+
+	pp1 <- ggplot(data = df1, aes(x = fraction_of_correlated_samples)) +
+  		geom_histogram(color="white", fill=color_choice) +
+  		figure_theme() +
+  		labs(x="Fraction of TGFM samples that sample-specific CS replicate in", y="No. sample-specific CS", title="Sample-specific CS corresponding to gene-tissue pairs")
+
+  	pp <- plot_grid(pp0, pp1, ncol=1)
+
+
+  	return(pp)
+
+}
+
 
 
 ##################################
@@ -4071,6 +4342,18 @@ aa = read.table(iterative_prior_file, header=TRUE,sep="\t")
 tissue_names = as.character(aa$element_name[2:length(aa$element_name)])
 
 
+
+
+
+##################################################
+# Make histogram of component matching across samples
+##################################################
+if (FALSE) {
+component_matching_file <- paste0(tgfm_organized_results_dir, "component_matching_organized_res_16_independent_traits.txt")
+output_file <- paste0(visualize_tgfm_dir, "component_matching_across_tgfm_samples.pdf")
+component_match_histo = make_component_matching_histogram(component_matching_file)
+ggsave(component_match_histo, file=output_file, width=7.2, height=4.5, units="in")
+}
 
 ##################################################
 # Make tissue-tissue correlation heatmap
@@ -4157,9 +4440,11 @@ for (trait_iter in 1:length(trait_names)) {
 method_version="susie_pmces_uniform"
 gene_type <- "component_gene"
 trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, gene_type, "_trait_tissue_prior_bonferronni_corrected_significance2.txt")
+if (FALSE) {
+
 generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file, gene_type)
 print(trait_tissue_prior_significance_file)
-
+}
 
 
 ##########################################################
@@ -4286,11 +4571,10 @@ supp_table_df <- get_heatmap_data_showing_expected_number_of_causal_gene_tissue_
 supp_table_file = paste0(visualize_tgfm_dir, "suppTable_figure4a_numerical.txt")
 write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
 }
-
+if (FALSE) {
 ##########################################################
 # Make Figure 3
 ##########################################################
-if (FALSE) {
 # Get ordered traits according to number of hits identified by gene-tissue pairs
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 ordered_traits <- make_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_trait_order_according_to_gene_tissue_pairs(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, independent_traits)
@@ -4328,6 +4612,8 @@ gene_tissue_heatmap_barplot2 <- plot_grid(NULL, gene_tissue_heatmap_barplot_ord+
 joint_heatmap_barplot <- plot_grid(NULL,gene_tissue_heatmap_barplot2, gene_heatmap_barplot2, variant_heatmap_barplot2, ncol=1, labels=c("","a", "b", "c"), rel_heights=c(.03, 1, 1,1.65))
 output_file_pdf <- paste0(visualize_tgfm_dir, "figure3.pdf")
 ggsave(joint_heatmap_barplot, file=output_file_pdf, width=7.2, height=6.4, units="in", dpi=400)
+print(output_file_pdf)
+
 
 output_file_pdf <- paste0(visualize_tgfm_dir, "figure3_for_poster.pdf")
 gene_tissue_heatmap_barplot2 <- plot_grid(NULL, gene_tissue_heatmap_barplot_ord+ annotate("text",  x=Inf, y = Inf, label = "Gene-Tissue", vjust=1, hjust=1,color=blue_color), rel_widths=c(.02,1),ncol=2)
@@ -4336,17 +4622,19 @@ variant_heatmap_barplot2 <- plot_grid(NULL, variant_heatmap_barplot_ord + annota
 joint_heatmap_barplot_poster <- plot_grid(gene_tissue_heatmap_barplot2, gene_heatmap_barplot2, variant_heatmap_barplot2, ncol=3)
 
 ggsave(joint_heatmap_barplot_poster, file=output_file_pdf, width=21.2, height=2.7, units="in", dpi=400)
+print("DONE")
 }
 
-if (FALSE) {
 #######################################################
 # Supp figure for figure 3 across all traits
 #######################################################
+if (FALSE) {
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 ordered_traits <- rev(make_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_trait_order_according_to_gene_tissue_pairs(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, trait_names, gene_type=gene_type))
 # Make heatmap-barplot showing expected number of causal variants
 
 # Variants
+#theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
 variant_heatmap_t_barplot <- make_number_of_high_pip_variants_heatmap_barplot_v2_transpose(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, trait_names,gene_type=gene_type, preordered=TRUE,ordered_traits=ordered_traits) +theme(axis.title.y=element_blank(), axis.text.y=element_blank())+labs(x="No. fine-mapped\nvariants")
 # Genes
 gene_heatmap_t_barplot <- make_number_of_high_pip_genes_heatmap_barplot_v2_transpose(trait_names, trait_names_readable, method_version, tgfm_organized_results_dir, trait_names, gene_type=gene_type,preordered=TRUE,ordered_traits=ordered_traits)+theme(axis.title.y=element_blank(), axis.text.y=element_blank())+labs(x="No. fine-mapped\ngenes")
@@ -4359,6 +4647,8 @@ joint_plot <- plot_grid(gene_tissue_heatmap_t_barplot + theme(legend.position="b
 
 ggsave(joint_plot, file=output_file_pdf, width=7.2, height=7.2, units="in", dpi=400)
 
+}
+if (FALSE) {
 
 #######################################################
 # Supp figure for figure 3 (one for variant, gene, and gene-tissue)
@@ -4423,14 +4713,32 @@ pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgf
 supp_table_df <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip_supp_table(pops_summary_df, independent_traits)
 supp_table_file = paste0(visualize_tgfm_dir, "suppTable_figure4c_numerical.txt")
 write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
+
 # Load in summary data
 pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
 # average and standard error of mean of pops-score binned by TGFM PIP
 output_file <- paste0(visualize_tgfm_dir, "mean_se_barplot_pops_score_binned_by_tgfm_pip_x_trait.pdf")
 barplot <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits)
 ggsave(barplot, file=output_file, width=7.2, height=3.7, units="in")
-}
+print(output_file)
+##########################################################
+# Make POPS enrichment violin plot
+##########################################################
+# Load in summary data
+pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
+# average and standard error of mean of pops-score binned by TGFM PIP
+output_file <- paste0(visualize_tgfm_dir, "violinplot_pops_score_binned_by_tgfm_pip_x_trait.pdf")
+violinplot <- mean_violinplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits)
+ggsave(violinplot, file=output_file, width=7.2, height=3.7, units="in")
+print(output_file)
 
+# Make PoPS supp data file
+pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
+supp_table_df <- mean_violinplot_of_pops_score_binned_by_tgfm_pip_supp_table(pops_summary_df, independent_traits)
+supp_table_file = paste0(visualize_tgfm_dir, "suppTable_figure4c_numerical_joint.txt")
+write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
+print(supp_table_file)
+}
 ##########################################################
 # Make trait-tissue pair chromatin overlap bar plot
 ##########################################################
@@ -4644,10 +4952,10 @@ supp_table_file = paste0(visualize_tgfm_dir, "suppTable_figure4b_numerical.txt")
 write.table(supp_table_df, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
 }
 
-if (FALSE) {
 ##########################################################
 # Make Figure 4 
 ##########################################################
+if (FALSE) {
 red_color =brewer.pal(n = 9, name = "Reds")[7]
 # FIG 4A
 pip_thresh <- "0.5"
@@ -4670,30 +4978,35 @@ fig_4b <- plot_grid(fig_4b, NULL, ncol=1,rel_heights=c(1,.16))
 
 # FIG 4c
 pops_summary_df <- read.table(paste0(pops_enrichment_dir, "cross_traits_pops_tgfm_enrichment_summary.txt"), header=TRUE)
-fig_4c <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits) +theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points")) +
-          theme(axis.text.x = element_text(angle = 35, hjust=1)) +
-          labs(x = NULL)
+fig_4c_a <- mean_se_barplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits) +theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points")) +
+          theme(axis.text.x = element_text(angle = 25, hjust=1)) +
+          labs(x = NULL) + theme(axis.text.x=element_blank())
+
+fig_4c_a2 <- plot_grid(NULL, fig_4c_a, ncol=2, rel_widths=c(.024,1))
 
 
+fig_4c_b <- mean_violinplot_of_pops_score_binned_by_tgfm_pip(pops_summary_df, independent_traits) +theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points")) + labs(x = NULL) +
+            theme(axis.text.x = element_text(angle = 25, hjust=1)) 
+
+
+fig_4c <- plot_grid(fig_4c_a2, fig_4c_b, ncol=1, rel_heights=c(1,1.27))
 
 # Fig 4D
 ldl_enrichment_file <- paste0(ldl_silver_standard_gene_set_enrichment_dir, "ldl_silver_standard_enrichment_summary.txt")
 fig_4d <- make_ldl_silver_standard_stratefied_gene_pip_emperical_fdr_plot(ldl_enrichment_file) +
 		  labs(y="FDR") +
 	      theme(plot.margin = margin(5.5, 5.5, 0.0, 5.5, "points")) 
-fig_4d <- plot_grid(fig_4d, NULL, ncol=1,rel_heights=c(1,.247))
+fig_4d <- plot_grid(fig_4d, NULL, ncol=1,rel_heights=c(1,.142))
 
 
 # MAke joint plot
 fig_4ab = plot_grid(fig_4a, NULL, fig_4b, ncol=3, rel_widths=c(.6,.02,.45), labels=c("a","", "b"))
 fig_4cd = plot_grid(fig_4c, NULL, fig_4d, ncol=3, rel_widths=c(.6,.02,.45), labels=c("c","", "d"))
-fig_4 <- plot_grid(fig_4ab, fig_4cd, ncol=1, rel_heights=c(.6,.43))
+fig_4 <- plot_grid(fig_4ab, fig_4cd, ncol=1, rel_heights=c(.6,.49))
 output_file <- paste0(visualize_tgfm_dir, "figure4.pdf")
-ggsave(fig_4, file=output_file, width=7.2, height=6.2, units="in")
+ggsave(fig_4, file=output_file, width=7.2, height=6.5, units="in")
 
 }
-
-
 
 
 

@@ -568,16 +568,6 @@ make_tgfm_manhatten_plot_for_given_window_ppt_ready <- function(snp_df, gene_df,
 
 
 
-
-
-
-
-
-
-
-
-
-
 ##################
 # Load in data
 ##################
@@ -619,6 +609,8 @@ for (example_iter in 1:n_examples) {
 	ggsave(tgfm_manhatten_plot, file=output_file, width=7.2, height=3.6, units="in")
 }
 }
+
+# FIGURE 8 (revision)
 if (FALSE) {
 twas_thresh=4.1e-7
 ######################
@@ -723,7 +715,12 @@ write.table(merged_tgfm_manhatten_data, file=supp_table_file, quote=FALSE, sep="
 print(supp_table_file)
 }
 
-if (FALSE) {
+
+
+
+
+
+
 # FIGURE 6 (revision)
 twas_thresh=4.2e-7
 ########################
@@ -805,7 +802,6 @@ tgfm_manhatten_data4 <- get_tgfm_manhatten_plot_for_given_window_paper_data(snp_
 trait_name <- "bp_SYSTOLICadjMEDz"
 trait_name_readable <- "Systolic blood pressure"
 window_name <- "8:41061773:44061773"
-window_name <- "15:88795210:91795210"
 # Input files
 snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
 gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
@@ -814,14 +810,13 @@ snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
 gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
 
 # Make manhatten plot for a given window/trait
-tgfm_manhatten_plot6 <- make_tgfm_manhatten_plot_for_given_window_paper_ready_custom_SBP_AO(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_x_nudge=0.1, gene_x_nudge=-.5, gene_y_nudge=4.5)
+tgfm_manhatten_plot6 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE)
 tgfm_manhatten_data6 <- get_tgfm_manhatten_plot_for_given_window_paper_data(snp_df, gene_df, trait_name, trait_name_readable, window_name)
 
-######################
-# Example 6
-trait_name <- "bp_SYSTOLICadjMEDz"
-trait_name_readable <- "Systolic blood pressure"
-window_name <- "8:41061773:44061773"
+
+trait_name <- "biochemistry_VitaminD"
+trait_name_readable <- "Vitamin D"
+window_name <- "15:56795210:59795210"
 # Input files
 snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
 gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
@@ -830,16 +825,15 @@ snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
 gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
 
 # Make manhatten plot for a given window/trait
-tgfm_manhatten_plot5 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE)
+tgfm_manhatten_plot5 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
 tgfm_manhatten_data5 <- get_tgfm_manhatten_plot_for_given_window_paper_data(snp_df, gene_df, trait_name, trait_name_readable, window_name)
-
 
 
 
 ####################
 # Joint plot
 legender = get_legend(tgfm_manhatten_plot1)
-joint_manhatten <- plot_grid(plot_grid(tgfm_manhatten_plot3+ theme(legend.position="none"), tgfm_manhatten_plot1 + theme(legend.position="none"), tgfm_manhatten_plot2+ theme(legend.position="none"),tgfm_manhatten_plot6+ theme(legend.position="none"), tgfm_manhatten_plot5+ theme(legend.position="none"), tgfm_manhatten_plot4+ theme(legend.position="none"), ncol=2, labels=c("a","b","c","d", "e", "f")), legender, ncol=1, rel_heights=c(1, .09))
+joint_manhatten <- plot_grid(plot_grid(tgfm_manhatten_plot3+ theme(legend.position="none"), tgfm_manhatten_plot1 + theme(legend.position="none"), tgfm_manhatten_plot2+ theme(legend.position="none"),tgfm_manhatten_plot5+ theme(legend.position="none"), tgfm_manhatten_plot6+ theme(legend.position="none"), tgfm_manhatten_plot4+ theme(legend.position="none"), ncol=2, labels=c("a","b","c","d", "e", "f")), legender, ncol=1, rel_heights=c(1, .09))
 output_file <- paste0(visualize_specific_tgfm_examples_dir, "figure6.pdf")
 print(output_file)
 ggsave(joint_manhatten, file=output_file, width=7.2, height=6.5, units="in")
@@ -847,13 +841,10 @@ ggsave(joint_manhatten, file=output_file, width=7.2, height=6.5, units="in")
 
 ###################
 # Merge data
-merged_tgfm_manhatten_data = rbind(tgfm_manhatten_data1, tgfm_manhatten_data2, tgfm_manhatten_data3, tgfm_manhatten_data4, tgfm_manhatten_data5, tgfm_manhatten_data6)
+merged_tgfm_manhatten_data = rbind(tgfm_manhatten_data3, tgfm_manhatten_data1, tgfm_manhatten_data2, tgfm_manhatten_data5, tgfm_manhatten_data6, tgfm_manhatten_data4)
 supp_table_file = paste0(visualize_specific_tgfm_examples_dir, "suppTable_figure6.txt")
 write.table(merged_tgfm_manhatten_data, file=supp_table_file, quote=FALSE, sep="\t", row.names = FALSE)
 print(supp_table_file)
-}
-
-
 
 
 ####################
@@ -881,11 +872,26 @@ ggsave(tgfm_manhatten_plot6, file=output_file, width=7.2, height=3.6, units="in"
 print(output_file)
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #################
 # Supp figure
-if (FALSE) {
 twas_thresh=4.2e-7
-
 ######################
 # Example 1
 # blood_RED_COUNT ENSG00000235169.7_Whole_Blood   SMIM1   ENSG00000235169.7       Whole_Blood     1:2010176:5010176
@@ -919,13 +925,13 @@ gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
 tgfm_manhatten_plot2 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
 
 
+
 ######################
-# Example 3
-# ENSG00000159640.15_Adrenal_Gland	ENSG00000159640	ACE	Adrenal_Gland	0.607149800587197	0.8157302610278647	17:62150508:65150508
-if (FALSE) {
-trait_name <- "disease_HYPERTENSION_DIAGNOSED"
-trait_name_readable <- "Hypertension"
-window_name <- "17:62150508:65150508"
+# Example 6
+# blood_MEAN_PLATELET_VOL ENSG00000124831.18_Cells_Cultured_fibroblasts   LRRFIP1 ENSG00000124831 Cells_Cultured_fibroblasts      2:236010553:239010553
+trait_name <- "blood_MEAN_PLATELET_VOL"
+trait_name_readable <- "Platelet volume"
+window_name <- "2:236010553:239010553"
 # Input files
 snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
 gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
@@ -934,27 +940,14 @@ snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
 gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
 
 # Make manhatten plot for a given window/trait
-tgfm_manhatten_plot3 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
-}
-trait_name <- "biochemistry_VitaminD"
-trait_name_readable <- "Vitamin D"
-window_name <- "15:56795210:59795210"
-# Input files
-snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
-gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
-# Load in input
-snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
-gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
-
-# Make manhatten plot for a given window/trait
-tgfm_manhatten_plot3 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
+tgfm_manhatten_plot3 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE,add_nm_variant_text=TRUE)
 
 ######################
 # Example 4
-# ENSG00000118257.16_Lung	ENSG00000118257	NRP2	Lung	0.97931106037432	0.9947268843600326	2:204010553:207010553
-trait_name <- "lung_FEV1FVCzSMOKE"
-trait_name_readable <- "FEV1:FVC"
-window_name <- "2:204010553:207010553"
+# ENSG00000159640.15_Adrenal_Gland	ENSG00000159640	ACE	Adrenal_Gland	0.607149800587197	0.8157302610278647	17:62150508:65150508
+trait_name <- "disease_HYPERTENSION_DIAGNOSED"
+trait_name_readable <- "Hypertension"
+window_name <- "17:62150508:65150508"
 # Input files
 snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
 gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
@@ -988,6 +981,64 @@ tgfm_manhatten_plot5 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(sn
 
 ######################
 # Example 6
+trait_name <- "repro_MENARCHE_AGE"
+trait_name_readable <- "Menarche age"
+window_name <- "4:102010641:105010641"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+#tgfm_manhatten_plot6 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_twas_nominal_sig_lines=TRUE)
+tgfm_manhatten_plot6 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE,add_nm_variant_text=TRUE, gene_scaler=.07)
+
+
+
+
+####################
+# Joint plot
+legender = get_legend(tgfm_manhatten_plot1)
+joint_manhatten <- plot_grid(plot_grid(tgfm_manhatten_plot6+ theme(legend.position="none"),tgfm_manhatten_plot1+ theme(legend.position="none"), tgfm_manhatten_plot2+ theme(legend.position="none"), tgfm_manhatten_plot4+ theme(legend.position="none"), tgfm_manhatten_plot5+ theme(legend.position="none"), tgfm_manhatten_plot3+ theme(legend.position="none"), ncol=2, labels=c("a","b","c","d", "e", "f")), legender, ncol=1, rel_heights=c(1, .09))
+
+
+output_file <- paste0(visualize_specific_tgfm_examples_dir, "supp_figure_six_example_tgfm_manhattan.pdf")
+print(output_file)
+ggsave(joint_manhatten, file=output_file, width=7.2, height=6.5, units="in")
+
+
+
+
+#################
+# Supp figure 2
+twas_thresh=4.2e-7
+######################
+
+
+
+
+######################
+# Example 1
+trait_name <- "bp_SYSTOLICadjMEDz"
+trait_name_readable <- "Systolic blood pressure"
+window_name <- "8:41061773:44061773"
+window_name <- "15:88795210:91795210"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_plot1 <- make_tgfm_manhatten_plot_for_given_window_paper_ready_custom_SBP_AO(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_x_nudge=0.1, gene_x_nudge=-.5, gene_y_nudge=4.5)
+
+
+
+######################
+# Example 2
 trait_name <- "bp_SYSTOLICadjMEDz"
 trait_name_readable <- "Systolic blood pressure"
 window_name <- "18:59011148:62011148"
@@ -1000,16 +1051,91 @@ gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
 
 # Make manhatten plot for a given window/trait
 #tgfm_manhatten_plot6 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_twas_nominal_sig_lines=TRUE)
-tgfm_manhatten_plot6 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, gene_scaler=.07)
+tgfm_manhatten_plot2 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, gene_scaler=.07)
+
+
+
+######################
+# Example 3
+# ENSG00000118257.16_Lung	ENSG00000118257	NRP2	Lung	0.97931106037432	0.9947268843600326	2:204010553:207010553
+trait_name <- "lung_FEV1FVCzSMOKE"
+trait_name_readable <- "FEV1:FVC"
+window_name <- "2:204010553:207010553"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_plot3 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
+
+
+
+######################
+# Example 4
+# lung_FEV1FVCzSMOKE      ENSG00000066468.22_Artery_Aorta FGFR2   ENSG00000066468 Artery_Aorta    10:120014743:123014743
+trait_name <- "lung_FEV1FVCzSMOKE"
+trait_name_readable <- "FEV1:FVC"
+window_name <- "10:120014743:123014743"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_plot4 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01, gene_x_nudge=-.04)
+
+
+######################
+# Example 5
+# ENSG00000180370.10_Spleen	ENSG00000180370	PAK2	Spleen	0.6396318071219079	0.7259287712784378	3:195018518:198018518
+trait_name <- "blood_MONOCYTE_COUNT"
+trait_name_readable <- "Monocyte count"
+window_name <- "3:195018518:198018518"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_plot5 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
+
+######################
+# Example 6
+#blood_MONOCYTE_COUNT    ENSG00000106546.12_Whole_Blood  AHR     ENSG00000106546 Whole_Blood     7:16020607:19020607
+trait_name <- "blood_MONOCYTE_COUNT"
+trait_name_readable <- "Monocyte count"
+window_name <- "7:16020607:19020607"
+# Input files
+snp_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_snp_df.txt")
+gene_df_input_file <- paste0(visualize_specific_tgfm_examples_dir, trait_name, "_", window_name, "_gene_df.txt")
+# Load in input
+snp_df <- read.table(snp_df_input_file, header=TRUE, sep="\t")
+gene_df <- read.table(gene_df_input_file, header=TRUE, sep="\t")
+
+# Make manhatten plot for a given window/trait
+tgfm_manhatten_plot6 <- make_tgfm_manhatten_plot_for_given_window_paper_ready(snp_df, gene_df, trait_name, trait_name_readable, window_name, twas_thresh=twas_thresh,add_nominal_sig_lines=TRUE, add_nm_variant_text=TRUE, variant_scaler=.01)
+
+
+
+
+
+
 
 
 
 ####################
 # Joint plot
 legender = get_legend(tgfm_manhatten_plot1)
-joint_manhatten <- plot_grid(plot_grid(tgfm_manhatten_plot3+ theme(legend.position="none"),tgfm_manhatten_plot6+ theme(legend.position="none"),tgfm_manhatten_plot1+ theme(legend.position="none"), tgfm_manhatten_plot2 + theme(legend.position="none"), tgfm_manhatten_plot4+ theme(legend.position="none"), tgfm_manhatten_plot5+ theme(legend.position="none"), ncol=2, labels=c("a","b","c","d", "e", "f")), legender, ncol=1, rel_heights=c(1, .09))
-output_file <- paste0(visualize_specific_tgfm_examples_dir, "supp_figure_six_example_tgfm_manhattan.pdf")
+joint_manhatten <- plot_grid(plot_grid(tgfm_manhatten_plot1+ theme(legend.position="none"),tgfm_manhatten_plot2+ theme(legend.position="none"), tgfm_manhatten_plot3+ theme(legend.position="none"), tgfm_manhatten_plot4+ theme(legend.position="none"), tgfm_manhatten_plot5+ theme(legend.position="none"), tgfm_manhatten_plot6+ theme(legend.position="none"), ncol=2, labels=c("a","b","c","d", "e", "f")), legender, ncol=1, rel_heights=c(1, .09))
+output_file <- paste0(visualize_specific_tgfm_examples_dir, "supp_figure2_six_example_tgfm_manhattan.pdf")
 print(output_file)
 ggsave(joint_manhatten, file=output_file, width=7.2, height=6.5, units="in")
-}
+
 

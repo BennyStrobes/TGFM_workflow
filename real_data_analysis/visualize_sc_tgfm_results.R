@@ -6,6 +6,7 @@ library(dplyr)
 library(reshape)
 library(stringr)
 library(reshape2)
+library(ggprism)
 library(ggbeeswarm)
 library(RColorBrewer)
 library(ggrepel)
@@ -387,7 +388,9 @@ make_number_of_high_pip_sc_gene_tissue_pairs_heatmap_barplot_v2_transpose <- fun
   	geom_bar(data=df, aes(y = trait,x = num_elements,fill = PIP, color=PIP), stat="identity") + 
   	figure_theme() +
   	#scale_y_continuous(breaks=c(0.0,sqrt(5), sqrt(20), sqrt(50), sqrt(100), sqrt(200), sqrt(400), sqrt(600)), labels=c(0, 5, 20, 50, 100, 200, 400,600)) +
-  	scale_x_continuous(breaks=c(0.0,sqrt(1), sqrt(5), sqrt(10), sqrt(20), sqrt(40)), labels=c("0", "1", "5", "10", "20", "40"), limits=c(0.0, sqrt(40))) +
+  	#scale_x_continuous(breaks=c(0.0,sqrt(1), sqrt(5), sqrt(10), sqrt(20), sqrt(40)), labels=c("0", "1", "5", "10", "20", "40"), limits=c(0.0, sqrt(40))) +
+   	scale_x_continuous(guide = "prism_offset_minor",breaks=c(0.0,sqrt(10), sqrt(20), sqrt(30), sqrt(40)),minor_breaks=sqrt(c(2, 4, 6, 8, 12, 14,16, 18, 22, 24, 26, 28, 32, 34, 36, 38)), labels=c("0", "10", "20", "30", "40"), limits=c(0,sqrt(40))) +
+	theme(axis.ticks.length = unit(0.15, "cm")) +
   	theme(axis.text.y = element_text(size=11)) +
   	scale_fill_distiller(direction=1, palette = "Oranges", limits=c(.2,1.0)) +
   	scale_color_distiller(direction=1, palette = "Oranges", limits=c(.2,1.0)) +	
@@ -449,7 +452,8 @@ make_number_of_high_pip_sc_gene_tissue_pairs_heatmap_barplot_v2 <- function(trai
   	geom_bar(data=df, aes(x = trait,y = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
   	figure_theme() +
   	#scale_y_continuous(breaks=c(0.0,sqrt(5), sqrt(20), sqrt(50), sqrt(100), sqrt(200), sqrt(400), sqrt(600)), labels=c(0, 5, 20, 50, 100, 200, 400,600)) +
-  	scale_y_continuous(breaks=c(0.0,sqrt(1), sqrt(5), sqrt(10), sqrt(20), sqrt(40)), labels=c("0", "1", "5", "10", "20", "40"), limits=c(0.0, sqrt(40))) +
+   	scale_y_continuous(guide = "prism_offset_minor",breaks=c(0.0,sqrt(10), sqrt(20), sqrt(30), sqrt(40)),minor_breaks=sqrt(c(2, 4, 6, 8, 12, 14,16, 18, 22, 24, 26, 28, 32, 34, 36, 38)), labels=c("0", "10", "20", "30", "40"), limits=c(0,sqrt(40))) +
+	theme(axis.ticks.length = unit(0.15, "cm")) +
   	theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
   	scale_fill_distiller(direction=1, palette = "Oranges", limits=c(.2,1.0)) +
   	scale_color_distiller(direction=1, palette = "Oranges", limits=c(.2,1.0)) +	
@@ -525,8 +529,8 @@ make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot <- fu
   	geom_bar(data=df, aes(x = trait,y = num_elements,fill = PIP, color=PIP), stat="identity", width=.9) + 
   	figure_theme() +
   	geom_text(data=df2,aes(x=trait, y=total_hits,label=significance), size=8) +
-  	#scale_y_continuous(breaks=c(0.0,sqrt(5), sqrt(20), sqrt(50), sqrt(100), sqrt(200), sqrt(400), sqrt(600)), labels=c(0, 5, 20, 50, 100, 200, 400,600)) +
-  	scale_y_continuous(breaks=c(0.0,sqrt(1), sqrt(5), sqrt(10), sqrt(20)), labels=c("0", "1", "5", "10", "20"), limits=c(0.0, sqrt(upper_bound))) +
+   	scale_y_continuous(guide = "prism_offset_minor",breaks=c(0.0,sqrt(5), sqrt(10), sqrt(15), sqrt(20)),minor_breaks=sqrt(c(1, 2, 3, 4, 6, 7,8, 9, 11, 12, 13, 14, 16, 17, 18, 19)), labels=c("0", "5", "10", "15", "20"), limits=c(0,sqrt(22))) +
+	theme(axis.ticks.length = unit(0.15, "cm")) +
   	theme(axis.text.x = element_text(angle = 45,hjust=1, vjust=1, size=11)) +
   	scale_fill_distiller(direction=1, palette = "Purples", limits=c(.2,1.0)) +
   	scale_color_distiller(direction=1, palette = "Purples", limits=c(.2,1.0)) +	
@@ -2994,8 +2998,9 @@ ggsave(ct_tissue_corr_heatmap, file=output_file, width=7.2, height=5.5, units="i
 ##################################################
 method_version="susie_pmces_uniform"
 trait_tissue_prior_significance_file <- paste0(visualize_tgfm_dir, "trait_cell_type_tissue_prior_bonferronni_corrected_significance2.txt")
+if (FALSE) {
 generate_file_containing_bonf_significance_of_each_trait_tissue_pair_based_on_iterative_prior(trait_names, iterative_tgfm_prior_dir, method_version,trait_tissue_prior_significance_file, "component_gene")
-
+}
 
 
 ##################################################
@@ -3121,7 +3126,6 @@ ggsave(sc_gene_tissue_heatmap_barplot, file=output_file, width=7.2, height=4.7, 
 ##########################################################
 # Heat-map barplot showing number of fine-mapped gene-tissue pairs from single cell celltypes stratefied by blood/immune not blood/immune across all traits
 ##########################################################
-if (FALSE) {
 # Make heatmap-barplot showing expected number of causal gene-tissue pairs
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 #output_file_pdf <- paste0(visualize_tgfm_dir, "tgfm_", method_version, "_number_of_high_pip_gene_tissue_pairs_heatmap_barplot_v2.pdf")
@@ -3129,7 +3133,8 @@ sc_gene_tissue_heatmap_barplot <- make_number_of_high_pip_sc_gene_tissue_pairs_h
 
 output_file <- paste0(visualize_tgfm_dir, "number_of_sc_tgfm_gene_tissue_pairs_heatmap_barplot_all_trait_stratefied.pdf")
 ggsave(sc_gene_tissue_heatmap_barplot, file=output_file, width=7.2, height=7.7, units="in")
-}
+
+print(output_file)
 
 ##########################################################
 # Heat-map barplot for single trait showing number of fine-mapped gene-tissue pairs each cell types
@@ -3184,10 +3189,10 @@ output_file <- paste0(visualize_tgfm_dir, "figure6.pdf")
 ggsave(fig_6, file=output_file, width=7.2, height=6.9, units="in")
 }
 
-if (FALSE) {
 ##########################################################
 # Make Figure 6 alt
 ##########################################################
+if (FALSE) {
 # Make heatmap-barplot showing expected number of causal gene-tissue pairs
 method_version="susie_sampler_uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler"
 single_cell_cell_types <- c("B", "NK", "Prolif", "T4", "T8", "cDC", "cM", "ncM", "pDC")
@@ -3202,10 +3207,6 @@ trait_name="blood_LYMPHOCYTE_COUNT"
 trait_name_readable="Lymphocyte count"
 fig_6d <- make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot(trait_name, trait_name_readable, method_version, tgfm_organized_results_dir,single_cell_cell_types)
 
-trait_name="blood_MEAN_PLATELET_VOL"
-trait_name_readable="Platelet volume"
-fig_6e <- make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_barplot(trait_name, trait_name_readable, method_version, tgfm_organized_results_dir,single_cell_cell_types)
-
 
 trait_name="disease_AID_ALL"
 trait_name_readable="All autoimmune"
@@ -3214,7 +3215,6 @@ fig_6f <- make_number_of_high_pip_sc_gene_tissue_pairs_in_each_trait_heatmap_bar
 
 legender <- get_legend(fig_6c + theme(legend.position="bottom"))
 
-#fig_6cf = plot_grid(plot_grid(fig_6c + theme(legend.position="none"), fig_6d+ theme(legend.position="none"),  fig_6f+ theme(legend.position="none"), ncol=2, labels=c("c", "d", "e")), legender, ncol=2, rel_widths=c(1.0,.1))
 fig_6cf = plot_grid(plot_grid(fig_6c + theme(legend.position="none"), fig_6d+ theme(legend.position="none"),  fig_6f+ theme(legend.position="none"), ncol=3, labels=c("c", "d", "e")), legender, ncol=1,rel_heights=c(1,.21))
 
 fig_6 <- plot_grid(fig_6ab, fig_6cf, ncol=1, rel_heights=c(.7,.65))
@@ -3223,8 +3223,6 @@ output_file <- paste0(visualize_tgfm_dir, "figure6_alt.pdf")
 
 ggsave(fig_6, file=output_file, width=7.2, height=5.5, units="in")
 }
-
-
 
 
 

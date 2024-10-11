@@ -12,8 +12,6 @@ import rpy2
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as ro
 import scipy.stats
-import pylzma
-import lzma
 ro.conversion.py2ri = numpy2ri
 numpy2ri.activate()
 from rpy2.robjects.packages import importr
@@ -37,7 +35,6 @@ def extract_tissue_names(gtex_pseudotissue_file,ignore_tissues, remove_testis=Fa
 		arr.append(data[0])
 	f.close()
 	return np.asarray(arr)
-
 
 def standardize_eqtl_pmces_old(eqtl_pmces, variant_ld):
 
@@ -257,12 +254,14 @@ def compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj, variant_z_vec, varian
 		elbos.append(elbo)
 	return np.asarray(elbos)
 
-def extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, variant_ld_mat, subset_n = 100, ld_thresh=0.5):
+def extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, subset_n = 100, ld_thresh=0.5):
 	bs_eqtls_pmces = np.zeros((tgfm_obj.G, tgfm_obj.K))
 	valid_components = []
+	component_marginal_variant_preds = []
 	for bs_iter in range(tgfm_obj.n_bs):
 		# Initialize component array for this bootstrap
 		bs_valid_components = []
+		bs_component_marginal_variant_preds = []
 
 		# Extract eqtl causal effects for this bootstrap
 		bs_eqtls_pmces = bs_eqtls_pmces*0.0
@@ -279,6 +278,11 @@ def extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, variant_ld_mat, s
 				# absolute ld among genes and variants in credible set
 				if np.min(np.abs(gene_variant_full_ld[cs_predictors,:][:, cs_predictors])) > ld_thresh:
 					bs_valid_components.append(l_iter)
+
+					causal_effect_vec = np.hstack((tgfm_obj.alpha_phis[l_iter][bs_iter, :]*tgfm_obj.alpha_mus[l_iter][bs_iter, :], tgfm_obj.beta_phis[l_iter][bs_iter, :]*tgfm_obj.beta_mus[l_iter][bs_iter, :]))
+					pred_marginal = np.dot(gene_variant_full_ld, causal_effect_vec)
+					var_pred_marginal = pred_marginal[(tgfm_obj.G):]
+					bs_component_marginal_variant_preds.append(var_pred_marginal)
 			else:
 				# First run subsetted analysis
 				cs_predictors_subset = np.random.choice(cs_predictors, size=subset_n, replace=False, p=None)
@@ -286,8 +290,13 @@ def extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, variant_ld_mat, s
 					if np.min(np.abs(gene_variant_full_ld[cs_predictors,:][:, cs_predictors])) > ld_thresh:
 						bs_valid_components.append(l_iter)
 
+						causal_effect_vec = np.hstack((tgfm_obj.alpha_phis[l_iter][bs_iter, :]*tgfm_obj.alpha_mus[l_iter][bs_iter, :], tgfm_obj.beta_phis[l_iter][bs_iter, :]*tgfm_obj.beta_mus[l_iter][bs_iter, :]))
+						pred_marginal = np.dot(gene_variant_full_ld, causal_effect_vec)
+						var_pred_marginal = pred_marginal[(tgfm_obj.G):]
+						bs_component_marginal_variant_preds.append(var_pred_marginal)
 		valid_components.append(np.asarray(bs_valid_components))
-	return valid_components
+		component_marginal_variant_preds.append(bs_component_marginal_variant_preds)
+	return valid_components, component_marginal_variant_preds
 
 
 def merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj2, variant_z_vec, variant_ld_mat, gwas_sample_size):
@@ -371,12 +380,10 @@ def tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, init_method, 
 			# Run tgfm sampler with variant init
 			tgfm_obj_variant_init = bootstrapped_tgfm.TGFM(L=10, estimate_prior_variance=True, gene_init_log_pi=gene_log_prior, variant_init_log_pi=var_log_prior, convergence_thresh=1e-5, max_iter=5, bootstrap_prior=bootstrap_prior)
 			tgfm_obj_variant_init.fit(twas_data_obj=tgfm_data, phi_init=alpha_init, mu_init=mu_init, mu_var_init=mu_var_init)
-			#elbo_variant_init = compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj_variant_init, z_vec, ld_mat, tgfm_data['gwas_sample_size'])
 
 			tgfm_obj = merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj_variant_init, z_vec, tgfm_data['reference_ld'], tgfm_data['gwas_sample_size'])
 		
 	return tgfm_obj
-
 
 
 # Convert gwas summary statistics to *STANDARDIZED* effect sizes
@@ -618,7 +625,6 @@ def component_in_middle_of_window(alpha_phi_vec, beta_phi_vec, middle_gene_arr, 
 
 
 
-
 def filter_genes_in_susie_object(susie_obj, valid_gt_indices):
 	new_susie_obj = []
 	for gt_index in valid_gt_indices:
@@ -706,7 +712,6 @@ def filter_tgfm_data_structure_to_remove_specified_tissue_gene_tissue_pairs(tgfm
 
 	return tgfm_data, False
 
-
 def get_agg_non_med_probs(beta_phis):
 	n_comp = len(beta_phis)
 	n_bs = beta_phis[0].shape[0]
@@ -716,6 +721,9 @@ def get_agg_non_med_probs(beta_phis):
 	for comp_iter in range(n_comp):
 		agg_nm_probs[comp_iter, :] = np.sum(beta_phis[comp_iter],axis=1)
 	return agg_nm_probs
+
+
+
 
 
 ######################
@@ -756,13 +764,14 @@ for i, val in enumerate(ordered_tissue_names):
 	tissue_to_position_mapping[val] = i
 
 
+
 # Append job number and num jobs to TGFM ouptut stem
 new_tgfm_output_stem = tgfm_output_stem + '_' + str(job_number) + '_' + str(num_jobs)
-
+print(new_tgfm_output_stem)
 # Open PIP file handle
-pip_output_file = new_tgfm_output_stem + '_tgfm_pip_summary.txt'
+pip_output_file = new_tgfm_output_stem + '_tgfm_component_matching_summary.txt'
 t_pip = open(pip_output_file,'w')
-t_pip.write('window_name\tinclusion_elements\tinclusion_probabilities\n')
+t_pip.write('window_name\tcomponent_num\tfraction_of_correlated_samples\tgene_fraction\n')
 
 
 
@@ -802,6 +811,7 @@ for window_iter in range(n_windows):
 	window_name = data[0]
 	print(window_name)
 
+
 	ld_file = data[1]
 	tgfm_input_pkl = data[2]
 	tgfm_trait_input_pkl = data[3]
@@ -829,14 +839,6 @@ for window_iter in range(n_windows):
 		print('skipped because of window pvalue threshold')
 		continue
 	# Hacky fix
-	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:43014743:46014743':
-		continue
-	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:44014743:47014743':
-		continue
-	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:45014743:48014743':
-		continue
-	if trait_name == 'blood_MEAN_CORPUSCULAR_HEMOGLOBIN' and window_name == '10:46014743:49014743':
-		continue
 	if trait_name == 'blood_RED_COUNT' and window_name == '10:44014743:47014743':
 		continue
 	if trait_name == 'blood_RED_COUNT' and window_name == '10:45014743:48014743':
@@ -856,6 +858,10 @@ for window_iter in range(n_windows):
 			print('skipped because of no genes')
 			continue
 
+	# Load in LD
+	tgfm_data['reference_ld'] = np.load(ld_file)
+	# Add ld to tgfm_data obj
+	#tgfm_data['reference_ld'] = ld_mat
 
 	# Skip windows with no genes
 	if len(tgfm_data['genes']) == 0:
@@ -884,10 +890,9 @@ for window_iter in range(n_windows):
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_tglr_bs_nn_sampler(prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
 	elif ln_pi_method_name == 'uniform_pmces_iterative_variant_gene_tissue_pip_level_sampler':
-		#log_prior_file = tgfm_output_stem.split('_all_non_zero_gene')[0] + '_all_non_zero_gene_susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
-		#log_prior_file = prior_dir + log_prior_file.split('/')[-1]
 		log_prior_file = tgfm_output_stem.split('susie')[0] + 'susie_pmces_uniform_iterative_variant_gene_prior_v2_pip_level_bootstrapped.txt'
 		log_prior_file = prior_dir + log_prior_file.split('/')[-1]
+		#log_prior_file = prior_dir + 'tgfm_results_' + trait_name + '_'
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_iterative_prior_sampler_sampler(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
 		bootstrap_prior = True
 	elif ln_pi_method_name == 'uniform_pmces_iterative_variant_gene_tissue_pip_level_pmces':
@@ -895,143 +900,101 @@ for window_iter in range(n_windows):
 		var_log_prior, gene_log_prior = extract_log_prior_probabilities_for_iterative_prior_pmces(log_prior_file, tgfm_data['variants'], tgfm_data['genes'])
 	else:
 		print('assumption erororo: ' + str(ln_pi_method_name) + ' is not yet implemented')
-		pdb.set_trace()	
+		pdb.set_trace()
 
+
+	# Standardize gwas summary statistics
+	gwas_beta_scaled, gwas_beta_se_scaled = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, float(gwas_sample_size), tgfm_data['reference_ld'])
+
+	# Extract full ld between genes, variants, and gene-variants
+	#gene_variant_full_ld = extract_full_gene_variant_ld(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])
+
+	# Add extra info to tgfm_data
+	tgfm_data['gwas_beta'] = gwas_beta_scaled
+	tgfm_data['gwas_beta_se'] = gwas_beta_se_scaled
+	tgfm_data['gwas_sample_size'] = gwas_sample_size
 
 	##############################
 	# Run TGFM
 	###############################
-	window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
-	if os.path.isfile(window_tgfm_output_file) == False:
-		# Load in LD
-		#ld_mat = np.load(ld_file)
-		# Add ld to tgfm_data obj
-		#tgfm_data['reference_ld'] = ld_mat
-		tgfm_data['reference_ld'] = np.load(ld_file)
-		
-		# Standardize gwas summary statistics
-		gwas_beta_scaled, gwas_beta_se_scaled = convert_to_standardized_summary_statistics(gwas_beta, gwas_beta_se, float(gwas_sample_size), tgfm_data['reference_ld'])
-
-		# Extract full ld between genes, variants, and gene-variants
-		#gene_variant_full_ld = extract_full_gene_variant_ld(tgfm_data['gene_eqtl_pmces'], tgfm_data['reference_ld'])
-
-		# Add extra info to tgfm_data
-		tgfm_data['gwas_beta'] = gwas_beta_scaled
-		tgfm_data['gwas_beta_se'] = gwas_beta_se_scaled
-		tgfm_data['gwas_sample_size'] = gwas_sample_size
+	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, init_method, bootstrap_prior)
+	'''
+	f = open('tmp.pkl', 'wb') 
+	pickle.dump(tgfm_obj, f)
+	f.close()
+	import pickle
+	f = open('tmp.pkl', 'rb')
+	tgfm_obj= pickle.load(f)
+	f.close()
+	'''
 
 
+	##############################
+	# Extract valid tgfm components
+	###############################
+	print('component search')
+	valid_tgfm_sampler_components, component_marginal_variant_preds = extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj)
+	'''
+	f = open('tmp2.pkl', 'wb') 
+	pickle.dump(valid_tgfm_sampler_components, f)
+	f.close()
+	f = open('tmp3.pkl', 'wb') 
+	pickle.dump(component_marginal_variant_preds, f)
+	f.close()
+	f = open('tmp2.pkl', 'rb')
+	valid_tgfm_sampler_components = pickle.load(f)
+	f.close()
+	f = open('tmp3.pkl', 'rb')
+	component_marginal_variant_preds = pickle.load(f)
+	f.close()
+	'''
 
-		tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, init_method, bootstrap_prior)
-
-		print('organizing')
-
-		##############################
-		# Organize TGFM data and print to results
-		###############################
-		# Extract names of genetic elements
-		genetic_element_names = np.hstack((tgfm_data['genes'], tgfm_data['variants']))
-		# Extract dictionary list of genetic elements in the middel of this window
-		middle_genetic_elements = extract_middle_genetic_elements(tgfm_data['genes'], tgfm_data['middle_gene_indices'], tgfm_data['variants'], tgfm_data['middle_variant_indices'])
-		# Extract genetic element pips
-		genetic_element_pips = np.hstack((tgfm_obj.expected_alpha_pips, tgfm_obj.expected_beta_pips))
-
-		# Extract genetic elements and pips only corresponding to middle genetic elements
-		middle_pips = []
-		middle_names = []
-		for genetic_element_iter, genetic_element_name in enumerate(genetic_element_names):
-			if genetic_element_name not in middle_genetic_elements:
-				continue
-			if genetic_element_pips[genetic_element_iter] < .01:
-				continue
-			middle_pips.append(genetic_element_pips[genetic_element_iter])
-			middle_names.append(genetic_element_name)
-		middle_pips = np.asarray(middle_pips)
-		middle_names = np.asarray(middle_names)
-
-		# Sort middle pips
-		indices = np.argsort(-middle_pips)
-		ordered_middle_pips = middle_pips[indices]
-		ordered_middle_names = middle_names[indices]
-
-		agg_nm_probs = get_agg_non_med_probs(tgfm_obj.beta_phis)
-
-		# Note could compute expected mediated probability
-
-		# Write to credible set output
-		t_pip.write(window_name + '\t')
-		t_pip.write(';'.join(ordered_middle_names) + '\t')
-		t_pip.write(';'.join(ordered_middle_pips.astype(str)) + '\n')
-
-		# Save all TGFM results to pkl
-		tgfm_results = {}
-		tgfm_results['variants'] = tgfm_data['variants']
-		tgfm_results['genes'] = tgfm_data['genes']
-		tgfm_results['alpha_phis'] = tgfm_obj.alpha_phis
-		tgfm_results['alpha_mus'] = tgfm_obj.alpha_mus
-		tgfm_results['alpha_vars'] = tgfm_obj.alpha_vars
-		tgfm_results['alpha_pips'] = tgfm_obj.alpha_pips
-		tgfm_results['beta_phis'] = tgfm_obj.beta_phis
-		#tgfm_results['beta_pips'] = tgfm_obj.beta_pips
-		tgfm_results['expected_alpha_pips'] = tgfm_obj.expected_alpha_pips
-		tgfm_results['expected_beta_pips'] = tgfm_obj.expected_beta_pips
-		#tgfm_results['valid_components'] = valid_tgfm_sampler_components
-		#tgfm_results['valid_middle_components'] = valid_middle_tgfm_components
-		tgfm_results['nominal_twas_z'] = tgfm_obj.nominal_twas_z
-		tgfm_results['middle_variant_indices'] = tgfm_data['middle_variant_indices']
-		tgfm_results['middle_gene_indices'] = tgfm_data['middle_gene_indices']
-		tgfm_results['aggregated_nm_probs'] = agg_nm_probs
+	print('component end')
+	# Extract middle valid tgfm components
+	valid_middle_tgfm_components = []
+	middle_component_marginal_variant_preds = []
+	for sample_iter in range(len(valid_tgfm_sampler_components)):
+		middle_tmp = []
+		midle_variant_pred_tmp = []
+		for ii, valid_tgfm_component in enumerate(valid_tgfm_sampler_components[sample_iter]):
+			if component_in_middle_of_window(tgfm_obj.alpha_phis[valid_tgfm_component][sample_iter, :], tgfm_obj.beta_phis[valid_tgfm_component][sample_iter, :], tgfm_data['middle_gene_indices'], tgfm_data['middle_variant_indices']):
+				middle_tmp.append(valid_tgfm_component)
+				midle_variant_pred_tmp.append(component_marginal_variant_preds[sample_iter][ii])
+		valid_middle_tgfm_components.append(np.asarray(middle_tmp))
+		middle_component_marginal_variant_preds.append(midle_variant_pred_tmp)
 
 
+	f = open(new_tgfm_output_stem + '_' + window_name + '_marginal_component_variant_preds.pkl', 'wb') 
+	pickle.dump(middle_component_marginal_variant_preds, f)
+	f.close()
 
+	f = open(new_tgfm_output_stem + '_' + window_name + '_valid_middle_tgfm_components.pkl', 'wb') 
+	pickle.dump(valid_middle_tgfm_components, f)
+	f.close()
 
+	corr_thresh = 0.95
+	for ii, ref_samp_pred in enumerate(middle_component_marginal_variant_preds[0]):
+		ref_component_num = valid_middle_tgfm_components[0][ii]
+		gene_frac = np.sum(tgfm_obj.alpha_phis[ref_component_num][0,:])
 
-		# Write pickle file
-		window_tgfm_output_file = tgfm_output_stem + '_' + window_name + '_results.pkl'
-		g = open(window_tgfm_output_file, "wb")
-		pickle.dump(tgfm_results, g)
-		g.close()
-	else:
-		print('already run')
-		g = open(window_tgfm_output_file, "rb")
-		tgfm_results = pickle.load(g)
-		g.close()
+		pass_bool = []
+		# Loop through other samples
+		for non_ref_samp_preds in middle_component_marginal_variant_preds[1:]:
+			n_corr_comp = 0.0
+			for non_ref_samp_pred in non_ref_samp_preds:
+				if np.abs(np.corrcoef(ref_samp_pred, non_ref_samp_pred)[0,1]) > corr_thresh:
+					n_corr_comp = n_corr_comp + 1
+			if n_corr_comp == 1.0:
+				pass_bool.append(1.0)
+			else:
+				pass_bool.append(0.0)
+		pass_bool = np.asarray(pass_bool)
 
-		##############################
-		# Organize TGFM data and print to results
-		###############################
-		# Extract names of genetic elements
-		genetic_element_names = np.hstack((tgfm_data['genes'], tgfm_data['variants']))
-		# Extract dictionary list of genetic elements in the middel of this window
-		middle_genetic_elements = extract_middle_genetic_elements(tgfm_data['genes'], tgfm_data['middle_gene_indices'], tgfm_data['variants'], tgfm_data['middle_variant_indices'])
-		# Extract genetic element pips
-		genetic_element_pips = np.hstack((tgfm_results['expected_alpha_pips'], tgfm_results['expected_beta_pips']))
-
-		# Extract genetic elements and pips only corresponding to middle genetic elements
-		middle_pips = []
-		middle_names = []
-		for genetic_element_iter, genetic_element_name in enumerate(genetic_element_names):
-			if genetic_element_name not in middle_genetic_elements:
-				continue
-			if genetic_element_pips[genetic_element_iter] < .01:
-				continue
-			middle_pips.append(genetic_element_pips[genetic_element_iter])
-			middle_names.append(genetic_element_name)
-		middle_pips = np.asarray(middle_pips)
-		middle_names = np.asarray(middle_names)
-
-		# Sort middle pips
-		indices = np.argsort(-middle_pips)
-		ordered_middle_pips = middle_pips[indices]
-		ordered_middle_names = middle_names[indices]
-
-		# Note could compute expected mediated probability
-
-		# Write to credible set output
-		t_pip.write(window_name + '\t')
-		t_pip.write(';'.join(ordered_middle_names) + '\t')
-		t_pip.write(';'.join(ordered_middle_pips.astype(str)) + '\n')
-
+		if len(pass_bool) != 99:
+			print('assumption eroror')
+			pdb.set_trace()
+		t_pip.write(window_name + '\t' + str(ref_component_num) + '\t' + str(np.mean(pass_bool)) + '\t' + str(gene_frac) + '\n')
+	t_pip.flush()
 
 
 # Close file handles

@@ -188,6 +188,7 @@ tgfm_organized_results_dir=$perm_output_root"tgfm_organized_results/"
 
 # Directory containing TGFM iterative prior results
 iterative_tgfm_prior_results_dir=$perm_output_root"iterative_tgfm_prior/"
+iterative_tgfm_prior_results_dir=$perm_output_root"iterative_tgfm_prior_revision/"
 
 
 # Directory containing drug target gene set enrichment analyses
@@ -275,6 +276,12 @@ supp_data_dir=$perm_output_root"supp_data_dir/"
 # Analysis
 ##################
 
+
+# in this case source bash profile was:
+# module load python/2.7.12
+#module load R/3.5.1
+#module load python/3.7.4
+# And potentially load module load R/4.0.1
 ########################################
 # Liftover UKBB summary statistics to hg38
 ########################################
@@ -390,14 +397,11 @@ fi
 
 
 
-
-
 gene_type="component_gene"
 # Organize preprocessed TGFM results across parallel jobs
 if false; then
 sh organize_processed_tgfm_input_data.sh $num_jobs $gene_type $preprocessed_tgfm_data_dir
 fi
-
 
 # Number of parallel jobs
 num_jobs="40"
@@ -445,15 +449,21 @@ fi
 gene_type="component_gene"
 num_jobs="8"
 ignore_tissues="None"
+# Below running on code_temp2
 if false; then
 sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
 	for job_number in $(seq 0 $(($num_jobs-1))); do
 		tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 		tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
-		sbatch run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs $ignore_tissues
+		sh run_tgfm_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $job_number $num_jobs $ignore_tissues
 	done
 done
 fi
+
+
+
+
+
 
 gene_type="all_non_zero_gene"
 num_jobs="8"
@@ -499,6 +509,7 @@ sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_rea
 done
 fi
 
+
 gene_type="all_non_zero_gene"
 tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 ignore_tissues="None"
@@ -531,13 +542,25 @@ gene_type="component_gene"
 num_jobs="8"
 ignore_tissues="None"
 if false; then
-echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt"
-sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" | while read trait_name study_file sample_size h2; do
+echo $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_paired.txt"
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_paired.txt" | while read trait_name study_file sample_size h2; do
 echo $trait_name
 for job_number in $(seq 0 $(($num_jobs-1))); do
 	tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
 	tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
 	sbatch run_tgfm_with_iterative_prior_shell.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
+done
+done
+fi
+
+
+
+if false; then
+sed 1d $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_tmp.txt" | while read trait_name study_file sample_size h2; do
+for job_number in $(seq 0 $(($num_jobs-1))); do
+tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
+tgfm_output_stem=${tgfm_results_dir}"tgfm_results_"${trait_name}"_"${gene_type}
+sbatch run_tgfm_with_iterative_prior_shell_component_matching.sh $trait_name $tgfm_input_summary_file $tgfm_output_stem $gtex_pseudotissue_file $iterative_tgfm_prior_results_dir $job_number $num_jobs $ignore_tissues
 done
 done
 fi
@@ -701,6 +724,13 @@ fi
 
 
 #################################
+# Organize TGFM-held-out tissue results across parallel runs
+#################################
+if false; then
+sh organize_tgfm_component_matching_results_across_parallele_runs.sh $tgfm_results_dir $gene_type $num_jobs $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3_tmp.txt" $tgfm_organized_results_dir
+fi
+
+#################################
 # Compute average correlation in predicted expression for each pair of tissues
 #################################
 tgfm_input_summary_file=${preprocessed_tgfm_data_dir}${gene_type}"_tgfm_input_data_summary.txt"
@@ -713,10 +743,10 @@ fi
 # Visualize specific TGFM examples
 #################################
 specific_examples_input_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/specific_examples_all.txt"
+specific_examples_input_file="/n/groups/price/ben/causal_eqtl_gwas/input_data/specific_examples_new.txt"
 if false; then
 sh visualize_specific_tgfm_examples.sh $specific_examples_input_file $tgfm_input_summary_file $tgfm_results_dir $tgfm_organized_results_dir $gtex_susie_gene_models_dir $gene_annotation_file $visualize_specific_tgfm_examples_dir $ukbb_sumstats_hg38_dir
 fi
-
 
 #################################
 # Run Run biological process enrichment analysis
@@ -791,8 +821,8 @@ fi
 if false; then
 source ~/.bash_profile
 module load R/3.5.1
-fi
-if false; then
+
+module load R/3.5.1
 Rscript visualize_gtex_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $tgfm_results_dir $tgfm_organized_results_dir $gtex_tissue_colors_file $iterative_tgfm_prior_results_dir $pops_enrichment_dir $non_disease_specific_gene_set_enrichment_dir $visualize_gtex_tgfm_dir $tissue_tissue_correlation_file $gtex_pseudotissue_file $chromatin_cell_type_group_ldsc_dir $ldl_silver_standard_gene_set_enrichment_dir
 fi
 
@@ -1095,8 +1125,6 @@ fi
 if false; then
 source ~/.bash_profile
 module load R/3.5.1
-fi
-if false; then
 Rscript visualize_sc_tgfm_results.R $ukbb_sumstats_hg38_dir"ukbb_hg38_sumstat_files_with_samp_size_and_h2_readable3.txt" $sc_tgfm_results_dir $sc_tgfm_organized_results_dir $iterative_sc_tgfm_prior_results_dir $visualize_sc_tgfm_dir $tissue_tissue_ct_ct_correlation_file $tissue_replication_results_dir
 fi
 

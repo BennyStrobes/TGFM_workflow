@@ -254,12 +254,14 @@ def compute_elbo_for_bootstrapped_tgfm_obj_shell(tgfm_obj, variant_z_vec, varian
 		elbos.append(elbo)
 	return np.asarray(elbos)
 
-def extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, variant_ld_mat, subset_n = 100, ld_thresh=0.5):
+def extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, subset_n = 100, ld_thresh=0.5):
 	bs_eqtls_pmces = np.zeros((tgfm_obj.G, tgfm_obj.K))
 	valid_components = []
+	component_marginal_variant_preds = []
 	for bs_iter in range(tgfm_obj.n_bs):
 		# Initialize component array for this bootstrap
 		bs_valid_components = []
+		bs_component_marginal_variant_preds = []
 
 		# Extract eqtl causal effects for this bootstrap
 		bs_eqtls_pmces = bs_eqtls_pmces*0.0
@@ -276,6 +278,11 @@ def extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, variant_ld_mat, s
 				# absolute ld among genes and variants in credible set
 				if np.min(np.abs(gene_variant_full_ld[cs_predictors,:][:, cs_predictors])) > ld_thresh:
 					bs_valid_components.append(l_iter)
+
+					causal_effect_vec = np.hstack((tgfm_obj.alpha_phis[l_iter][bs_iter, :]*tgfm_obj.alpha_mus[l_iter][bs_iter, :], tgfm_obj.beta_phis[l_iter][bs_iter, :]*tgfm_obj.beta_mus[l_iter][bs_iter, :]))
+					pred_marginal = np.dot(gene_variant_full_ld, causal_effect_vec)
+					var_pred_marginal = pred_marginal[(tgfm_obj.G):]
+					bs_component_marginal_variant_preds.append(var_pred_marginal)
 			else:
 				# First run subsetted analysis
 				cs_predictors_subset = np.random.choice(cs_predictors, size=subset_n, replace=False, p=None)
@@ -283,8 +290,13 @@ def extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, variant_ld_mat, s
 					if np.min(np.abs(gene_variant_full_ld[cs_predictors,:][:, cs_predictors])) > ld_thresh:
 						bs_valid_components.append(l_iter)
 
+						causal_effect_vec = np.hstack((tgfm_obj.alpha_phis[l_iter][bs_iter, :]*tgfm_obj.alpha_mus[l_iter][bs_iter, :], tgfm_obj.beta_phis[l_iter][bs_iter, :]*tgfm_obj.beta_mus[l_iter][bs_iter, :]))
+						pred_marginal = np.dot(gene_variant_full_ld, causal_effect_vec)
+						var_pred_marginal = pred_marginal[(tgfm_obj.G):]
+						bs_component_marginal_variant_preds.append(var_pred_marginal)
 		valid_components.append(np.asarray(bs_valid_components))
-	return valid_components
+		component_marginal_variant_preds.append(bs_component_marginal_variant_preds)
+	return valid_components, component_marginal_variant_preds
 
 
 def merge_two_bootstrapped_tgfms_based_on_elbo(tgfm_obj, tgfm_obj2, variant_z_vec, variant_ld_mat, gwas_sample_size):
@@ -906,21 +918,6 @@ for window_iter in range(n_windows):
 	###############################
 	tgfm_obj = tgfm_inference_shell(tgfm_data, gene_log_prior, var_log_prior, init_method, bootstrap_prior)
 
-	'''
-	##############################
-	# Extract valid tgfm components
-	###############################
-	valid_tgfm_sampler_components = extract_valid_tgfm_sampler_components(tgfm_data, tgfm_obj, ld_mat)
-
-	# Extract middle valid tgfm components
-	valid_middle_tgfm_components = []
-	for sample_iter in range(len(valid_tgfm_sampler_components)):
-		middle_tmp = []
-		for valid_tgfm_component in valid_tgfm_sampler_components[sample_iter]:
-			if component_in_middle_of_window(tgfm_obj.alpha_phis[valid_tgfm_component][sample_iter, :], tgfm_obj.beta_phis[valid_tgfm_component][sample_iter, :], tgfm_data['middle_gene_indices'], tgfm_data['middle_variant_indices']):
-				middle_tmp.append(valid_tgfm_component)
-		valid_middle_tgfm_components.append(np.asarray(middle_tmp))
-	'''
 	print('organizing')
 
 	##############################
@@ -982,7 +979,7 @@ for window_iter in range(n_windows):
 	tgfm_results['alpha_phis'] = tgfm_obj.alpha_phis
 	tgfm_results['alpha_mus'] = tgfm_obj.alpha_mus
 	tgfm_results['alpha_vars'] = tgfm_obj.alpha_vars
-	#tgfm_results['beta_phis'] = tgfm_obj.beta_phis
+	tgfm_results['beta_phis'] = tgfm_obj.beta_phis
 	#tgfm_results['alpha_lbfs'] = tgfm_obj.alpha_lbfs
 	#tgfm_results['beta_lbfs'] = tgfm_obj.beta_lbfs
 	tgfm_results['alpha_pips'] = tgfm_obj.alpha_pips

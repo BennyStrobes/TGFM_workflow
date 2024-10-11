@@ -2017,7 +2017,7 @@ make_gene_tissue_fdr_plot_comparing_tgfm_to_special_two_step_known_tiss_across_s
 	tgfm_two_step_calibration_df = tgfm_two_step_calibration_df[as.character(tgfm_two_step_calibration_df$genetic_element_class) == "gene",]
 	tmp_df = tgfm_two_step_calibration_df[as.character(tgfm_two_step_calibration_df$two_step_tissue_method) == "known_single_causal_tissue",]
 	n_elements = dim(tmp_df)[1]
-	method_vec <- c(method_vec, rep("two-step-TGFM", n_elements))
+	method_vec <- c(method_vec, rep("cheating-TGFM", n_elements))
 	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
 	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
 	coverage_vec <- c(coverage_vec, tmp_df$coverage)
@@ -2031,7 +2031,7 @@ make_gene_tissue_fdr_plot_comparing_tgfm_to_special_two_step_known_tiss_across_s
 	ctwas_two_step_calibration_df = ctwas_two_step_calibration_df[as.character(ctwas_two_step_calibration_df$genetic_element_class) == "gene",]
 	tmp_df = ctwas_two_step_calibration_df
 	n_elements = dim(tmp_df)[1]
-	method_vec <- c(method_vec, rep("two-step-cTWAS", n_elements))
+	method_vec <- c(method_vec, rep("cheating-cTWAS", n_elements))
 	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
 	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
 	coverage_vec <- c(coverage_vec, tmp_df$coverage)
@@ -2045,7 +2045,7 @@ make_gene_tissue_fdr_plot_comparing_tgfm_to_special_two_step_known_tiss_across_s
 	focus_two_step_calibration_df = focus_two_step_calibration_df[as.character(focus_two_step_calibration_df$genetic_element_class) == "gene",]
 	tmp_df = focus_two_step_calibration_df
 	n_elements = dim(tmp_df)[1]
-	method_vec <- c(method_vec, rep("two-step-FOCUS", n_elements))
+	method_vec <- c(method_vec, rep("cheating-FOCUS", n_elements))
 	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
 	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
 	coverage_vec <- c(coverage_vec, tmp_df$coverage)
@@ -2059,7 +2059,7 @@ make_gene_tissue_fdr_plot_comparing_tgfm_to_special_two_step_known_tiss_across_s
 	coloc_two_step_calibration_df = coloc_two_step_calibration_df[as.character(coloc_two_step_calibration_df$genetic_element_class) == "gene",]
 	tmp_df = coloc_two_step_calibration_df
 	n_elements = dim(tmp_df)[1]
-	method_vec <- c(method_vec, rep("two-step-coloc", n_elements))
+	method_vec <- c(method_vec, rep("cheating-coloc", n_elements))
 	n_detected_vec <- c(n_detected_vec, tmp_df$n_detected_elements)
 	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
 	coverage_vec <- c(coverage_vec, tmp_df$coverage)
@@ -2070,7 +2070,7 @@ make_gene_tissue_fdr_plot_comparing_tgfm_to_special_two_step_known_tiss_across_s
 
 
 	# Convert into clean data frame
-	df <- data.frame(method=factor(method_vec, levels=c("two-step-TGFM", "two-step-cTWAS", "two-step-FOCUS", "two-step-coloc")), n_detected_elements=n_detected_vec, eQTL_sample_size=factor(as.character(eQTL_sample_size_vec), levels=c("realistic","100", "300", "500", "1000")), precision=coverage_vec, precision_ub=coverage_ub_vec, precision_lb=coverage_lb_vec, expected_fdr=1.0-expected_coverage_vec)
+	df <- data.frame(method=factor(method_vec, levels=c("cheating-TGFM", "cheating-cTWAS", "cheating-FOCUS", "cheating-coloc")), n_detected_elements=n_detected_vec, eQTL_sample_size=factor(as.character(eQTL_sample_size_vec), levels=c("realistic","100", "300", "500", "1000")), precision=coverage_vec, precision_ub=coverage_ub_vec, precision_lb=coverage_lb_vec, expected_fdr=1.0-expected_coverage_vec)
 	df$eQTL_sample_size = gsub("realistic","100+300", as.character(df$eQTL_sample_size))
 
 	if (include_100==TRUE) {
@@ -4874,7 +4874,7 @@ make_gene_tissue_power_plot_comparing_tgfm_to_special_two_step_known_tiss_across
 	indices = (as.character(tgfm_power_df$twas_method) == "susie_sampler") & (as.character(tgfm_power_df$ln_pi_method) == "pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped")
 	tmp_df = tgfm_power_df[indices,]
 	n_elements = dim(tmp_df)[1]
-	method_vec <- c(method_vec, rep("two-step-TGFM", n_elements))
+	method_vec <- c(method_vec, rep("cheating-TGFM", n_elements))
 	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
 	power_vec <- c(power_vec, tmp_df$power)
 	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
@@ -4887,7 +4887,7 @@ make_gene_tissue_power_plot_comparing_tgfm_to_special_two_step_known_tiss_across
 	# Extract data for TGFM method
 	tmp_df = tgfm_power_df
 	n_elements = dim(tmp_df)[1]
-	method_vec <- c(method_vec, rep("two-step-cTWAS", n_elements))
+	method_vec <- c(method_vec, rep("cheating-cTWAS", n_elements))
 	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
 	power_vec <- c(power_vec, tmp_df$power)
 	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
@@ -4901,7 +4901,7 @@ make_gene_tissue_power_plot_comparing_tgfm_to_special_two_step_known_tiss_across
 	# Extract data for TGFM method
 	tmp_df = tgfm_power_df
 	n_elements = dim(tmp_df)[1]
-	method_vec <- c(method_vec, rep("two-step-FOCUS", n_elements))
+	method_vec <- c(method_vec, rep("cheating-FOCUS", n_elements))
 	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
 	power_vec <- c(power_vec, tmp_df$power)
 	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
@@ -4916,7 +4916,7 @@ make_gene_tissue_power_plot_comparing_tgfm_to_special_two_step_known_tiss_across
 	# Extract data for TGFM method
 	tmp_df = tgfm_power_df
 	n_elements = dim(tmp_df)[1]
-	method_vec <- c(method_vec, rep("two-step-coloc", n_elements))
+	method_vec <- c(method_vec, rep("cheating-coloc", n_elements))
 	eQTL_sample_size_vec <- c(eQTL_sample_size_vec, as.character(tmp_df$eQTL_sample_size))
 	power_vec <- c(power_vec, tmp_df$power)
 	power_lb_vec <- c(power_lb_vec, tmp_df$power_lb)
@@ -4926,7 +4926,7 @@ make_gene_tissue_power_plot_comparing_tgfm_to_special_two_step_known_tiss_across
 
 	red_color=brewer.pal(n = 9, name = "Reds")[6]
 	# Convert into clean data frame
-	df <- data.frame(method=factor(method_vec, levels=c("two-step-TGFM", "two-step-cTWAS", "two-step-FOCUS", "two-step-coloc")), eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c("realistic", "100", "300", "500", "1000")), power=power_vec, power_ub=power_ub_vec, power_lb=power_lb_vec)
+	df <- data.frame(method=factor(method_vec, levels=c("cheating-TGFM", "cheating-cTWAS", "cheating-FOCUS", "cheating-coloc")), eQTL_sample_size=factor(eQTL_sample_size_vec, levels=c("realistic", "100", "300", "500", "1000")), power=power_vec, power_ub=power_ub_vec, power_lb=power_lb_vec)
 
 
 	df$eQTL_sample_size = gsub("realistic","100-300", as.character(df$eQTL_sample_size))
@@ -5768,6 +5768,132 @@ make_fdr_power_line_plot_compared_to_two_step <- function(simulated_organized_re
  		scale_color_manual(values=c(red_color, red_color1, purple2_color, organge2_color, "grey"))+
  		figure_theme() +
  		labs(title=paste0("eQTL SS= ",eqtl_name_readable), x="Power",y="FDR",color="")
+
+ 	return(p)
+
+}
+
+make_precision_recall_line_plot_include_jlim_smr <- function(simulated_organized_results_dir, global_simulation_name_string, eqtl_ss, eqtl_ss_readable, limit_fdr_range=FALSE) {
+	# Generate global vectors
+	fdr_vec <- c()
+	power_vec <- c()
+	pip_vec <- c()
+	method_vec <- c()
+
+	# TGFM
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_susie_sampler_pmces_uniform_iterative_variant_gene_prior_pip_level_bootstrapped_", eqtl_ss, "_tgfm_gene_tissue_fdr_power_curve_data2.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("TGFM", length(df$power)))
+
+
+	# FOCUS
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_focus_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("FOCUS", length(df$power)))	
+
+	# FOCUS-TG
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_focus_tg_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("FOCUS-TG", length(df$power)))	
+
+
+	# cTWAS
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_ctwas_lasso_ctwas_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("cTWAS", length(df$power)))	
+
+	# cTWAS-TG
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_ctwas_tg_lasso_ctwas_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("cTWAS-TG", length(df$power)))	
+
+
+	# coloc
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_coloc_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("coloc", length(df$power)))	
+
+
+	# JLIM
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_jlim_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("JLIM", length(df$power)))	
+
+	# SMR
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_smr_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	nrows = dim(df)[1]
+	df = df[1:(nrows-1),]
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("SMR", length(df$power)))	
+
+
+	# SMR + Heidi
+	input_file <- paste0(simulated_organized_results_dir, "organized_simulation_", global_simulation_name_string, "_smr_heidi_", eqtl_ss, "_fdr_power_curve_data.txt")
+	df <- read.table(input_file, header=TRUE,sep="\t")
+	nrows = dim(df)[1]
+	df = df[1:(nrows-1),]
+	fdr_vec <- c(fdr_vec, df$fdr)
+	power_vec <- c(power_vec, df$power)
+	pip_vec <- c(pip_vec, df$pip_threshold)
+	method_vec <- c(method_vec, rep("SMR+HEIDI", length(df$power)))	
+
+
+
+
+	df <- data.frame(power=power_vec,fdr=fdr_vec, pip=pip_vec, method=factor(method_vec, levels=c("TGFM", "cTWAS-TG", "cTWAS", "FOCUS-TG", "FOCUS", "coloc", "JLIM", "SMR", "SMR+HEIDI")))
+
+	if (limit_fdr_range) {
+		#df <- df[df$fdr <= 0.5,]
+		df <- df[df$power <= 0.002,]
+	}
+
+
+	df<- df[seq(dim(df)[1],1),]
+
+
+	if (eqtl_ss == "realistic") {
+		eqtl_ss="100+300"
+	}
+
+	df$recall = df$power
+	df$precision = 1.0 - df$fdr
+
+	red_color=brewer.pal(n = 9, name = "Reds")[6]
+	purple1_color=brewer.pal(n = 9, name = "Purples")[7]
+	purple2_color=brewer.pal(n = 9, name = "Purples")[5]
+	orange1_color=brewer.pal(n = 9, name = "Oranges")[6]
+	organge2_color=brewer.pal(n = 9, name = "Oranges")[4]
+
+
+	p<-ggplot(df, aes(x=recall, y=precision, group=method)) +
+ 		geom_line(aes(color=method)) + 
+ 		scale_color_manual(values=c(red_color, purple1_color, purple2_color, orange1_color, organge2_color, "grey", "seagreen3", "steelblue2", "steelblue4")) +
+ 		figure_theme() +
+ 		labs(title=paste0("eQTL SS= ",eqtl_ss_readable), x="Recall",y="Precision",color="")
 
  	return(p)
 
@@ -6831,6 +6957,36 @@ ggsave(joint_fdr_power_plot, file=output_file, width=7.2, height=5.4, units="in"
 }
 
 #####################################################################
+# Make precision-recall curve across different tissue gene fine-mapping methods
+#####################################################################
+if (FALSE) {
+# 100-300
+eqtl_ss <- "realistic"
+eqtl_name_readable <- "100-300"
+fdr_power_plot_realistic <- make_precision_recall_line_plot_include_jlim_smr(simulated_organized_results_dir, paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default"), eqtl_ss, eqtl_name_readable)
+# 300
+eqtl_ss <- "300"
+eqtl_name_readable <- "300"
+fdr_power_plot_300 <- make_precision_recall_line_plot_include_jlim_smr(simulated_organized_results_dir, paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default"), eqtl_ss, eqtl_name_readable)
+# 500
+eqtl_ss <- "500"
+eqtl_name_readable <- "500"
+fdr_power_plot_500 <- make_precision_recall_line_plot_include_jlim_smr(simulated_organized_results_dir, paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default"), eqtl_ss, eqtl_name_readable)
+# 1000
+eqtl_ss <- "1000"
+eqtl_name_readable <- "1000"
+fdr_power_plot_1000 <- make_precision_recall_line_plot_include_jlim_smr(simulated_organized_results_dir, paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default"), eqtl_ss, eqtl_name_readable)
+
+# Join together with cowplot
+legender <- get_legend(fdr_power_plot_500+guides(colour = guide_legend(byrow = TRUE)) + theme(legend.position="bottom"))
+joint_fdr_power_plot <- plot_grid(fdr_power_plot_realistic + theme(legend.position="none"), fdr_power_plot_300 + theme(legend.position="none"), fdr_power_plot_500 + theme(legend.position="none"), fdr_power_plot_1000 + theme(legend.position="none"), ncol=2, labels=c("a", "b", "c","d"))
+joint_fdr_power_plot <- plot_grid(joint_fdr_power_plot, legender, ncol=1, rel_heights=c(1,.16))
+output_file <- paste0(visualize_simulated_results_dir, "simulation_", paste0(global_simulation_name_string, "_gt_arch_2_caus_t_qtl_arch_default"), "_cross_method_and_ss_precision_recall_line_plot.pdf")
+ggsave(joint_fdr_power_plot, file=output_file, width=7.2, height=5.4, units="in")
+print(output_file)
+}
+
+#####################################################################
 # Make FDR-Power curve for TGFM across eQTL sample sizes
 #####################################################################
 if (FALSE) {
@@ -6931,17 +7087,15 @@ pip_threshold <- "0.99"
 power_plot_99 <- make_gene_tissue_power_plot_comparing_tgfm_to_special_two_step_known_tiss_across_sample_sizes(simulated_organized_results_dir, local_simulation_name_string, pip_threshold, include_100=FALSE) +  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Extract legend 
-legender = get_legend(fdr_plot_9)
+legender = get_legend(fdr_plot_9 + guides(fill=guide_legend(nrow=2,byrow=TRUE)))
 
 # Make joint plot with cowplot
-figure <- plot_grid(legender, plot_grid(fdr_plot_5+theme(legend.position="none"), fdr_plot_9+theme(legend.position="none"), fdr_plot_99 + theme(legend.position="none"), power_plot_5 +theme(legend.position="none"),power_plot_9 +theme(legend.position="none"), power_plot_99 +theme(legend.position="none"), ncol=3, labels=c("a", "b", "c","d", "e", "f")),ncol=1, rel_heights=c(.1,1))
+figure <- plot_grid(legender, plot_grid(fdr_plot_5+theme(legend.position="none"), fdr_plot_9+theme(legend.position="none"), fdr_plot_99 + theme(legend.position="none"), power_plot_5 +theme(legend.position="none"),power_plot_9 +theme(legend.position="none"), power_plot_99 +theme(legend.position="none"), ncol=3, labels=c("a", "b", "c","d", "e", "f")),ncol=1, rel_heights=c(.14,1))
 
 # Make joint plot
 output_file <- paste0(visualize_simulated_results_dir, "simulation_", local_simulation_name_string, "_gene_tissue_precision_power_special_case_of_two_step_fine_mapping_known_causal_tiss.pdf")
 ggsave(figure, file=output_file, width=7.2, height=5.5, units="in")
-print(output_file)
 }
-
 
 
 #####################################################################
